@@ -6,7 +6,7 @@ Production systems generate events but lack casual understanding.
 Event-driven system + casual graph + AI reasoning Layer
 
 ## Architecture
-@ilpupi we need our drawio architecture here
+![DeployD Architecture](image/architecture.png)
 
 ## Running it:
 - docker-compse up
