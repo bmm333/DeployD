@@ -6,7 +6,7 @@ Production systems generate events but lack casual understanding.
 Event-driven system + casual graph + AI reasoning Layer
 
 ## Architecture
-![DeployD Architecture](image/architecture.png)
+![DeployD Architecture](image/architecture.svg)
 
 ## Running it:
 - docker-compse up
