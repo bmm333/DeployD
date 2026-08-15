@@ -63,4 +63,12 @@ jobs:
         run: pip install pip-audit
 
       - name: Audit dependencies for vulnerabilities
-        run: pip-audit --requirement <(pip install -e ".[dev]" --dry-run -q 2>/dev/null | grep "Would install" | sed 's/Would install //' | tr ' ' '\n' | sed 's/-/ /') || true
+        shell: bash
+        run: |
+          tmp_req=$(mktemp)
+          pip install -e ".[dev]" --dry-run -q 2>/dev/null \
+            | grep "Would install" \
+            | sed 's/Would install //' \
+            | tr ' ' '\n' \
+            | sed 's/-/ /' > "$tmp_req"
+          pip-audit --requirement "$tmp_req" || true
