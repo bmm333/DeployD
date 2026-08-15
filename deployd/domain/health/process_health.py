@@ -1,0 +1,1 @@
+# healty degraded or gone
