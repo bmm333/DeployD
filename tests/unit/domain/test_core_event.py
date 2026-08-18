@@ -1,6 +1,6 @@
 """DID-2 CoreEvent domain invariant tests"""
 
-from datetime import UTC, datetime, timezone
+from datetime import datetime, timezone
 
 import pytest
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType, Severity
@@ -13,7 +13,7 @@ class TestCoreEventCreation:
     def test_valid_event(self) -> None:
         event = CoreEvent(
             event_type=CoreEventType.PROCESS_CRASH,
-            timestamp=datetime.now(tz=UTC),
+            timestamp=datetime.now(tz=timezone.utc),
             severity=Severity.CRITICAL,
             related_component="checkout-api",
             description="checkout-apo terminated unexpectedly",
@@ -27,13 +27,13 @@ class TestCoreEventCreation:
     def test_event_id_is_auto_generated(self) -> None:
         e1 = CoreEvent(
             event_type=CoreEventType.DEPLOY_STARTED,
-            timestamp=datetime.now(tz=UTC),
+            timestamp=datetime.now(tz=timezone.utc),
             severity=Severity.INFO,
             description="deploy started",
         )
         e2 = CoreEvent(
             event_type=CoreEventType.DEPLOY_STARTED,
-            timestamp=datetime.now(tz=UTC),
+            timestamp=datetime.now(tz=timezone.utc),
             severity=Severity.INFO,
             description="deploy started",
         )
@@ -42,7 +42,7 @@ class TestCoreEventCreation:
     def test_component_can_be_absent(self) -> None:
         event = CoreEvent(
             event_type=CoreEventType.HUMAN_OBSERVATION,
-            timestamp=datetime.now(tz=UTC),
+            timestamp=datetime.now(tz=timezone.utc),
             severity=Severity.WARNING,
             description="something looks wrong",
         )
@@ -55,7 +55,7 @@ class TestCoreEventImmutability:
     def test_cannot_mutate_fields(self) -> None:
         event = CoreEvent(
             event_type=CoreEventType.PROCESS_CRASH,
-            timestamp=datetime.now(tz=UTC),
+            timestamp=datetime.now(tz=timezone.utc),
             severity=Severity.CRITICAL,
             description="crash",
         )
@@ -85,7 +85,7 @@ class TestCoreEventTimestamp:
             severity=Severity.CRITICAL,
             description="state changed",
         )
-        assert event.timestamp.tzinfo == UTC
+        assert event.timestamp.tzinfo == timezone.utc
         assert event.timestamp.hour == 12
 
 
@@ -96,7 +96,7 @@ class TestCoreEventSerialization:
         meta = {"exit_code": 139, "signal": "SIGSEGV", "pid": 4812}
         event = CoreEvent(
             event_type=CoreEventType.PROCESS_CRASH,
-            timestamp=datetime.now(tz=UTC),
+            timestamp=datetime.now(tz=timezone.utc),
             severity=Severity.CRITICAL,
             description="crash",
             metadata=meta,
@@ -107,7 +107,7 @@ class TestCoreEventSerialization:
     def test_json_round_trip(self) -> None:
         event = CoreEvent(
             event_type=CoreEventType.DEPLOY_COMPLETED,
-            timestamp=datetime.now(tz=UTC),
+            timestamp=datetime.now(tz=timezone.utc),
             severity=Severity.INFO,
             description="deploy done",
         )
@@ -124,7 +124,7 @@ class TestCoreEventTypeRestriction:
         with pytest.raises(ValidationError):
             CoreEvent(
                 event_type="BANANA",
-                timestamp=datetime.now(tz=UTC),
+                timestamp=datetime.now(tz=timezone.utc),
                 severity=Severity.INFO,
                 description="invalid",
             )
@@ -133,7 +133,7 @@ class TestCoreEventTypeRestriction:
         with pytest.raises(ValidationError):
             CoreEvent(
                 event_type=CoreEventType.STATE_CHANGE,
-                timestamp=datetime.now(tz=UTC),
+                timestamp=datetime.now(tz=timezone.utc),
                 severity="MEGA_BAD",
                 description="invalid",
             )
