@@ -37,6 +37,8 @@ class CoreEventType(str, Enum):
     HEALTH_CHECK_FAIL = "HEALTH_CHECK_FAIL"
     # Human triggered
     HUMAN_OBSERVATION = "HUMAN_OBSERVATION"
+    # Config drift
+    CONFIG_DRIFT = "CONFIG_DRIFT"
 
 
 class Severity(str, Enum):
