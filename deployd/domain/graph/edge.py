@@ -15,6 +15,9 @@ class GraphEdge(BaseModel):  # type: ignore[misc]
     source: uuid.UUID
     target: uuid.UUID
     edge_type: EdgeType
-    confidence: float = Field(ge=0.0, le=1.0)
-    time_delta_seconds: float | None = Field(default=None, ge=0.0)
+    confidence: float = Field(
+        ge=0.0,
+        le=1.0,
+        description=("Confidence that this specific edge is correct, per the rule in rule_id."),
+    )
     rule_id: str | None = None
