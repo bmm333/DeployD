@@ -272,3 +272,17 @@ class TestKHopNeighborhood:
         graph, nodes = self._build_chain()
         with pytest.raises(ValueError):
             graph.get_k_hop_neighborhood(nodes[0].node_id, max_hops=-1)
+
+    def test_cycle_handling_terminates(self):
+        """A -> B -> C -> A cycle should terminate safely and return all 3 nodes."""
+        graph = IncidentGraph()
+        a, b, c = _make_node(), _make_node(), _make_node()
+        for node in (a, b, c):
+            graph.add_node(node)
+        graph.add_edge(_make_edge(a, b, rule_id="r1"))
+        graph.add_edge(_make_edge(b, c, rule_id="r2"))
+        graph.add_edge(_make_edge(c, a, rule_id="r3"))
+
+        sub = graph.get_k_hop_neighborhood(a.node_id, max_hops=10)
+        assert {n.node_id for n in sub.nodes} == {a.node_id, b.node_id, c.node_id}
+        assert len(sub.edges) == 3
