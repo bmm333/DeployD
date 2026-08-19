@@ -25,16 +25,18 @@ def _make_event(
     *,
     event_type: CoreEventType = CoreEventType.PROCESS_CRASH,
     severity: Severity = Severity.CRITICAL,
-    component: str = "api-gateway",
+    related_component: str | None = "api-gateway",
+    description: str = "test event",
     timestamp: datetime = BASE_TIME,
-    metadata: dict | None = None,
+    metadata: dict[str, object] | None = None,
 ) -> CoreEvent:
     return CoreEvent(
         event_id=uuid.uuid4(),
         timestamp=timestamp,
         event_type=event_type,
         severity=severity,
-        component=component,
+        related_component=related_component,
+        description=description,
         metadata=metadata or {},
     )
 
@@ -52,8 +54,8 @@ def _make_edge(
     rule_id: str | None = "rule-1",
 ) -> GraphEdge:
     return GraphEdge(
-        source=source.event_id,
-        target=target.event_id,
+        source=source.node_id,
+        target=target.node_id,
         edge_type=edge_type,
         confidence=confidence,
         rule_id=rule_id,
@@ -80,8 +82,10 @@ class TestAddNode:
     def test_add_node_with_same_id_diff_content_still_raise(self):
         graph = IncidentGraph()
         shared_id = uuid.uuid4()
-        event_a = _make_event().mode_copy(update={"event_id": shared_id})
-        event_b = _make_event(component="other-service").model_copy(update={"event_id": shared_id})
+        event_a = _make_event().model_copy(update={"event_id": shared_id})
+        event_b = _make_event(related_component="other-service").model_copy(
+            update={"event_id": shared_id}
+        )
         graph.add_node(GraphNode(event=event_a))
         with pytest.raises(DuplicateNodeError):
             graph.add_node(GraphNode(event=event_b))
@@ -233,11 +237,11 @@ class TestKHopNeighborhood:
         """commit/deploy -> deploy_done -> crash -> health_check_fail -> lb"""
         graph = IncidentGraph()
         nodes = [
-            _make_node(event_type=CoreEventType.DEPLOY_STARTED, component="ci"),
-            _make_node(event_type=CoreEventType.DEPLOY_COMPLETED, component="ci"),
-            _make_node(event_type=CoreEventType.PROCESS_CRASH, component="api-gateway"),
-            _make_node(event_type=CoreEventType.HEALTH_CHECK_FAIL, component="api-gateway"),
-            _make_node(event_type=CoreEventType.STATE_CHANGE, component="load-balancer"),
+            _make_node(event_type=CoreEventType.DEPLOY_STARTED, related_component="ci"),
+            _make_node(event_type=CoreEventType.DEPLOY_COMPLETED, related_component="ci"),
+            _make_node(event_type=CoreEventType.PROCESS_CRASH, related_component="api-gateway"),
+            _make_node(event_type=CoreEventType.HEALTH_CHECK_FAIL, related_component="api-gateway"),
+            _make_node(event_type=CoreEventType.STATE_CHANGE, related_component="load-balancer"),
         ]
         for n in nodes:
             graph.add_node(n)
@@ -286,3 +290,33 @@ class TestKHopNeighborhood:
         sub = graph.get_k_hop_neighborhood(a.node_id, max_hops=10)
         assert {n.node_id for n in sub.nodes} == {a.node_id, b.node_id, c.node_id}
         assert len(sub.edges) == 3
+
+
+class TestEdgeTimeDelta:
+    def test_edge_time_delta_positive(self):
+        from datetime import timedelta
+
+        graph = IncidentGraph()
+        t1 = BASE_TIME
+        t2 = BASE_TIME + timedelta(seconds=120)
+        a = _make_node(timestamp=t1)
+        b = _make_node(timestamp=t2)
+        graph.add_node(a)
+        graph.add_node(b)
+        edge = _make_edge(a, b)
+        graph.add_edge(edge)
+        assert graph.edge_time_delta(edge) == 120.0
+
+    def test_edge_time_delta_negative(self):
+        from datetime import timedelta
+
+        graph = IncidentGraph()
+        t1 = BASE_TIME + timedelta(seconds=300)
+        t2 = BASE_TIME
+        a = _make_node(timestamp=t1)
+        b = _make_node(timestamp=t2)
+        graph.add_node(a)
+        graph.add_node(b)
+        edge = _make_edge(a, b)
+        graph.add_edge(edge)
+        assert graph.edge_time_delta(edge) == -300.0

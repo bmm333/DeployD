@@ -123,8 +123,8 @@ class IncidentGraph:
         """
         if start_node_id not in self._nodes:
             raise NodeNotFoundError(f"start node {start_node_id} not found")
-        if max_hops <= 0:
-            raise ValueError("max_hops must be positive")
+        if max_hops < 0:
+            raise ValueError("max_hops must be non-negative")
 
         visited: set[uuid.UUID] = {start_node_id}
         frontier: deque[tuple[uuid.UUID, int]] = deque([(start_node_id, 0)])
@@ -148,4 +148,9 @@ class IncidentGraph:
                 subgraph.add_edge(edge)
         return subgraph
 
-    # def edge_time_delta
+    def edge_time_delta(self, edge: GraphEdge) -> float:
+        """Seconds between source and target event timestamps (target - source)."""
+        source_node = self.get_node(edge.source)
+        target_node = self.get_node(edge.target)
+        delta = target_node.event.timestamp - source_node.event.timestamp
+        return delta.total_seconds()
