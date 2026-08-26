@@ -8,7 +8,7 @@ Domain never depends on any external or any infra awarnes. CoreEvent can speak o
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone  # noqa: TCH003
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -68,4 +68,4 @@ class CoreEvent(BaseModel):  # type: ignore[misc]
         """all time stamps must be timezone aware UTC."""
         if v.tzinfo is None:
             raise ValueError("Timestamp must be timezone-aware (UTC)")
-        return v.astimezone(UTC)
+        return v.astimezone(timezone.utc)
