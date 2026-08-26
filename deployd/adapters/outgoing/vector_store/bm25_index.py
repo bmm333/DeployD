@@ -19,17 +19,26 @@ class BM25RunbookIndex:
     def __init__(self) -> None:
         self._runbook_ids: list[str] = []
         self._bm25: BM25Okapi | None = None
+        self._built: bool = False
 
     def build(self, runbooks: list[tuple[str, str]]) -> None:
         """runbooks list of runbookid summary text"""
+        self._built = True
+        if not runbooks:
+            self._runbook_ids = []
+            self._bm25 = None
+            return
         self._runbook_ids = [rid for rid, _ in runbooks]
         tokenized = [summary.lower().split() for _, summary in runbooks]
         self._bm25 = BM25Okapi(tokenized)
 
     def search(self, query: str, top_k: int) -> list[SparseHit]:
-        if self._bm25 is None:
+        if not self._built:
             raise RuntimeError("BM25RunbookIndex build should be called first")
+        if not self._runbook_ids:
+            return []
         tokenized_query = query.lower().split()
+        assert self._bm25 is not None  # guaranteed after build with non-empty corpus
         raw_scores = self._bm25.get_scores(tokenized_query)
         max_score = max(raw_scores) if len(raw_scores) and max(raw_scores) > 0 else 1.0
         normalized = [score / max_score for score in raw_scores]

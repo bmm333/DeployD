@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 
 from deployd.adapters.outgoing.vector_store.bm25_index import SparseHit  # noqa: TCH002
-from deployd.adapters.outgoing.vector_store.dense_index import DenseHit  # noqa: TCH002
+from deployd.adapters.outgoing.vector_store.chroma_client import DenseHit  # noqa: TCH002
 from deployd.adapters.outgoing.vector_store.graph_index import StructuralHit  # noqa: TCH002
 
 # reasoing behind the weights (For now ):
@@ -40,19 +40,19 @@ def blend(
     Return runbook id , scoreset and final score, sorted desceding final score"""
     scores: dict[str, ScoreSet] = {}
 
-    for hit in dense_hits:
-        scores[hit.runbook_id] = replace(
-            scores.get(hit.runbook_id, ScoreSet()), semantic=hit.semantic_score
+    for dense_hit in dense_hits:
+        scores[dense_hit.runbook_id] = replace(
+            scores.get(dense_hit.runbook_id, ScoreSet()), semantic=dense_hit.semantic_score
         )
-    for hit in spares_hits:
-        scores[hit.runbook_id] = replace(
-            scores.get(hit.runbook_id, ScoreSet()), bm25=hit.bm25_score
+    for sparse_hit in spares_hits:
+        scores[sparse_hit.runbook_id] = replace(
+            scores.get(sparse_hit.runbook_id, ScoreSet()), bm25=sparse_hit.bm25_score
         )
-    for hit in structural_hits:
-        scores[hit.runbook_id] = replace(
-            scores.get(hit.runbook_id, ScoreSet()),
-            causal=hit.causal_score,
-            component=hit.component_score,
+    for struct_hit in structural_hits:
+        scores[struct_hit.runbook_id] = replace(
+            scores.get(struct_hit.runbook_id, ScoreSet()),
+            causal=struct_hit.causal_score,
+            component=struct_hit.component_score,
         )
     results = []
     for runbook_id, score_set in scores.items():
