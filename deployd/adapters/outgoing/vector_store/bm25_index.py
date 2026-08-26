@@ -38,7 +38,7 @@ class BM25RunbookIndex:
         if not self._runbook_ids:
             return []
         tokenized_query = query.lower().split()
-        assert self._bm25 is not None  # guaranteed after build with non-empty corpus
+        assert self._bm25 is not None
         raw_scores = self._bm25.get_scores(tokenized_query)
         max_score = max(raw_scores) if len(raw_scores) and max(raw_scores) > 0 else 1.0
         normalized = [score / max_score for score in raw_scores]
