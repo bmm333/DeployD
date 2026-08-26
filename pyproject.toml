@@ -12,6 +12,7 @@ dependencies = [
     "agno>=0.1",
     "chromadb>=0.5",
     "sentence-transformers>=3.0",
+    "rank-bm25>=0.2",
     "streamlit>=1.35",
     "pyvis>=0.3",
 ]
