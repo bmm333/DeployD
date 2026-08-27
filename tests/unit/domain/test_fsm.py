@@ -6,7 +6,7 @@ Coverage target: every cell in the ADR-006 transition table = one test class.
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType, Severity
@@ -17,7 +17,7 @@ from deployd.domain.health.process_health import (
 from deployd.domain.health.process_state import ProcessHealthStatus
 
 # helpers & consts
-T0 = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+T0 = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 RECOVERY = timedelta(minutes=5)
 MAX_RESTARTS = 3
 WINDOW = timedelta(minutes=10)
