@@ -1,0 +1,26 @@
+{
+    "runbook_id": "RB-NOTIFICATION-CRASH-LOOP",
+    "incident_id": "INC-2026-08-27-005",
+    "summary": "notification-service entered a crash loop after a deploy introduced a null pointer dereference in the email template renderer.",
+    "affected_components": [
+        "notification-service"
+    ],
+    "causal_chain": [
+        "DEPLOY_STARTED",
+        "PROCESS_CRASH",
+        "STATE_CHANGE",
+        "PROCESS_CRASH"
+    ],
+    "root_cause": "A deploy shipped a code path that dereferenced an optional template field without a null check, crashing on any notification missing that field.",
+    "fix": "Rolled back the deploy and added a null check plus a unit test covering the missing-field case before re-deploying.",
+    "fix_commands": [
+        "kubectl rollout undo deployment/notification-service -n prod"
+    ],
+    "occurred_at": "2024-11-05T16:08:00Z",
+    "tags": [
+        "crash-loop",
+        "null-pointer",
+        "notification-service",
+        "deploy-regression"
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+    "incident_id": "INC-2026-08-27-003",
+    "summary": "api-gateway was pointing to a decommissioned staging database after a config deployment error, causing all downstream requests to fail.",
+    "affected_components": [
+        "api-gateway",
+        "staging-db"
+    ],
+    "causal_chain": [
+        "CONFIG_CHANGE",
+        "CONFIG_DRIFT_DETECTED",
+        "DEPENDENCY_FAILURE"
+    ],
+    "root_cause": "A config deployment accidentally applied the staging environment's database connection string to the production api gateway, instead of the production connection string",
+    "fix": "Restored the correct production connection string and added a pre-deploy validation check comparing expected vs actual environment topology.",
+    "fix_commands": [
+        "kubectl apply -f configs/api-gateway-prod.yaml -n prod"
+    ],
+    "occurred_at": "2024-09-03T11:40:00Z",
+    "tags": [
+        "config-drift",
+        "api-gateway",
+        "environment-mismatch"
+    ]
+}
