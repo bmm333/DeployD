@@ -18,6 +18,7 @@ from deployd.application.dtos.diagnosis import (
 )
 from deployd.application.dtos.enums import EvidenceSource, RiskLevel, TriggerType
 from deployd.application.dtos.evidence import EvidenceDTO, MissingEvidence
+from deployd.application.dtos.incident_summary import IncidentSummaryDTO
 from deployd.application.dtos.investigation_request import (
     ComponentDependencyDTO,
     EventDTO,
@@ -34,6 +35,7 @@ __all__ = [
     "EventDTO",
     "ComponentDependencyDTO",
     "InvestigationRequest",
+    "IncidentSummaryDTO",
     # Evidence
     "EvidenceDTO",
     "MissingEvidence",
