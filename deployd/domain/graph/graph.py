@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 """Graph structure. `ADR-003` `ADR-004` Related to this file"""
 
-from uuid import UUID
+from __future__ import annotations
+
+from uuid import UUID  # noqa: TCH003
 import uuid  # noqa: TCH003
 from collections import deque
 
@@ -184,7 +184,6 @@ class IncidentGraph:
         for node_id in visited:
             subgraph.add_node(self.get_node(node_id))
         for edge in self.edges:
-            if edge.source in visited and edge.target in visited:
-                if edge_types is None or edge.edge_type in edge_types:
-                    subgraph.add_edge(edge)
+            if (edge.source in visited and edge.target in visited) and (edge_types is None or edge.edge_type in edge_types):
+                subgraph.add_edge(edge)
         return subgraph
