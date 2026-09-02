@@ -1,8 +1,8 @@
+from __future__ import annotations
+
 """Graph structure. `ADR-003` `ADR-004` Related to this file"""
 
 from uuid import UUID
-from __future__ import annotations
-
 import uuid  # noqa: TCH003
 from collections import deque
 

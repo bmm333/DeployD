@@ -9,7 +9,7 @@ from deployd.domain.graph.node import GraphNode
 
 class CausalEngine:
 
-    def __iniy__(self,graph:IncidentGraph):
+    def __init__(self, graph: IncidentGraph) -> None:
         self.graph= graph
     
     def causal_chain (self, start_node_id: UUID) -> List[GraphNode]:
