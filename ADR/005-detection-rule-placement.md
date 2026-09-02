@@ -6,7 +6,7 @@ Accepted
 ## Context
 We need to decide where `DetectionRule` and its implementations (e.g., `ConfigDriftRule`) belong in the architecture.
 
-A `DetectionRule` evaluates an observed piece of evidence (a `CoreEvent`) against some external expectation or reference data (e.g., a declared expected topology). 
+A `DetectionRule` evaluates an observed piece of evidence (a `CoreEvent`) against some external expectation or reference data (e.g., a declared expected topology).
 
 The reference data itself needs to be fetched from somewhere (e.g., read from a config file, queried from a database, or retrieved from a service registry).
 

@@ -16,7 +16,7 @@ ACTUAL_DEPENDENCY_METADATA_KEY = "target_dependency"
 
 class ConfigDriftRule:
     """
-    Compares a declared expected topology against an observed CONFIG_CHANGE event's 
+    Compares a declared expected topology against an observed CONFIG_CHANGE event's
     actual target dependency. Emits CONFIG_DRIFT_DETECTED on mismatch.
     """
 
