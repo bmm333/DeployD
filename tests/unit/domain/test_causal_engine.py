@@ -113,9 +113,10 @@ class TestCausalEngine:
 
         graph_mock.incoming_edges.side_effect = incoming_edges
 
-        def get_k_hop_neighborhood(start_id: UUID, max_hops: int):
+        def get_k_hop_neighborhood(start_id: UUID, max_hops: int, edge_types: list[EdgeType] | None = None):
             visited = set()
             frontier = [(start_id, 0)]
+            allowed_types = set(edge_types) if edge_types else None
             while frontier:
                 curr_id, depth = frontier.pop(0)
                 if curr_id in visited:
@@ -123,34 +124,7 @@ class TestCausalEngine:
                 visited.add(curr_id)
                 if depth < max_hops:
                     for edge in edges:
-                        if edge.source == curr_id and edge.target not in visited:
-                            frontier.append((edge.target, depth + 1))
-                        if edge.target == curr_id and edge.source not in visited:
-                            frontier.append((edge.source, depth + 1))
-
-            class Subgraph:
-                pass
-
-            sub = Subgraph()
-            sub.nodes = [node for name, node in nodes_by_name.items() if node.id in visited]
-            return sub
-
-        graph_mock.get_k_hop_neighborhood.side_effect = get_k_hop_neighborhood
-
-        def get_filtered_k_hop(
-            start_id: UUID, max_hops: int, edge_types: list[EdgeType] | None = None
-        ):
-            visited = set()
-            frontier = [(start_id, 0)]
-            allowed_types = set(edge_types) if edge_types else set()
-            while frontier:
-                curr_id, depth = frontier.pop(0)
-                if curr_id in visited:
-                    continue
-                visited.add(curr_id)
-                if depth < max_hops:
-                    for edge in edges:
-                        if edge_types is None or edge.edge_type in allowed_types:
+                        if allowed_types is None or edge.edge_type in allowed_types:
                             if edge.source == curr_id and edge.target not in visited:
                                 frontier.append((edge.target, depth + 1))
                             if edge.target == curr_id and edge.source not in visited:
@@ -163,7 +137,7 @@ class TestCausalEngine:
             sub.nodes = [node for name, node in nodes_by_name.items() if node.id in visited]
             return sub
 
-        graph_mock.get_filtered_k_hop.side_effect = get_filtered_k_hop
+        graph_mock.get_k_hop_neighborhood.side_effect = get_k_hop_neighborhood
 
         return graph_mock, ids_by_name
 
@@ -172,24 +146,32 @@ class TestCausalEngine:
         graph, ids = graph_and_ids
         engine = CausalEngine(graph)
 
-        chain = engine.causal_chain(ids["A"])
+        chains = engine.causal_chain(ids["A"])
+        assert len(chains) == 1
+        chain = chains[0]
         assert len(chain) == 4
         assert chain[0].id == ids["A"]
         assert chain[1].id == ids["B"]
         assert chain[2].id == ids["C"]
         assert chain[3].id == ids["D"]
 
-        chain = engine.causal_chain(ids["B"])
+        chains = engine.causal_chain(ids["B"])
+        assert len(chains) == 1
+        chain = chains[0]
         assert len(chain) == 3
         assert chain[0].id == ids["B"]
         assert chain[1].id == ids["C"]
         assert chain[2].id == ids["D"]
 
-        chain = engine.causal_chain(ids["D"])
+        chains = engine.causal_chain(ids["D"])
+        assert len(chains) == 1
+        chain = chains[0]
         assert len(chain) == 1
         assert chain[0].id == ids["D"]
 
-        chain = engine.causal_chain(ids["E"])
+        chains = engine.causal_chain(ids["E"])
+        assert len(chains) == 1
+        chain = chains[0]
         assert len(chain) == 1
         assert chain[0].id == ids["E"]
 
@@ -198,10 +180,14 @@ class TestCausalEngine:
         graph, ids = graph_and_ids
         engine = CausalEngine(graph)
 
-        chain = engine.causal_chain(ids["D"])
+        chains = engine.causal_chain(ids["D"])
+        assert len(chains) == 1
+        chain = chains[0]
         assert len(chain) == 1
 
-        chain = engine.causal_chain(ids["A"])
+        chains = engine.causal_chain(ids["A"])
+        assert len(chains) == 1
+        chain = chains[0]
         assert chain[-1].id == ids["D"]
 
     def test_temporal_order_sorts_by_timestamp(self, graph_and_ids):

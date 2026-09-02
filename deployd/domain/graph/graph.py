@@ -116,7 +116,9 @@ class IncidentGraph:
         return [e for e in edges if e.edge_type == edge_type]
 
     # Neighborhood expansion algo
-    def get_k_hop_neighborhood(self, start_node_id: uuid.UUID, max_hops: int = 2) -> IncidentGraph:
+    def get_k_hop_neighborhood(
+        self, start_node_id: uuid.UUID, max_hops: int = 2, edge_types: list[EdgeType] | None = None
+    ) -> IncidentGraph:
         """ADR-004;
         Constrained BFS from start up to max hops , bidirectioanl.
         Returns a new IncidentGraph containing the sub-graph reached within max hops.
@@ -133,50 +135,13 @@ class IncidentGraph:
             curr_id, depth = frontier.popleft()
             if depth == max_hops:
                 continue
-            neighbor_ids = [e.target for e in self._outgoing[curr_id]] + [
-                e.source for e in self._incoming[curr_id]
-            ]
-            for neighbor_id in neighbor_ids:
-                if neighbor_id not in visited:
-                    visited.add(neighbor_id)
-                    frontier.append((neighbor_id, depth + 1))
-
-        subgraph = IncidentGraph()
-        for node_id in visited:
-            subgraph.add_node(self.get_node(node_id))
-        for edge in self.edges:
-            if edge.source in visited and edge.target in visited:
-                subgraph.add_edge(edge)
-        return subgraph
-
-    def edge_time_delta(self, edge: GraphEdge) -> float:
-        """Seconds between source and target event timestamps (target - source)."""
-        source_node = self.get_node(edge.source)
-        target_node = self.get_node(edge.target)
-        delta = target_node.event.timestamp - source_node.event.timestamp
-        return delta.total_seconds()
-
-    def get_filtered_k_hop(
-        self, start_node_id: UUID, max_hops: int, edge_types: list[EdgeType] | None = None
-    ) -> IncidentGraph:
-        if start_node_id not in self._nodes:
-            raise NodeNotFoundError(f"start node {start_node_id} not found")
-        if max_hops < 0:
-            raise ValueError("max_hops must be non-negative")
-
-        visited = {start_node_id}
-        frontier = deque([(start_node_id, 0)])
-        while frontier:
-            curr_id, depth = frontier.popleft()
-            if depth == max_hops:
-                continue
             neighbors = []
-            for edge in self._outgoing[curr_id]:
-                if edge_types is None or edge.edge_type in edge_types:
-                    neighbors.append(edge.target)
-            for edge in self._incoming[curr_id]:
-                if edge_types is None or edge.edge_type in edge_types:
-                    neighbors.append(edge.source)
+            for e in self._outgoing[curr_id]:
+                if edge_types is None or e.edge_type in edge_types:
+                    neighbors.append(e.target)
+            for e in self._incoming[curr_id]:
+                if edge_types is None or e.edge_type in edge_types:
+                    neighbors.append(e.source)
             for neighbor_id in neighbors:
                 if neighbor_id not in visited:
                     visited.add(neighbor_id)
@@ -191,3 +156,11 @@ class IncidentGraph:
             ):
                 subgraph.add_edge(edge)
         return subgraph
+
+    def edge_time_delta(self, edge: GraphEdge) -> float:
+        """Seconds between source and target event timestamps (target - source)."""
+        source_node = self.get_node(edge.source)
+        target_node = self.get_node(edge.target)
+        delta = target_node.event.timestamp - source_node.event.timestamp
+        return delta.total_seconds()
+

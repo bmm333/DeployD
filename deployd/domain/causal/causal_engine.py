@@ -9,30 +9,36 @@ class CausalEngine:
     def __init__(self, graph: IncidentGraph) -> None:
         self.graph = graph
 
-    def causal_chain(self, start_node_id: UUID) -> list[GraphNode]:
-        chain: list[GraphNode] = []
-        current_id = start_node_id
+    def causal_chain(self, start_node_id: UUID) -> list[list[GraphNode]]:
+        paths: list[list[GraphNode]] = []
 
-        while True:
+        def dfs(current_id: UUID, current_path: list[GraphNode], visited: set[UUID]):
             try:
                 node = self.graph.get_node(current_id)
-                chain.append(node)
-
             except Exception:
                 # Let the caller handle the error; re-raise with context if needed
                 raise
 
+            if current_id in visited:
+                paths.append(current_path + [node])
+                return
+
+            new_visited = visited | {current_id}
+            path_with_node = current_path + [node]
+            
             # Get only outgoing CAUSAL edges from the current node.
             outgoing_causal = self.graph.outgoing_edges(current_id, EdgeType.CAUSAL)
 
             if not outgoing_causal:
                 # No further causes → end of chain.
-                break
+                paths.append(path_with_node)
+                return
 
-            next_edge = outgoing_causal[0]
-            current_id = next_edge.target
+            for edge in outgoing_causal:
+                dfs(edge.target, path_with_node, new_visited)
 
-        return chain
+        dfs(start_node_id, [], set())
+        return paths
 
     def temporal_order(self, start_node_id: UUID, max_hops: int = 2) -> list[GraphNode]:
         # Delegate the entire graph expansion to IncidentGraph.
@@ -44,5 +50,5 @@ class CausalEngine:
         return sorted_nodes
 
     def dependency_expansion(self, start_node_id: UUID, max_hops: int = 2) -> list[GraphNode]:
-        subgraph = self.graph.get_filtered_k_hop(start_node_id, max_hops, [EdgeType.DEPENDENCY])
+        subgraph = self.graph.get_k_hop_neighborhood(start_node_id, max_hops, edge_types=[EdgeType.DEPENDENCY])
         return subgraph.nodes
