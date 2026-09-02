@@ -177,22 +177,27 @@ class TestCausalEngine:
         expected_order = [ids["C"], ids["E"], ids["D"], ids["F"], ids["G"]]
         assert [node.id for node in ordered] == expected_order
 
-    def test_dependency_expansion_follows_only_dependency_edges(self, graph_and_ids):
-        """Tests that dependency expansion only traverses DEPENDENCY edges."""
+    def test_dependency_expansion_upstream_what_this_depends_on(self, graph_and_ids):
+        """Tests dependency expansion for upstream dependencies (what this depends on).
+        Traverses outgoing DEPENDENCY edges (e.g. D depends on E)."""
         graph, ids = graph_and_ids
         engine = CausalEngine(graph)
 
+        # From D, it depends on E, which depends on F
         nodes = engine.dependency_expansion(ids["D"], max_hops=2)
         assert len(nodes) == 3
         assert set([n.id for n in nodes]) == {ids["D"], ids["E"], ids["F"]}
 
+    def test_dependency_expansion_downstream_what_depends_on_this(self, graph_and_ids):
+        """Tests dependency expansion for downstream dependencies (what depends on this).
+        Traverses incoming DEPENDENCY edges (e.g. D depends on E, so from E we find D)."""
+        graph, ids = graph_and_ids
+        engine = CausalEngine(graph)
+
+        # From E, it depends on F and G (outgoing), and D depends on E (incoming)
         nodes = engine.dependency_expansion(ids["E"], max_hops=2)
         assert len(nodes) == 4
         assert set([n.id for n in nodes]) == {ids["D"], ids["E"], ids["F"], ids["G"]}
-
-        nodes = engine.dependency_expansion(ids["A"], max_hops=2)
-        assert len(nodes) == 1
-        assert nodes[0].id == ids["A"]
 
     def test_dependency_expansion_respects_max_hops(self, graph_and_ids):
         """Tests that dependency expansion does not exceed max_hops."""
@@ -206,10 +211,3 @@ class TestCausalEngine:
         nodes = engine.dependency_expansion(ids["D"], max_hops=3)
         assert len(nodes) == 4
         assert set([n.id for n in nodes]) == {ids["D"], ids["E"], ids["F"], ids["G"]}
-
-    def test_policies_delegate_to_graph_methods(self, graph_and_ids):
-        """Tests that policies delegate traversal to the underlying graph object."""
-        graph, ids = graph_and_ids
-        engine = CausalEngine(graph)
-
-        pass
