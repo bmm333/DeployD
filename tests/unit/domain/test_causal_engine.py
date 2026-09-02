@@ -1,20 +1,18 @@
-import pytest
-from unittest.mock import Mock
-from uuid import uuid4, UUID
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from unittest.mock import Mock
+from uuid import UUID, uuid4
 
+import pytest
 from deployd.domain.causal.causal_engine import CausalEngine
-from deployd.domain.graph.edge_type import EdgeType
 from deployd.domain.graph.edge import GraphEdge
-from deployd.domain.graph.node import GraphNode
+from deployd.domain.graph.edge_type import EdgeType
 from deployd.domain.graph.graph import IncidentGraph
+from deployd.domain.graph.node import GraphNode
 
 
 class TestCausalEngine:
-
     @pytest.fixture
-    def graph_and_ids(self) -> tuple[IncidentGraph, Dict[str, UUID]]:
+    def graph_and_ids(self) -> tuple[IncidentGraph, dict[str, UUID]]:
         """
         Builds a sample graph and returns the mock graph along with a dictionary
         mapping symbolic names to UUIDs.
@@ -43,13 +41,48 @@ class TestCausalEngine:
             ids_by_name[name] = node_id
 
         edges = [
-            GraphEdge(source=ids_by_name["A"], target=ids_by_name["B"], edge_type=EdgeType.CAUSAL, confidence=1.0),
-            GraphEdge(source=ids_by_name["B"], target=ids_by_name["C"], edge_type=EdgeType.CAUSAL, confidence=1.0),
-            GraphEdge(source=ids_by_name["C"], target=ids_by_name["D"], edge_type=EdgeType.CAUSAL, confidence=1.0),
-            GraphEdge(source=ids_by_name["E"], target=ids_by_name["F"], edge_type=EdgeType.DEPENDENCY, confidence=1.0),
-            GraphEdge(source=ids_by_name["F"], target=ids_by_name["G"], edge_type=EdgeType.DEPENDENCY, confidence=1.0),
-            GraphEdge(source=ids_by_name["D"], target=ids_by_name["E"], edge_type=EdgeType.DEPENDENCY, confidence=1.0),
-            GraphEdge(source=ids_by_name["X"], target=ids_by_name["Y"], edge_type=EdgeType.OBSERVED_AS, confidence=1.0),
+            GraphEdge(
+                source=ids_by_name["A"],
+                target=ids_by_name["B"],
+                edge_type=EdgeType.CAUSAL,
+                confidence=1.0,
+            ),
+            GraphEdge(
+                source=ids_by_name["B"],
+                target=ids_by_name["C"],
+                edge_type=EdgeType.CAUSAL,
+                confidence=1.0,
+            ),
+            GraphEdge(
+                source=ids_by_name["C"],
+                target=ids_by_name["D"],
+                edge_type=EdgeType.CAUSAL,
+                confidence=1.0,
+            ),
+            GraphEdge(
+                source=ids_by_name["E"],
+                target=ids_by_name["F"],
+                edge_type=EdgeType.DEPENDENCY,
+                confidence=1.0,
+            ),
+            GraphEdge(
+                source=ids_by_name["F"],
+                target=ids_by_name["G"],
+                edge_type=EdgeType.DEPENDENCY,
+                confidence=1.0,
+            ),
+            GraphEdge(
+                source=ids_by_name["D"],
+                target=ids_by_name["E"],
+                edge_type=EdgeType.DEPENDENCY,
+                confidence=1.0,
+            ),
+            GraphEdge(
+                source=ids_by_name["X"],
+                target=ids_by_name["Y"],
+                edge_type=EdgeType.OBSERVED_AS,
+                confidence=1.0,
+            ),
         ]
 
         graph_mock = Mock(spec=IncidentGraph)
@@ -59,22 +92,25 @@ class TestCausalEngine:
                 if node.id == node_id:
                     return node
             raise KeyError(f"Node {node_id} not found")
+
         graph_mock.get_node.side_effect = get_node
 
-        def outgoing_edges(node_id: UUID, edge_type: Optional[EdgeType] = None) -> List[GraphEdge]:
+        def outgoing_edges(node_id: UUID, edge_type: EdgeType | None = None) -> list[GraphEdge]:
             result = []
             for edge in edges:
                 if edge.source == node_id and (edge_type is None or edge.edge_type == edge_type):
                     result.append(edge)
             return result
+
         graph_mock.outgoing_edges.side_effect = outgoing_edges
 
-        def incoming_edges(node_id: UUID, edge_type: Optional[EdgeType] = None) -> List[GraphEdge]:
+        def incoming_edges(node_id: UUID, edge_type: EdgeType | None = None) -> list[GraphEdge]:
             result = []
             for edge in edges:
                 if edge.target == node_id and (edge_type is None or edge.edge_type == edge_type):
                     result.append(edge)
             return result
+
         graph_mock.incoming_edges.side_effect = incoming_edges
 
         def get_k_hop_neighborhood(start_id: UUID, max_hops: int):
@@ -88,17 +124,22 @@ class TestCausalEngine:
                 if depth < max_hops:
                     for edge in edges:
                         if edge.source == curr_id and edge.target not in visited:
-                            frontier.append((edge.target, depth+1))
+                            frontier.append((edge.target, depth + 1))
                         if edge.target == curr_id and edge.source not in visited:
-                            frontier.append((edge.source, depth+1))
+                            frontier.append((edge.source, depth + 1))
+
             class Subgraph:
                 pass
+
             sub = Subgraph()
             sub.nodes = [node for name, node in nodes_by_name.items() if node.id in visited]
             return sub
+
         graph_mock.get_k_hop_neighborhood.side_effect = get_k_hop_neighborhood
 
-        def get_filtered_k_hop(start_id: UUID, max_hops: int, edge_types: Optional[List[EdgeType]] = None):
+        def get_filtered_k_hop(
+            start_id: UUID, max_hops: int, edge_types: list[EdgeType] | None = None
+        ):
             visited = set()
             frontier = [(start_id, 0)]
             allowed_types = set(edge_types) if edge_types else set()
@@ -111,14 +152,17 @@ class TestCausalEngine:
                     for edge in edges:
                         if edge_types is None or edge.edge_type in allowed_types:
                             if edge.source == curr_id and edge.target not in visited:
-                                frontier.append((edge.target, depth+1))
+                                frontier.append((edge.target, depth + 1))
                             if edge.target == curr_id and edge.source not in visited:
-                                frontier.append((edge.source, depth+1))
+                                frontier.append((edge.source, depth + 1))
+
             class Subgraph:
                 pass
+
             sub = Subgraph()
             sub.nodes = [node for name, node in nodes_by_name.items() if node.id in visited]
             return sub
+
         graph_mock.get_filtered_k_hop.side_effect = get_filtered_k_hop
 
         return graph_mock, ids_by_name
@@ -153,7 +197,7 @@ class TestCausalEngine:
         """Tests that the causal chain stops when no causal outgoing edges exist."""
         graph, ids = graph_and_ids
         engine = CausalEngine(graph)
-        
+
         chain = engine.causal_chain(ids["D"])
         assert len(chain) == 1
 

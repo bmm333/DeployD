@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from uuid import UUID  # noqa: TCH003
 import uuid  # noqa: TCH003
 from collections import deque
+from uuid import UUID  # noqa: TCH003
 
 from deployd.domain.graph.edge import GraphEdge  # noqa: TCH001
 from deployd.domain.graph.edge_type import EdgeType  # noqa: TCH001
@@ -155,8 +155,10 @@ class IncidentGraph:
         target_node = self.get_node(edge.target)
         delta = target_node.event.timestamp - source_node.event.timestamp
         return delta.total_seconds()
-    
-    def get_filtered_k_hop(self,start_node_id: UUID,max_hops: int,edge_types: list[EdgeType] | None = None) -> IncidentGraph:
+
+    def get_filtered_k_hop(
+        self, start_node_id: UUID, max_hops: int, edge_types: list[EdgeType] | None = None
+    ) -> IncidentGraph:
         if start_node_id not in self._nodes:
             raise NodeNotFoundError(f"start node {start_node_id} not found")
         if max_hops < 0:
@@ -179,11 +181,13 @@ class IncidentGraph:
                 if neighbor_id not in visited:
                     visited.add(neighbor_id)
                     frontier.append((neighbor_id, depth + 1))
-        
+
         subgraph = IncidentGraph()
         for node_id in visited:
             subgraph.add_node(self.get_node(node_id))
         for edge in self.edges:
-            if (edge.source in visited and edge.target in visited) and (edge_types is None or edge.edge_type in edge_types):
+            if (edge.source in visited and edge.target in visited) and (
+                edge_types is None or edge.edge_type in edge_types
+            ):
                 subgraph.add_edge(edge)
         return subgraph
