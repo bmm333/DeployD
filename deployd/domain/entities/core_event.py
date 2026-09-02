@@ -37,6 +37,9 @@ class CoreEventType(str, Enum):
     HEALTH_CHECK_FAIL = "HEALTH_CHECK_FAIL"
     # Human triggered
     HUMAN_OBSERVATION = "HUMAN_OBSERVATION"
+    # Detection-derived (DID-9): inferred by a DetectionRule from evidence + reference
+    # data, not observed directly by an adapter.
+    CONFIG_DRIFT_DETECTED = "CONFIG_DRIFT_DETECTED"
 
 
 class Severity(str, Enum):
