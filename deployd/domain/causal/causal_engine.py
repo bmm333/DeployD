@@ -12,7 +12,7 @@ class CausalEngine:
     def causal_chain(self, start_node_id: UUID) -> list[list[GraphNode]]:
         paths: list[list[GraphNode]] = []
 
-        def dfs(current_id: UUID, current_path: list[GraphNode], visited: set[UUID]):
+        def dfs(current_id: UUID, current_path: list[GraphNode], visited: set[UUID]) -> None:
             try:
                 node = self.graph.get_node(current_id)
             except Exception:
@@ -25,7 +25,7 @@ class CausalEngine:
 
             new_visited = visited | {current_id}
             path_with_node = current_path + [node]
-            
+
             # Get only outgoing CAUSAL edges from the current node.
             outgoing_causal = self.graph.outgoing_edges(current_id, EdgeType.CAUSAL)
 
@@ -50,5 +50,7 @@ class CausalEngine:
         return sorted_nodes
 
     def dependency_expansion(self, start_node_id: UUID, max_hops: int = 2) -> list[GraphNode]:
-        subgraph = self.graph.get_k_hop_neighborhood(start_node_id, max_hops, edge_types=[EdgeType.DEPENDENCY])
+        subgraph = self.graph.get_k_hop_neighborhood(
+            start_node_id, max_hops, edge_types=[EdgeType.DEPENDENCY]
+        )
         return subgraph.nodes

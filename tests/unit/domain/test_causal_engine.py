@@ -113,7 +113,9 @@ class TestCausalEngine:
 
         graph_mock.incoming_edges.side_effect = incoming_edges
 
-        def get_k_hop_neighborhood(start_id: UUID, max_hops: int, edge_types: list[EdgeType] | None = None):
+        def get_k_hop_neighborhood(
+            start_id: UUID, max_hops: int, edge_types: list[EdgeType] | None = None
+        ):
             visited = set()
             frontier = [(start_id, 0)]
             allowed_types = set(edge_types) if edge_types else None

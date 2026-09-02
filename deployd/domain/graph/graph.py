@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import uuid  # noqa: TCH003
 from collections import deque
-from uuid import UUID  # noqa: TCH003
 
 from deployd.domain.graph.edge import GraphEdge  # noqa: TCH001
 from deployd.domain.graph.edge_type import EdgeType  # noqa: TCH001
@@ -163,4 +162,3 @@ class IncidentGraph:
         target_node = self.get_node(edge.target)
         delta = target_node.event.timestamp - source_node.event.timestamp
         return delta.total_seconds()
-
