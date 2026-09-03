@@ -8,18 +8,13 @@ to it. See ADR-005 for placement decisions.
 
 from __future__ import annotations
 
-from typing import Protocol, TypeVar, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from deployd.domain.entities.core_event import CoreEvent  # noqa: TCH001
 
-# Reference data shape is rule-specific (e.g. ConfigDriftRule uses dict[str, str]).
-# contravariant: a rule that accepts a broader reference type can stand in for one
-# that accepts a narrower type.
-ReferenceT = TypeVar("ReferenceT", contravariant=True)
-
 
 @runtime_checkable
-class DetectionRule(Protocol[ReferenceT]):
+class DetectionRule(Protocol):
     """
     Deterministic function of (observed evidence, reference/expected data) -> zero or
     more new CoreEvents.
@@ -35,7 +30,7 @@ class DetectionRule(Protocol[ReferenceT]):
 
     rule_id: str
 
-    def evaluate(self, evidence: CoreEvent, reference: ReferenceT) -> list[CoreEvent]:
+    def evaluate(self, evidence: CoreEvent, reference: Any) -> list[CoreEvent]:  # type: ignore[misc]
         """Evaluate this rule against a single observed evidence event and reference
         data, returning zero or more new CoreEvents this rule infers.
 
