@@ -17,10 +17,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, create_autospec
+from unittest.mock import create_autospec
 
 import pytest
-
 from deployd.application.dtos.diagnosis import DiagnosisTier
 from deployd.application.dtos.investigation_request import InvestigationRequest
 from deployd.application.dtos.retrieval import RetrievalCandidate, RetrievalResult
