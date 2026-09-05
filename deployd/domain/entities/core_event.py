@@ -35,8 +35,12 @@ class CoreEventType(str, Enum):
     CONNECTIVITY_LOSS = "CONNECTIVITY_LOSS"
     STATE_CHANGE = "STATE_CHANGE"
     HEALTH_CHECK_FAIL = "HEALTH_CHECK_FAIL"
+    HEALTH_CHECK_PASS = "HEALTH_CHECK_PASS"
     # Human triggered
     HUMAN_OBSERVATION = "HUMAN_OBSERVATION"
+    # Detection-derived (DID-9): inferred by a DetectionRule from evidence + reference
+    # data, not observed directly by an adapter.
+    CONFIG_DRIFT_DETECTED = "CONFIG_DRIFT_DETECTED"
 
 
 class Severity(str, Enum):

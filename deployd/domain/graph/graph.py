@@ -115,7 +115,9 @@ class IncidentGraph:
         return [e for e in edges if e.edge_type == edge_type]
 
     # Neighborhood expansion algo
-    def get_k_hop_neighborhood(self, start_node_id: uuid.UUID, max_hops: int = 2) -> IncidentGraph:
+    def get_k_hop_neighborhood(
+        self, start_node_id: uuid.UUID, max_hops: int = 2, edge_types: list[EdgeType] | None = None
+    ) -> IncidentGraph:
         """ADR-004;
         Constrained BFS from start up to max hops , bidirectioanl.
         Returns a new IncidentGraph containing the sub-graph reached within max hops.
@@ -132,10 +134,14 @@ class IncidentGraph:
             curr_id, depth = frontier.popleft()
             if depth == max_hops:
                 continue
-            neighbor_ids = [e.target for e in self._outgoing[curr_id]] + [
-                e.source for e in self._incoming[curr_id]
-            ]
-            for neighbor_id in neighbor_ids:
+            neighbors = []
+            for e in self._outgoing[curr_id]:
+                if edge_types is None or e.edge_type in edge_types:
+                    neighbors.append(e.target)
+            for e in self._incoming[curr_id]:
+                if edge_types is None or e.edge_type in edge_types:
+                    neighbors.append(e.source)
+            for neighbor_id in neighbors:
                 if neighbor_id not in visited:
                     visited.add(neighbor_id)
                     frontier.append((neighbor_id, depth + 1))
@@ -144,7 +150,9 @@ class IncidentGraph:
         for node_id in visited:
             subgraph.add_node(self.get_node(node_id))
         for edge in self.edges:
-            if edge.source in visited and edge.target in visited:
+            if (edge.source in visited and edge.target in visited) and (
+                edge_types is None or edge.edge_type in edge_types
+            ):
                 subgraph.add_edge(edge)
         return subgraph
 
