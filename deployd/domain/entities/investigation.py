@@ -15,14 +15,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from deployd.domain.entities.core_event import CoreEvent  # noqa: TCH001
-
-if TYPE_CHECKING:
-    from deployd.domain.graph.graph import IncidentGraph  # noqa: TCH001
+from deployd.domain.graph.graph import IncidentGraph
 
 # ---------------------------------------------------------------------------
 # Enumerations
