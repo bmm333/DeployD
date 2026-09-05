@@ -1,0 +1,23 @@
+{
+    "runbook_id": "RB-INVENTORY-DISK-FULL",
+    "incident_id": "INC-2026-08-27-004",
+    "summary": "inventory-service host ran out of disk space due to unrotated logs, causing write failures and eventual process crash.",
+    "affected_components": [
+        "inventory-service"
+    ],
+    "causal_chain": [
+        "RESOURCE_EXHAUSTION",
+        "PROCESS_CRASH"
+    ],
+    "root_cause": "Log rotation was misconfigured after a base image update, causing application logs to grow unbounded until the host disk filled up completely.",
+    "fix": "Cleared old logs, fixed logrotate configuration, and added a disk-usage alert at 80% capacity.",
+    "fix_commands": [
+        "ssh inventory-host-3 'logrotate -f /etc/logrotate.d/inventory-service'"
+    ],
+    "occurred_at": "2024-10-10T03:22:00Z",
+    "tags": [
+        "disk-full",
+        "log-rotation",
+        "inventory-service"
+    ]
+}

@@ -1,0 +1,158 @@
+[
+    {
+        "query": "auth-service pods keep getting killed after the last deploy, memory usage climbing",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "tests": "semantic paraphrase",
+        "causal_chain": [
+            "DEPLOY_STARTED",
+            "RESOURCE_EXHAUSTION",
+            "PROCESS_CRASH"
+        ],
+        "affected_components": [
+            "auth-service"
+        ]
+    },
+    {
+        "query": "OOMKilled auth-service v2.3.1 session cache",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "tests": "exact identifier (BM25)",
+        "causal_chain": [
+            "DEPLOY_STARTED",
+            "RESOURCE_EXHAUSTION",
+            "PROCESS_CRASH"
+        ],
+        "affected_components": [
+            "auth-service"
+        ]
+    },
+    {
+        "query": "payment service can't reach the database, connection pool exhausted",
+        "expected_runbook_id": "RB-PAYMENT-DB-TIMEOUT",
+        "tests": "semantic paraphrase",
+        "causal_chain": [
+            "CONNECTIVITY_LOSS",
+            "RESOURCE_EXHAUSTION",
+            "DEPENDENCY_FAILURE"
+        ],
+        "affected_components": [
+            "payment-service",
+            "postgres-db"
+        ]
+    },
+    {
+        "query": "api-gateway pointing to wrong database after config change",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "tests": "semantic paraphrase",
+        "causal_chain": [
+            "CONFIG_CHANGE",
+            "DEPENDENCY_FAILURE"
+        ],
+        "affected_components": [
+            "api-gateway"
+        ]
+    },
+    {
+        "query": "config drift detected, staging db instead of production",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "tests": "exact identifier (BM25)",
+        "causal_chain": [
+            "CONFIG_CHANGE",
+            "DEPENDENCY_FAILURE"
+        ],
+        "affected_components": [
+            "api-gateway"
+        ]
+    },
+    {
+        "query": "inventory service disk full, writes failing",
+        "expected_runbook_id": "RB-INVENTORY-DISK-FULL",
+        "tests": "semantic + identifier mix",
+        "causal_chain": [
+            "RESOURCE_EXHAUSTION",
+            "STATE_CHANGE"
+        ],
+        "affected_components": [
+            "inventory-service"
+        ]
+    },
+    {
+        "query": "notification service crash looping after deploy",
+        "expected_runbook_id": "RB-NOTIFICATION-CRASH-LOOP",
+        "tests": "causal chain match (deploy->crash->restart->crash)",
+        "causal_chain": [
+            "DEPLOY_STARTED",
+            "PROCESS_CRASH",
+            "STATE_CHANGE",
+            "PROCESS_CRASH"
+        ],
+        "affected_components": [
+            "notification-service"
+        ]
+    },
+    {
+        "query": "checkout failing intermittently, redis failover happened",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "tests": "semantic + structural (mirrors the Mongo motivating incident shape)",
+        "causal_chain": [
+            "CONNECTIVITY_LOSS",
+            "STATE_CHANGE"
+        ],
+        "affected_components": [
+            "checkout-service",
+            "redis-cluster"
+        ]
+    },
+    {
+        "query": "auth-service degraded but never crashed after a config change",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "tests": "HARD NEGATIVE vs RB-AUTH-SERVICE-OOMKILL: same component, different root cause and different causal chain",
+        "causal_chain": [
+            "CONFIG_CHANGE",
+            "HEALTH_CHECK_FAIL"
+        ],
+        "affected_components": [
+            "auth-service"
+        ]
+    },
+    {
+        "query": "search results slow, elasticsearch cluster overloaded",
+        "expected_runbook_id": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+        "tests": "semantic paraphrase",
+        "causal_chain": [
+            "RESOURCE_EXHAUSTION",
+            "DEPENDENCY_FAILURE"
+        ],
+        "affected_components": [
+            "search-service",
+            "elasticsearch"
+        ]
+    },
+    {
+        "query": "billing service keeps crashing and restarting after latest release",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "tests": "causal chain match, similar shape to RB-NOTIFICATION-CRASH-LOOP (different component)",
+        "causal_chain": [
+            "DEPLOY_STARTED",
+            "PROCESS_CRASH",
+            "STATE_CHANGE",
+            "PROCESS_CRASH",
+            "STATE_CHANGE"
+        ],
+        "affected_components": [
+            "billing-service"
+        ]
+    },
+    {
+        "query": "shipping service lost connection to its database, network issue",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "tests": "semantic paraphrase",
+        "causal_chain": [
+            "CONNECTIVITY_LOSS",
+            "DEPENDENCY_FAILURE"
+        ],
+        "affected_components": [
+            "shipping-service",
+            "shipping-db"
+        ]
+    }
+]
