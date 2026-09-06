@@ -1,1 +1,42 @@
-#
+# TWO services : ChromaDB(Vector store) and Python app
+# Chroma runs as a separate HTTP server instead of process embedded
+
+# How to run: docker compose up
+# to start only the backend without ui: docker compose up chroma
+
+services:
+  chroma:
+    image: chromadb/chroma:latest
+    volumes:
+      - chroma_data:/chroma/chroma
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8000'"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    environment:
+      ANONYMIZED_TELEMETRY: "false"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      chroma:
+        condition: service_healthy
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data/runbooks:/app/data/runbooks:ro
+      - investigation_data:/app/data/investigations
+    environment:
+      CHROMA_HOST: "chroma"
+      CHROMA_PORT: "8000"
+    restart: unless-stopped
+
+volumes:
+  chroma_data:
+  investigation_data:
