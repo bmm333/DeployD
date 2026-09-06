@@ -24,10 +24,14 @@ class ChromaRunbookClient:
     def __init__(
         self, persist_directory: str, embedding_model_name: str = "all-MiniLM-L6-v2"
     ) -> None:
-        self._client = chromadb.HttpClient(
-            host=os.getenv("CHROMA_HOST", "localhost"),
-            port=int(os.getenv("CHROMA_PORT", "8000")),
-        )
+        chroma_host = os.getenv("CHROMA_HOST")
+        if chroma_host:
+            self._client = chromadb.HttpClient(
+                host=chroma_host,
+                port=int(os.getenv("CHROMA_PORT", "8000")),
+            )
+        else:
+            self._client = chromadb.PersistentClient(path=persist_directory)
         self._collection = self._client.get_or_create_collection(self.COLLECTION_NAME)
         self._model = SentenceTransformer(embedding_model_name)
 
