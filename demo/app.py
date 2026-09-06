@@ -693,10 +693,11 @@ col_fsm, col_conf = st.columns([1, 1], gap="medium")
 with col_fsm:
     st.markdown(
         """
-        <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
-          <div><span style="color:#10b981; margin-right:4px;">●</span> PROCESSHEALTHFSM STATUS</div>
-          <div style="font-size:0.7rem; font-weight:normal; background:var(--dp-surface2); padding:2px 8px; border-radius:12px; color:var(--dp-txt3); text-transform:none; letter-spacing:normal;">Deterministic Engine</div>
-        </div>
+        <div class="dp-panel" style="height:100%;">
+          <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <div><span style="color:#10b981; margin-right:4px;">●</span> PROCESSHEALTHFSM STATUS</div>
+            <div style="font-size:0.7rem; font-weight:normal; background:var(--dp-surface2); padding:2px 8px; border-radius:12px; color:var(--dp-txt3); text-transform:none; letter-spacing:normal;">Deterministic Engine</div>
+          </div>
         """,
         unsafe_allow_html=True,
     )
@@ -704,8 +705,6 @@ with col_fsm:
     badge_html = _fsm_badge(fsm_state_str)
     st.markdown(
         f"""
-        <div style="background:var(--dp-surface); border:1px solid var(--dp-border);
-                    border-radius:10px; padding:1rem 1.25rem;">
           <div style="color:var(--dp-txt3); font-size:0.75rem; margin-bottom:0.5rem;">
             Final State
           </div>
@@ -745,10 +744,11 @@ with col_fsm:
 with col_conf:
     st.markdown(
         """
-        <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center;">
-          <div><span style="color:#a855f7; margin-right:4px;">●</span> CONFIDENCE & EVIDENCE COVERAGE</div>
-          <div style="font-size:0.7rem; font-weight:normal; background:var(--dp-surface2); padding:2px 8px; border-radius:12px; color:var(--dp-txt3); text-transform:none; letter-spacing:normal;">Vector Retrieval</div>
-        </div>
+        <div class="dp-panel" style="height:100%;">
+          <div class="panel-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <div><span style="color:#a855f7; margin-right:4px;">●</span> CONFIDENCE & EVIDENCE COVERAGE</div>
+            <div style="font-size:0.7rem; font-weight:normal; background:var(--dp-surface2); padding:2px 8px; border-radius:12px; color:var(--dp-txt3); text-transform:none; letter-spacing:normal;">Vector Retrieval</div>
+          </div>
         """,
         unsafe_allow_html=True,
     )
@@ -774,8 +774,6 @@ with col_conf:
 
     st.markdown(
         f"""
-        <div style="background:var(--dp-surface); border:1px solid var(--dp-border);
-                    border-radius:10px; padding:1rem 1.25rem;">
           <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem;">
             <span style="color:var(--dp-txt3); font-size:0.8rem;">Best retrieval score</span>
             <span style="color:var(--dp-txt1); font-weight:700; font-size:1.1rem;">
