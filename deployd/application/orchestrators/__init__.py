@@ -1,15 +1,16 @@
 """
-deployd.application.orchestrators
-==================================
-Public surface for the orchestrator package.
+Application-layer orchestrators.
+
+The InvestigationOrchestrator is the single enforcement point for the
+"DeployD never hallucinates" guarantee — import it from here.
 """
 
 from deployd.application.orchestrators.investigation_orchestrator import (
-    BoundaryViolationError,
+    AgentPort,
     InvestigationOrchestrator,
 )
 
 __all__ = [
-    "BoundaryViolationError",
+    "AgentPort",
     "InvestigationOrchestrator",
 ]

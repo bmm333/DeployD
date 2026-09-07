@@ -1,5 +1,5 @@
-"""Node rappresents an observed domain event.
-Node MUST BE TRACABLE BACK TO A CORE EVENT
+"""Node represents an observed domain event.
+Node MUST BE TRACEABLE BACK TO A CORE EVENT
 """
 
 from __future__ import annotations

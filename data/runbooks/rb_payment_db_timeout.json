@@ -1,0 +1,26 @@
+{
+    "runbook_id": "RB-PAYMENT-DB-TIMEOUT",
+    "incident_id": "INC-2026-08-27-002",
+    "summary": "payment-service could not reach postgres-primary after a config change reduced the connection pool size; requests started timing out under normal load",
+    "affected_components": [
+        "payment-service",
+        "postgres-primary"
+    ],
+    "causal_chain": [
+        "CONFIG_CHANGE",
+        "DEPENDENCY_FAILURE",
+        "DEPENDENCY_FAILURE"
+    ],
+    "root_cause": "A config change lowered the max connection pool size for payment-service from 50 to 10, which was insufficient for peak traffic, causing connection pool exhaustion against postgres-primary.",
+    "fix": "Reverted the connection pool size config and added an alert on pool saturation above 80%.",
+    "fix_commands": [
+        "kubectl set env deployment/payment-service DB_POOL_SIZE=50 -n prod"
+    ],
+    "occurred_at": "2024-08-15T09:14:00Z",
+    "tags": [
+        "connection-pool",
+        "postgres",
+        "payment-service",
+        "config-change"
+    ]
+}
