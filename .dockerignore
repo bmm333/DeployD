@@ -1,0 +1,47 @@
+# Virtual environments
+.venv/
+venv/
+
+# Chroma persisted data (gets mounted as volume)
+data/chroma/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Test / coverage artifacts
+.pytest_cache/
+htmlcov/
+coverage.xml
+.coverage
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Docs / ADRs (not needed in image)
+ADR/
+docs/
+*.md
+LICENSE
+
+# CI
+.github/
+.pre-commit-config.yaml
+
+# Antigravity / Gemini
+.gemini/
