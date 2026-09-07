@@ -6,16 +6,63 @@ Data flow:
     IncomingEvent (adapter) -> CoreEvent (domain) -> InvestigationRequest (DTO) -> Agent
 
 Agents must ONLY receive this DTO, never a CoreEvent or database model.
+
+Note on naming
+--------------
+``InvestigationRequest`` (dataclass) — the legacy orchestrator contract used by
+the three-tier InvestigationOrchestrator.run() pipeline (DID-12).
+
+``AgentInvestigationRequest`` (Pydantic) — the richer DTO materialised by the
+ADR-008 pipeline mappers and handed to AI agents.  It is exported from the
+package ``__init__`` simply as ``InvestigationRequest`` for external callers
+that import from ``deployd.application.dtos``.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from deployd.application.dtos.enums import TriggerType
+
+if TYPE_CHECKING:
+    from deployd.application.dtos.retrieval import RetrievalResult
+    from deployd.domain.graph.graph import IncidentGraph
+    from deployd.domain.health.process_state import ProcessHealthStatus
+
+
+# ---------------------------------------------------------------------------
+# Legacy three-tier orchestrator contract (DID-12)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class InvestigationRequest:
+    """
+    Input to InvestigationOrchestrator.run() (three-tier pipeline, DID-12).
+
+    `component`        — identifier of the service / process being investigated.
+    `graph`            — IncidentGraph built from observed CoreEvents for the
+                         query window; may be empty (Tier-1 path).
+    `fsm_state`        — current ProcessHealthStatus of `component` after
+                         replaying all events through ProcessHealthFSM.
+    `retrieval_result` — output of the HybridRetriever query for this incident;
+                         pass RetrievalResult() (empty, default threshold) when
+                         no retrieval was performed.
+    """
+
+    component: str
+    graph: IncidentGraph
+    fsm_state: ProcessHealthStatus
+    retrieval_result: RetrievalResult
+
+
+# ---------------------------------------------------------------------------
+# ADR-008 pipeline DTOs (new design)
+# ---------------------------------------------------------------------------
 
 
 class EventDTO(BaseModel):
@@ -84,13 +131,16 @@ class ComponentDependencyDTO(BaseModel):
     )
 
 
-class InvestigationRequest(BaseModel):
+class AgentInvestigationRequest(BaseModel):
     """
-    Top-level DTO passed to an AI agent to initiate an investigation.
+    Top-level DTO passed to an AI agent to initiate an investigation (ADR-008).
 
     Agents must never receive a ``CoreEvent`` or any domain/infrastructure object —
     only this DTO.  All enrichment (component graph, ranked events) is materialised
     here by the application mapper before crossing the agent boundary.
+
+    This class is exported from ``deployd.application.dtos`` as
+    ``InvestigationRequest`` so that external callers use a stable name.
     """
 
     model_config = ConfigDict(frozen=True)
