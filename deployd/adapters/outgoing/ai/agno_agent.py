@@ -1,4 +1,4 @@
-"""DID-5/DID-7: AgnoGroqAgent — Multi-turn investigative agent with tool calling.
+"""DID-17: AgnoGroqAgent — Multi-turn investigative agent with tool calling.
 
 Architecture
 ------------
@@ -130,10 +130,7 @@ def _make_search_runbooks_tool(
 
     Note: this tool uses **semantic-only** search via ChromaDB, not the full
     HybridRetriever pipeline (BM25 + Dense + Causal matching).  This is by
-    design — the full hybrid retrieval is the *orchestrator's* job (it runs
-    before the agent to make the Tier 2/3 gate decision).  The agent's tool
-    is for **additional** lightweight searches during investigation, not a
-    replacement for the hybrid pipeline.
+    design. The agent's tool is for  additional 5lightweight searches during investigation.
 
     The *retrieved_ids* set is mutated in-place: every runbook ID returned
     by a tool call is added so that ``_validate_evidence`` can accept it.
@@ -195,7 +192,7 @@ def _make_check_dependencies_tool(
     def check_component_dependencies(component: str) -> str:
         """Check the software state and compatibility constraints of a component.
 
-        Use this when you need to verify if a component has dependency conflicts,
+        Use this when need to verify if a component has dependency conflicts,
         version mismatches, or missing requirements that could explain a crash.
         This tool performs a deterministic check against known constraints.
 
@@ -238,17 +235,15 @@ def _make_get_runbook_detail_tool(
 ) -> Callable[..., str]:
     """Create a ``get_runbook_detail`` tool bound to *runbook_repo*.
 
-    This is the "expensive / detailed" half of the progressive retrieval
-    pattern::
-
-        search_runbooks  → cheap, broad candidate discovery
-        get_runbook_detail → specific, full evidence for a known ID
+    This is the "detailed(or expensie)" half of the progressive retrieval
+    pattern:
+        search_runbooks->cheap, broad candidate; discovery get_runbook_detail->specific, full evidence for a known ID
     """
 
     def get_runbook_detail(runbook_id: str) -> str:
         """Get the full details and fix commands of a specific runbook.
 
-        Use this when you already know a runbook ID from the initial evidence
+        Use this when already know a runbook ID from the initial evidence
         and need the complete remediation procedure, including commands.
 
         Args:
@@ -299,22 +294,12 @@ class AgnoGroqAgent:
 
     Diagnosis pipeline::
 
-        LLM (with tools)
-              ↓
-        AgentDiagnosis (Pydantic response_model)
-              ↓
-        Evidence validator (deterministic — strips hallucinated IDs)
-              ↓
-        Formatted string for AgentPort
+        LLM (with tools)->AgentDiagnosis (Pydantic response_model)->Evidence validator (deterministic — strips hallucinated IDs) -> Formatted string for AgentPort
 
     Parameters
     ----------
-    chroma_client:
-        Optional.  ChromaDB client for semantic runbook search (tool dep).
-    runbook_repo:
-        Optional.  JSON runbook repository for full runbook data (tool dep
-        + evidence validation).
-
+    chroma_client: Optional.  ChromaDB client for semantic runbook search (tool dep).
+    runbook_repo: Optional.  JSON runbook repository for full runbook data (tool dep + evidence validation).
     When tool dependencies are **not** provided the agent operates in
     summarisation-only mode (no tool calling, no evidence validation).
     This preserves backward compatibility with the current orchestrator.
@@ -381,13 +366,11 @@ class AgnoGroqAgent:
     ) -> str:
         """Produce a validated, grounded diagnosis from pre-computed evidence.
 
-        Pipeline:  LLM → AgentDiagnosis → evidence validator → formatted str.
-
+        Pipeline:  LLM->AgentDiagnosis ->evidence validator-> formatted str.
         **Fail-closed**: if structured output or validation fails, the error
         propagates to the orchestrator which can degrade to Tier 2.  We do
         NOT fall back to an unstructured LLM call, because an unvalidated
         diagnosis in an incident response system is worse than no diagnosis.
-
         The ``last_session_id`` property exposes the session identifier for
         subsequent ``follow_up`` calls.
         """
@@ -409,7 +392,7 @@ class AgnoGroqAgent:
             session_id,
         )
 
-        # ── Step 1: Run agent with structured output ─────────────────
+        #Step 1: Run agent with structured output
         agent = self._create_structured_agent()
         response = agent.run(user_message)
 
@@ -419,10 +402,8 @@ class AgnoGroqAgent:
             msg = f"Expected AgentDiagnosis, got {type(response.content).__name__}"
             raise TypeError(msg)
         diagnosis: AgentDiagnosis = response.content
-
-        # Step 2: Evidence validation (deterministic)
+        #Step 2: Evidence validation (deterministic)
         diagnosis = self._validate_evidence(diagnosis, allowed_ids)
-
         # Step 3: Format for AgentPort
         formatted = _format_diagnosis(diagnosis)
 
@@ -446,7 +427,7 @@ class AgnoGroqAgent:
     def follow_up(self, session_id: str, message: str) -> str:
         """Continue an investigation with additional context from the engineer.
 
-        Engineer-provided context is explicitly framed as **unverified** in
+        Engineer provided context is explicitly framed as **unverified** in
         the agent prompt.  The agent retains the initial diagnosis and all
         prior follow-up turns as conversation context.
 
@@ -456,7 +437,6 @@ class AgnoGroqAgent:
             Identifier from ``last_session_id`` after calling ``diagnose``.
         message:
             Follow-up from the engineer (e.g. "we deployed v2.3 yesterday").
-
         Returns
         -------
         Updated analysis incorporating the new context.
@@ -492,7 +472,7 @@ class AgnoGroqAgent:
             len(message),
         )
 
-        # Frame engineer input as unverified
+        #engineer input is unverified
         framed_message = (
             "## Engineer-Provided Context (UNVERIFIED)\n"
             "The following was provided by the on-call engineer.  It has "
@@ -510,28 +490,22 @@ class AgnoGroqAgent:
             result: str = (
                 response.content if response.content else "Agent returned an empty response."
             )
-
             ctx.followup_history.append((message, result))
-
             logger.info("Follow-up complete: session=%s, turn=%d", session_id, ctx.turn_count)
             return result
-
         except Exception as exc:
             logger.exception("Follow-up failed: session=%s", session_id)
             raise RuntimeError(f"Follow-up failed: {exc}") from exc
 
     # Properties
-
     @property
     def last_session_id(self) -> str | None:
         """Session ID of the most recent ``diagnose()`` call.
-
         Use this to pass to ``follow_up()`` for multi-turn conversations.
         """
         return self._last_session_id
 
     # Internal
-
     def _create_structured_agent(self) -> Agent:
         """Agent with ``output_model`` for validated structured output."""
         return Agent(
@@ -581,7 +555,7 @@ class AgnoGroqAgent:
         Validates that every cited ``evidence_references`` was actually part
         of the investigation's evidence set::
 
-            evidence_references ⊆ allowed_ids
+            evidence_references in allowed_ids
 
         ``allowed_ids`` contains the runbook IDs that were retrieved by the
         orchestrator's pipeline (candidates) plus any IDs discovered by the

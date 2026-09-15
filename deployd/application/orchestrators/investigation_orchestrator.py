@@ -1,9 +1,6 @@
 """
 DID-12: InvestigationOrchestrator — three-tier diagnostic orchestrator.
 
-This is the single enforcement point for the "DeployD never hallucinates"
-guarantee documented in the technical report (§4).
-
 The orchestrator inspects evidence availability BEFORE deciding which tier
 applies.  Tiers 1 and 2 are fully deterministic and never invoke the AI agent.
 The agent is only reached in Tier 3, where every fix suggestion is grounded in
@@ -30,7 +27,7 @@ execution occurs.
                    executed without explicit engineer sign-off.
 
 AgentPort is a Protocol so the orchestrator never imports Agno directly.
-The concrete Agno implementation is injected at construction time (DID-5/DID-7).
+The concrete Agno implementation is injected at construction time.
 """
 
 from __future__ import annotations
