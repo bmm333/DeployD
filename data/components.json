@@ -1,0 +1,31 @@
+{
+  "payment-service": {
+    "environment": "production",
+    "runtime": {
+      "name": "python",
+      "version": "3.13"
+    },
+    "frameworks": {
+      "fastapi": "0.115.2"
+    },
+    "dependencies": {
+      "pydantic": "1.10.14",
+      "redis": "6.4.0",
+      "sqlalchemy": "2.0.25"
+    }
+  },
+  "order-service": {
+    "environment": "production",
+    "runtime": {
+      "name": "python",
+      "version": "3.12"
+    },
+    "frameworks": {
+      "fastapi": "0.115.2"
+    },
+    "dependencies": {
+      "pydantic": "2.10.0",
+      "redis": "6.4.0"
+    }
+  }
+}
