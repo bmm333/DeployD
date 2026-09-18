@@ -35,6 +35,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from deployd.application.dtos.diagnosis import (
+    AgentDiagnosis,
     DiagnosisResult,
     DiagnosisTier,
     RemediationRecommendation,
@@ -57,17 +58,26 @@ class AgentPort(Protocol):
     Seam between the orchestrator and the concrete AI agent (Agno, DID-5/7).
 
     The orchestrator only calls this in Tier 3.  Implementors must return a
-    human-readable summary grounded in `candidates`; they must never fabricate
-    information not present in the evidence or the retrieved runbooks.
+    validated ``AgentDiagnosis`` grounded in `candidates`; they must never
+    fabricate information not present in the evidence or the retrieved runbooks.
     """
+
+    @property
+    def last_session_id(self) -> str | None:
+        """Session ID of the most recent ``diagnose()`` call."""
+        ...
 
     def diagnose(
         self,
         component: str,
         causal_chains: list[list[GraphNode]],
         candidates: list[RetrievalCandidate],
-    ) -> str:
-        """Return a diagnosis summary grounded in evidence and candidates."""
+    ) -> AgentDiagnosis:
+        """Return a validated, structured diagnosis grounded in evidence."""
+        ...
+
+    def follow_up(self, session_id: str, message: str) -> str:
+        """Continue an investigation with additional engineer context."""
         ...
 
 
@@ -183,21 +193,21 @@ class InvestigationOrchestrator:
         retrieval candidates as grounding context.  The result still requires
         human approval before any tool execution.
         """
-        summary = self._agent.diagnose(
+        agent_diagnosis = self._agent.diagnose(
             component=component,
             causal_chains=chains,
             candidates=candidates,
         )
-        references = [c.runbook_id for c in candidates]
 
         return DiagnosisResult(
             tier=DiagnosisTier.FULL,
             fsm_state=fsm_state,
             causal_chains=chains,
+            structured_diagnosis=agent_diagnosis,
             remediation=RemediationRecommendation(
-                summary=summary,
+                summary=agent_diagnosis.root_cause,
                 requires_human_approval=True,
-                evidence_references=references,
+                evidence_references=agent_diagnosis.evidence_references,
             ),
         )
 

@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING
 
 from agno.agent import Agent
 from agno.models.groq import Groq
-from pydantic import BaseModel, Field
+from deployd.application.dtos.diagnosis import AgentDiagnosis
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -51,23 +51,6 @@ if TYPE_CHECKING:
     from deployd.domain.graph.node import GraphNode
 
 logger = logging.getLogger(__name__)
-
-
-class AgentDiagnosis(BaseModel):
-    """Validated structured output schema for agent diagnoses.
-    Used as ``response_model``
-    A deterministic evidence validator runs on top to strip any runbook IDs
-    that the model hallucinated.
-    """
-
-    root_cause: str = Field(description="Concise identification of the root cause")
-    confidence: str = Field(description="High, Medium, or Low")
-    reasoning: str = Field(description="Step-by-step analysis of the evidence")
-    recommendation: str = Field(description="Specific remediation action")
-    evidence_references: list[str] = Field(
-        default_factory=list,
-        description="Runbook IDs cited as evidence (only IDs present in the system)",
-    )
 
 
 @dataclass
@@ -363,14 +346,16 @@ class AgnoGroqAgent:
         component: str,
         causal_chains: list[list[GraphNode]],
         candidates: list[RetrievalCandidate],
-    ) -> str:
+    ) -> AgentDiagnosis:
         """Produce a validated, grounded diagnosis from pre-computed evidence.
 
-        Pipeline:  LLM->AgentDiagnosis ->evidence validator-> formatted str.
+        Pipeline:  LLM -> AgentDiagnosis -> evidence validator -> AgentDiagnosis.
+
         **Fail-closed**: if structured output or validation fails, the error
         propagates to the orchestrator which can degrade to Tier 2.  We do
         NOT fall back to an unstructured LLM call, because an unvalidated
         diagnosis in an incident response system is worse than no diagnosis.
+
         The ``last_session_id`` property exposes the session identifier for
         subsequent ``follow_up`` calls.
         """
@@ -392,7 +377,7 @@ class AgnoGroqAgent:
             session_id,
         )
 
-        #Step 1: Run agent with structured output
+        # Step 1: Run agent with structured output
         agent = self._create_structured_agent()
         response = agent.run(user_message)
 
@@ -402,12 +387,11 @@ class AgnoGroqAgent:
             msg = f"Expected AgentDiagnosis, got {type(response.content).__name__}"
             raise TypeError(msg)
         diagnosis: AgentDiagnosis = response.content
-        #Step 2: Evidence validation (deterministic)
+        # Step 2: Evidence validation (deterministic)
         diagnosis = self._validate_evidence(diagnosis, allowed_ids)
-        # Step 3: Format for AgentPort
-        formatted = _format_diagnosis(diagnosis)
 
         # Store session context for follow-ups
+        formatted = _format_diagnosis(diagnosis)
         self._sessions[session_id] = _SessionContext(
             component=component,
             initial_evidence=user_message,
@@ -417,11 +401,11 @@ class AgnoGroqAgent:
         self._last_session_id = session_id
 
         logger.info(
-            "Diagnosis complete: session=%s, length=%d chars",
+            "Diagnosis complete: session=%s, root_cause=%s",
             session_id,
-            len(formatted),
+            diagnosis.root_cause[:80],
         )
-        return formatted
+        return diagnosis
 
     # Multi-turn follow-up
     def follow_up(self, session_id: str, message: str) -> str:
@@ -472,7 +456,7 @@ class AgnoGroqAgent:
             len(message),
         )
 
-        #engineer input is unverified
+        # engineer input is unverified
         framed_message = (
             "## Engineer-Provided Context (UNVERIFIED)\n"
             "The following was provided by the on-call engineer.  It has "
