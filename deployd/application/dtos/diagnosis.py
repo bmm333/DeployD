@@ -11,8 +11,28 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from pydantic import BaseModel, Field
+
 from deployd.domain.graph.node import GraphNode  # noqa: TCH001
 from deployd.domain.health.process_state import ProcessHealthStatus  # noqa: TCH001
+
+
+class AgentDiagnosis(BaseModel):
+    """Validated structured output schema for agent diagnoses.
+
+    Used as ``response_model`` by the Agno agent.
+    A deterministic evidence validator runs on top to strip any runbook IDs
+    that the model hallucinated.
+    """
+
+    root_cause: str = Field(description="Concise identification of the root cause")
+    confidence: str = Field(description="High, Medium, or Low")
+    reasoning: str = Field(description="Step-by-step analysis of the evidence")
+    recommendation: str = Field(description="Specific remediation action")
+    evidence_references: list[str] = Field(
+        default_factory=list,
+        description="Runbook IDs cited as evidence (only IDs present in the system)",
+    )
 
 
 class DiagnosisTier(str, Enum):
@@ -71,3 +91,4 @@ class DiagnosisResult:
     fsm_state: ProcessHealthStatus
     causal_chains: list[list[GraphNode]]
     remediation: RemediationRecommendation
+    structured_diagnosis: AgentDiagnosis | None = None
