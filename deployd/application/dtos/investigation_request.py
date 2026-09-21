@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -149,7 +149,7 @@ class AgentInvestigationRequest(BaseModel):
         ...,
         description="Whether the investigation was auto-detected or engineer-triggered.",
     )
-    human_description: Optional[str] = Field(
+    human_description: str | None = Field(
         default=None,
         description="Free-text description provided by an engineer (only when ENGINEER_TRIGGERED).",
     )
@@ -167,7 +167,7 @@ class AgentInvestigationRequest(BaseModel):
         default_factory=list,
         description="Snapshot of the relevant dependency graph edges at investigation time.",
     )
-    requested_by: Optional[str] = Field(
+    requested_by: str | None = Field(
         default=None,
         description="Identity of the engineer who triggered the investigation, if applicable.",
         examples=["alice@example.com"],

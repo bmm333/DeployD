@@ -26,6 +26,8 @@ from deployd.application.dtos.evidence import EvidenceDTO, MissingEvidence
 from deployd.application.dtos.incident_summary import IncidentSummaryDTO
 from deployd.application.dtos.investigation_request import (
     AgentInvestigationRequest as InvestigationRequest,
+)
+from deployd.application.dtos.investigation_request import (
     ComponentDependencyDTO,
     EventDTO,
 )

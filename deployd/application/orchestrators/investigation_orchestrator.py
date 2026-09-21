@@ -37,6 +37,7 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from deployd.application.dtos.diagnosis import (
     AgentDiagnosis,
+    DiagnosisRequest,
     DiagnosisResult,
     DiagnosisTier,
     TierDiagnosisResult,
@@ -44,6 +45,7 @@ from deployd.application.dtos.diagnosis import (
 )
 from deployd.application.dtos.enums import RiskLevel, TriggerType
 from deployd.application.dtos.incident_summary import IncidentSummaryDTO
+from deployd.application.dtos.investigation_request import AgentInvestigationRequest
 from deployd.application.dtos.retrieval import RetrievedEvidence
 from deployd.application.mappers.event_mapper import EventMapper
 from deployd.application.mappers.graph_mapper import GraphMapper
@@ -51,7 +53,8 @@ from deployd.domain.entities.core_event import CoreEvent
 from deployd.domain.graph.graph import IncidentGraph
 
 if TYPE_CHECKING:
-    from deployd.application.dtos.investigation_request import InvestigationRequest, RetrievalCandidate
+    from deployd.application.dtos.investigation_request import InvestigationRequest
+    from deployd.application.dtos.retrieval import RetrievalCandidate
     from deployd.domain.graph.node import GraphNode
     from deployd.domain.health.process_state import ProcessHealthStatus
 
@@ -233,6 +236,9 @@ class InvestigationOrchestrator:
         retrieval candidates as grounding context.  The result still requires
         human approval before any tool execution.
         """
+        if not self._agent:
+            raise RuntimeError("AgentPort not configured")
+
         agent_diagnosis = self._agent.diagnose(
             component=component,
             causal_chains=chains,
@@ -244,7 +250,7 @@ class InvestigationOrchestrator:
             fsm_state=fsm_state,
             causal_chains=chains,
             structured_diagnosis=agent_diagnosis,
-            remediation=RemediationRecommendation(
+            remediation=TierRemediation(
                 summary=agent_diagnosis.root_cause,
                 requires_human_approval=True,
                 evidence_references=agent_diagnosis.evidence_references,
@@ -288,8 +294,6 @@ class InvestigationOrchestrator:
         This is the primary input-boundary crossing point.  After this call,
         the returned DTO — and only this DTO — may be handed to an AI agent.
         """
-        from deployd.application.dtos.investigation_request import AgentInvestigationRequest
-
         event_dtos = self._event_mapper.core_events_to_event_dtos(events)
         dependency_map = self._graph_mapper.graph_to_dependency_map(graph)
         affected_components = self._graph_mapper.affected_components(graph)
@@ -349,7 +353,7 @@ class InvestigationOrchestrator:
         )
         return DiagnosisRequest(
             investigation_id=summary.investigation_id,
-            incident_summary=summary.narrative,
+            incident_summary=summary,
             retrieved_evidence=retrieved_evidence,
             available_evidence=available_evidence,
             trigger_type=summary.trigger_type,
@@ -385,10 +389,7 @@ class InvestigationOrchestrator:
 
         # Rule 2 — human-approval gate requires HIGH or CRITICAL risk level.
         remediation = result.remediation
-        if (
-            remediation.requires_human_approval
-            and remediation.risk_level not in _HIGH_RISK_LEVELS
-        ):
+        if remediation.requires_human_approval and remediation.risk_level not in _HIGH_RISK_LEVELS:
             raise BoundaryViolationError(
                 f"ADR-008 violation: remediation.requires_human_approval is True but "
                 f"risk_level is {remediation.risk_level!r}. "

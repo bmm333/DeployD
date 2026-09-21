@@ -20,13 +20,12 @@ import json
 from datetime import UTC, datetime
 
 import pytest
-from pydantic import ValidationError
-
 from deployd.application.dtos import (
     AlternativeHypothesis,
     ComponentDependencyDTO,
     DiagnosisRequest,
     DiagnosisResult,
+    EventDTO,  # also via __init__
     EvidenceDTO,
     EvidenceReference,
     EvidenceSource,
@@ -37,8 +36,7 @@ from deployd.application.dtos import (
     RiskLevel,
     TriggerType,
 )
-from deployd.application.dtos import EventDTO  # also via __init__
-
+from pydantic import ValidationError
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures

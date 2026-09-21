@@ -70,7 +70,9 @@ class EventMapper:
         ``confidence`` defaults to 1.0 for machine-generated events (facts).
         Pass a lower value for events whose accuracy is uncertain.
         """
-        from deployd.domain.entities.core_event import CoreEventType  # local import to keep module thin
+        from deployd.domain.entities.core_event import (
+            CoreEventType,  # local import to keep module thin
+        )
 
         source_map = {
             CoreEventType.HUMAN_OBSERVATION: EvidenceSource.HUMAN_OBSERVATION,

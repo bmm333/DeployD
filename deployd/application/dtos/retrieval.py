@@ -22,10 +22,9 @@ the boundary.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 # ---------------------------------------------------------------------------
 # Legacy three-tier retrieval contract (DID-12)
@@ -146,12 +145,12 @@ class RetrievedEvidence(BaseModel):
         description="Component names that were part of the matched graph sub-structure.",
         examples=[["api-gateway", "auth-service"]],
     )
-    historical_root_cause: Optional[str] = Field(
+    historical_root_cause: str | None = Field(
         default=None,
         description="Root cause conclusion recorded for the matched historical incident.",
         examples=["OOMKill caused by memory leak in auth-service v2.3.1"],
     )
-    historical_fix: Optional[str] = Field(
+    historical_fix: str | None = Field(
         default=None,
         description="Fix that resolved the matched historical incident.",
         examples=["Rolled back auth-service to v2.2.9 and applied memory limit patch."],
@@ -160,7 +159,7 @@ class RetrievedEvidence(BaseModel):
         default_factory=dict,
         description="Traceability metadata (e.g. ChromaDB document ID, collection name).",
     )
-    runbook_id: Optional[str] = Field(
+    runbook_id: str | None = Field(
         default=None,
         description="ID of the runbook associated with the historical incident, if any.",
         examples=["RB-AUTH-SERVICE-OOMKILL"],

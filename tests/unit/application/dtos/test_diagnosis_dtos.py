@@ -1,34 +1,33 @@
 import pytest
-from datetime import datetime, timezone
-from pydantic import ValidationError
-
 from deployd.application.dtos.diagnosis import (
     AlternativeHypothesis,
-    RemediationRecommendation,
-    DiagnosisResult,
     DiagnosisRequest,
+    DiagnosisResult,
+    RemediationRecommendation,
 )
-from deployd.application.dtos.enums import RiskLevel, TriggerType, EvidenceSource
-from deployd.application.dtos.evidence import EvidenceDTO, MissingEvidence
+from deployd.application.dtos.enums import RiskLevel, TriggerType
+from deployd.application.dtos.evidence import MissingEvidence
 from deployd.application.dtos.incident_summary import IncidentSummaryDTO
-from deployd.application.dtos.retrieval import EvidenceReference, RetrievedEvidence
+from deployd.application.dtos.retrieval import EvidenceReference
+from pydantic import ValidationError
+
 
 def test_alternative_hypothesis_valid():
     ref = EvidenceReference(
         incident_id="INC-123",
         relevance_explanation="Related to OOM",
-        similarity_scores={"semantic": 0.9}
+        similarity_scores={"semantic": 0.9},
     )
     missing = MissingEvidence(
         description="Missing logs",
         why_needed="To confirm memory usage",
-        collection_method="Check datadog"
+        collection_method="Check datadog",
     )
     hypo = AlternativeHypothesis(
         explanation="Could be a memory leak",
         confidence=0.8,
         supporting_evidence=[ref],
-        missing_evidence=[missing]
+        missing_evidence=[missing],
     )
     assert hypo.explanation == "Could be a memory leak"
     assert hypo.confidence == 0.8
@@ -37,14 +36,16 @@ def test_alternative_hypothesis_valid():
     # Check JSON serializable
     assert hypo.model_dump_json()
 
+
 def test_alternative_hypothesis_invalid_confidence():
     with pytest.raises(ValidationError):
         AlternativeHypothesis(
             explanation="Invalid confidence",
             confidence=1.5,
             supporting_evidence=[],
-            missing_evidence=[]
+            missing_evidence=[],
         )
+
 
 def test_remediation_recommendation_valid():
     rec = RemediationRecommendation(
@@ -53,11 +54,12 @@ def test_remediation_recommendation_valid():
         risk_level=RiskLevel.MEDIUM,
         prerequisites=["Approval"],
         evidence_references=[],
-        requires_human_approval=True
+        requires_human_approval=True,
     )
     assert rec.summary == "Restart the pods"
     assert rec.risk_level == RiskLevel.MEDIUM
     assert rec.model_dump_json()
+
 
 def test_diagnosis_result_valid():
     rec = RemediationRecommendation(
@@ -66,7 +68,7 @@ def test_diagnosis_result_valid():
         risk_level=RiskLevel.LOW,
         prerequisites=[],
         evidence_references=[],
-        requires_human_approval=False
+        requires_human_approval=False,
     )
     res = DiagnosisResult(
         root_cause_explanation="Memory leak in worker",
@@ -75,11 +77,12 @@ def test_diagnosis_result_valid():
         evidence_references=[],
         alternative_hypotheses=[],
         missing_evidence=[],
-        unsupported_claims=["We need more data on DB load"]
+        unsupported_claims=["We need more data on DB load"],
     )
     assert res.confidence == 0.9
     assert res.remediation.summary == "Fix"
     assert res.model_dump_json()
+
 
 def test_diagnosis_result_invalid_confidence():
     rec = RemediationRecommendation(
@@ -88,7 +91,7 @@ def test_diagnosis_result_invalid_confidence():
         risk_level=RiskLevel.LOW,
         prerequisites=[],
         evidence_references=[],
-        requires_human_approval=False
+        requires_human_approval=False,
     )
     with pytest.raises(ValidationError):
         DiagnosisResult(
@@ -98,15 +101,16 @@ def test_diagnosis_result_invalid_confidence():
             evidence_references=[],
             alternative_hypotheses=[],
             missing_evidence=[],
-            unsupported_claims=[]
+            unsupported_claims=[],
         )
+
 
 def test_diagnosis_request_valid():
     summary = IncidentSummaryDTO(
         investigation_id="INV-001",
         narrative="Services down",
         affected_components=["auth"],
-        trigger_type=TriggerType.AUTO_DETECTED
+        trigger_type=TriggerType.AUTO_DETECTED,
     )
     req = DiagnosisRequest(
         investigation_id="INV-001",
@@ -114,11 +118,12 @@ def test_diagnosis_request_valid():
         retrieved_evidence=[],
         available_evidence=[],
         trigger_type=TriggerType.AUTO_DETECTED,
-        human_description=None
+        human_description=None,
     )
     assert req.investigation_id == "INV-001"
     assert req.trigger_type == TriggerType.AUTO_DETECTED
     assert req.model_dump_json()
+
 
 def test_diagnosis_request_missing_required():
     with pytest.raises(ValidationError):

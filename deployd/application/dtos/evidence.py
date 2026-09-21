@@ -11,7 +11,7 @@ Agents receive ``List[EvidenceDTO]`` and return ``List[MissingEvidence]`` — ne
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -88,7 +88,7 @@ class MissingEvidence(BaseModel):
         description="Explanation of why this evidence is required to confirm the hypothesis.",
         examples=["Without pod logs we cannot distinguish OOMKill from Liveness probe failure."],
     )
-    source_incident_id: Optional[str] = Field(
+    source_incident_id: str | None = Field(
         default=None,
         description="If this gap was inferred from a historical incident, its ID is recorded here.",
         examples=["INC-20240815-0042"],

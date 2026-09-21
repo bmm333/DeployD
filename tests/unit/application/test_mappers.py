@@ -19,11 +19,9 @@ Coverage targets
 
 from __future__ import annotations
 
-import uuid
 from datetime import UTC, datetime
 
 import pytest
-
 from deployd.application.dtos import (
     DiagnosisResult,
     EvidenceReference,
@@ -262,8 +260,22 @@ class TestGraphMapper:
         g.add_node(node_b)
         # IncidentGraph itself blocks duplicate edges by raising DuplicateEdgeError,
         # but adding two edges of different types should give two DTOs.
-        g.add_edge(GraphEdge(source=node_a.node_id, target=node_b.node_id, edge_type=EdgeType.CAUSAL, confidence=0.9))
-        g.add_edge(GraphEdge(source=node_a.node_id, target=node_b.node_id, edge_type=EdgeType.TEMPORAL, confidence=0.8))
+        g.add_edge(
+            GraphEdge(
+                source=node_a.node_id,
+                target=node_b.node_id,
+                edge_type=EdgeType.CAUSAL,
+                confidence=0.9,
+            )
+        )
+        g.add_edge(
+            GraphEdge(
+                source=node_a.node_id,
+                target=node_b.node_id,
+                edge_type=EdgeType.TEMPORAL,
+                confidence=0.8,
+            )
+        )
 
         deps = GraphMapper.graph_to_dependency_map(g)
         assert len(deps) == 2  # two different edge types → two DTOs
@@ -279,7 +291,12 @@ class TestGraphMapper:
         event_b = make_core_event(component=None)
         node_a = GraphNode(event=event_a)
         node_b = GraphNode(event=event_b)
-        edge = GraphEdge(source=node_a.node_id, target=node_b.node_id, edge_type=EdgeType.DEPENDENCY, confidence=0.7)
+        edge = GraphEdge(
+            source=node_a.node_id,
+            target=node_b.node_id,
+            edge_type=EdgeType.DEPENDENCY,
+            confidence=0.7,
+        )
         g = IncidentGraph()
         g.add_node(node_a)
         g.add_node(node_b)
@@ -465,6 +482,7 @@ class TestBuildDiagnosisRequest:
         assert len(req.available_evidence) == 1
         # EvidenceDTO.source must be an EvidenceSource enum value (not CoreEventType)
         from deployd.application.dtos import EvidenceSource
+
         assert req.available_evidence[0].source in EvidenceSource
 
 
