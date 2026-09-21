@@ -1,33 +1,33 @@
 """
-ADR-008 / DID-12 (DD-17)
-InvestigationOrchestrator — wires the investigation pipeline and enforces
-the DTO boundary contracts.
+DID-12: InvestigationOrchestrator — three-tier diagnostic orchestrator.
 
-Two overlapping responsibilities
----------------------------------
-1. Three-tier diagnostic orchestrator (DID-12): ``run()`` method.
-   Accepts an ``InvestigationRequest`` dataclass (component, graph, fsm_state,
-   retrieval_result) and returns a ``TierDiagnosisResult`` after selecting
-   the correct tier.  Tiers 1 and 2 are fully deterministic and NEVER call
-   the AI agent.  The agent (``AgentPort``) is only reached in Tier 3.
+The orchestrator inspects evidence availability BEFORE deciding which tier
+applies.  Tiers 1 and 2 are fully deterministic and never invoke the AI agent.
+The agent is only reached in Tier 3, where every fix suggestion is grounded in
+retrieved historical evidence and still requires human approval before any tool
+execution occurs.
 
-2. ADR-008 pipeline factory (DD-17): ``build_*`` and ``validate_*`` methods.
-   Accept domain objects from the use-case layer, call mappers to materialise
-   all context into DTOs *before* the agent boundary, and validate
-   ``DiagnosisResult`` objects coming *back* from the agent.
+    Tier 1 — INCONCLUSIVE
+        Condition: IncidentGraph has no nodes (no observable evidence).
+        Action:    Return a deterministic result. Agent is NOT called.
+                   Zero token cost, zero hallucination risk by construction.
 
-ADR-008 enforcement rules
---------------------------
-* ``requires_human_approval=True`` → ``risk_level`` MUST be ``HIGH`` or
-  ``CRITICAL``.  Any lower level is a boundary violation.
-* ``evidence_references`` must be non-empty (already enforced by the DTO
-  ``min_length=1``, but the orchestrator re-checks for defence-in-depth).
-* ``unsupported_claims`` are preserved as-is and returned to the caller;
-  the orchestrator does NOT silently drop them.
+    Tier 2 — CHAIN_ONLY
+        Condition: Causal chain exists; HybridRetriever returned no candidate
+                   above the confidence threshold.
+        Action:    Expose the chain to the engineer. RemediationRecommendation
+                   states explicitly that no known historical fix exists and
+                   requires human approval. Agent is NOT called.
 
-The orchestrator is intentionally agent-agnostic: it does not import any Agno
-or LLM client.  The caller (use case / application service) is responsible for
-actually invoking the agent and passing its result back here for validation.
+    Tier 3 — FULL
+        Condition: Causal chain exists AND at least one retrieval candidate
+                   meets or exceeds the confidence threshold.
+        Action:    Delegate to AgentPort for a grounded diagnosis. The result
+                   still carries requires_human_approval=True; no tool is
+                   executed without explicit engineer sign-off.
+
+AgentPort is a Protocol so the orchestrator never imports Agno directly.
+The concrete Agno implementation is injected at construction time.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from deployd.application.dtos.diagnosis import (
-    DiagnosisRequest,
+    AgentDiagnosis,
     DiagnosisResult,
     DiagnosisTier,
     TierDiagnosisResult,
@@ -70,17 +70,26 @@ class AgentPort(Protocol):
     Seam between the orchestrator and the concrete AI agent (Agno, DID-5/7).
 
     The orchestrator only calls this in Tier 3.  Implementors must return a
-    human-readable summary grounded in `candidates`; they must never fabricate
-    information not present in the evidence or the retrieved runbooks.
+    validated ``AgentDiagnosis`` grounded in `candidates`; they must never
+    fabricate information not present in the evidence or the retrieved runbooks.
     """
+
+    @property
+    def last_session_id(self) -> str | None:
+        """Session ID of the most recent ``diagnose()`` call."""
+        ...
 
     def diagnose(
         self,
         component: str,
         causal_chains: list[list[GraphNode]],
         candidates: list[RetrievalCandidate],
-    ) -> str:
-        """Return a diagnosis summary grounded in evidence and candidates."""
+    ) -> AgentDiagnosis:
+        """Return a validated, structured diagnosis grounded in evidence."""
+        ...
+
+    def follow_up(self, session_id: str, message: str) -> str:
+        """Continue an investigation with additional engineer context."""
         ...
 
 
@@ -224,21 +233,21 @@ class InvestigationOrchestrator:
         retrieval candidates as grounding context.  The result still requires
         human approval before any tool execution.
         """
-        summary = self._agent.diagnose(
+        agent_diagnosis = self._agent.diagnose(
             component=component,
             causal_chains=chains,
             candidates=candidates,
         )
-        references = [c.runbook_id for c in candidates]
 
         return TierDiagnosisResult(
             tier=DiagnosisTier.FULL,
             fsm_state=fsm_state,
             causal_chains=chains,
-            remediation=TierRemediation(
-                summary=summary,
+            structured_diagnosis=agent_diagnosis,
+            remediation=RemediationRecommendation(
+                summary=agent_diagnosis.root_cause,
                 requires_human_approval=True,
-                evidence_references=references,
+                evidence_references=agent_diagnosis.evidence_references,
             ),
         )
 
