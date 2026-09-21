@@ -21,9 +21,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field as dc_field
 from enum import Enum
+from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+from deployd.application.dtos.enums import RiskLevel, TriggerType
+from deployd.application.dtos.evidence import EvidenceDTO, MissingEvidence
+from deployd.application.dtos.incident_summary import IncidentSummaryDTO
+from deployd.application.dtos.retrieval import EvidenceReference, RetrievedEvidence
 from deployd.domain.graph.node import GraphNode  # noqa: TCH001
 from deployd.domain.health.process_state import ProcessHealthStatus  # noqa: TCH001
 
@@ -44,6 +49,57 @@ class AgentDiagnosis(BaseModel):
         default_factory=list,
         description="Runbook IDs cited as evidence (only IDs present in the system)",
     )
+
+
+class AlternativeHypothesis(BaseModel):
+    """An alternative hypothesis considered by the agent."""
+    
+    model_config = ConfigDict(frozen=True)
+
+    explanation: str = Field(..., description="Explanation of the alternative hypothesis")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence level (0.0 to 1.0)")
+    supporting_evidence: list[EvidenceReference] = Field(default_factory=list, description="Evidence supporting this hypothesis")
+    missing_evidence: list[MissingEvidence] = Field(default_factory=list, description="Evidence missing that would confirm this hypothesis")
+
+
+class RemediationRecommendation(BaseModel):
+    """A recommended remediation plan."""
+    
+    model_config = ConfigDict(frozen=True)
+
+    summary: str = Field(..., description="Summary of the remediation")
+    steps: list[str] = Field(..., description="Ordered list of steps to resolve the issue")
+    risk_level: RiskLevel = Field(..., description="Risk level associated with the remediation")
+    prerequisites: list[str] = Field(default_factory=list, description="Prerequisites before executing the remediation")
+    evidence_references: list[EvidenceReference] = Field(default_factory=list, description="Evidence supporting this remediation")
+    requires_human_approval: bool = Field(..., description="Whether human approval is required before execution")
+
+
+class DiagnosisResult(BaseModel):
+    """The structured diagnosis result returned by the agent."""
+    
+    model_config = ConfigDict(frozen=True)
+
+    root_cause_explanation: str = Field(..., description="Detailed explanation of the root cause")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence level (0.0 to 1.0)")
+    remediation: RemediationRecommendation = Field(..., description="Recommended remediation action")
+    evidence_references: list[EvidenceReference] = Field(default_factory=list, description="References to the evidence used")
+    alternative_hypotheses: list[AlternativeHypothesis] = Field(default_factory=list, description="Alternative hypotheses considered")
+    missing_evidence: list[MissingEvidence] = Field(default_factory=list, description="Evidence gaps identified during diagnosis")
+    unsupported_claims: list[str] = Field(default_factory=list, description="Claims made without sufficient evidence")
+
+
+class DiagnosisRequest(BaseModel):
+    """The input to the diagnosis agent to investigate an incident."""
+    
+    model_config = ConfigDict(frozen=True)
+
+    investigation_id: str = Field(..., description="Unique ID for this investigation")
+    incident_summary: IncidentSummaryDTO = Field(..., description="Synthesised summary of the incident")
+    retrieved_evidence: list[RetrievedEvidence] = Field(default_factory=list, description="Historical evidence retrieved from vector store")
+    available_evidence: list[EvidenceDTO] = Field(default_factory=list, description="Currently available systemic evidence")
+    trigger_type: TriggerType = Field(..., description="How the investigation was initiated")
+    human_description: Optional[str] = Field(default=None, description="Optional description provided by the human triggering the investigation")
 
 
 class DiagnosisTier(str, Enum):
