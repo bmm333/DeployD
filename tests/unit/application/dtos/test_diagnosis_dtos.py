@@ -64,17 +64,22 @@ def test_remediation_recommendation_valid():
 def test_diagnosis_result_valid():
     rec = RemediationRecommendation(
         summary="Fix",
-        steps=[],
+        steps=["Step 1"],
         risk_level=RiskLevel.LOW,
         prerequisites=[],
         evidence_references=[],
         requires_human_approval=False,
     )
+    ref = EvidenceReference(
+        incident_id="INC-123",
+        relevance_explanation="Related to OOM",
+        similarity_scores={"semantic": 0.9},
+    )
     res = DiagnosisResult(
         root_cause_explanation="Memory leak in worker",
         confidence=0.9,
         remediation=rec,
-        evidence_references=[],
+        evidence_references=[ref],
         alternative_hypotheses=[],
         missing_evidence=[],
         unsupported_claims=["We need more data on DB load"],
@@ -87,7 +92,7 @@ def test_diagnosis_result_valid():
 def test_diagnosis_result_invalid_confidence():
     rec = RemediationRecommendation(
         summary="Fix",
-        steps=[],
+        steps=["Step 1"],
         risk_level=RiskLevel.LOW,
         prerequisites=[],
         evidence_references=[],
