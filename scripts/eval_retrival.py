@@ -77,10 +77,11 @@ def process_results(results, repo, expected):
             fix_commands=detail.fix_commands if detail else [],
         )
         retrieved_evidence_list.append(evidence)
-    
+
     returned_ids = [e.runbook_id for e in retrieved_evidence_list]
     is_hit = expected is not None and expected in returned_ids
     return returned_ids, is_hit
+
 
 def main() -> None:
     runbooks = load_runbooks()
@@ -128,7 +129,7 @@ def main() -> None:
         print(f"QUERY:    {query_text}")
         print(f"INPUTS:   chain={list(causal_chain)} | components={list(components)}")
         print(f"EXPECTED: {expected}")
-        
+
         top1_lin = results_lin[0] if results_lin else None
         if top1_lin:
             top1_id, score_set, score = top1_lin
@@ -146,7 +147,7 @@ def main() -> None:
             top1_str_rrf = "NONE"
         print(f"[RRF] TOP-1: {top1_str_rrf}")
         print(f"[RRF] TOP-{K}: {ids_rrf} | RESULT: {'Y HIT' if hit_rrf else 'N MISS'}")
-        
+
         print("-" * 80)
 
     print(f"\nrecall@{K} by category [LINEAR]:")

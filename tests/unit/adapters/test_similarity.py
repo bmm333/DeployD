@@ -144,7 +144,7 @@ class TestBlendRRF:
             dense_hits=[DenseHit(runbook_id="rb-1", semantic_score=0.8)],
             spares_hits=[],
             structural_hits=[],
-            k=60
+            k=60,
         )
         assert len(results) == 1
         rb_id, score_set, final = results[0]
@@ -157,7 +157,7 @@ class TestBlendRRF:
             dense_hits=[DenseHit("rb-1", 0.9), DenseHit("rb-2", 0.8)],
             spares_hits=[SparseHit("rb-2", 1.0), SparseHit("rb-1", 0.5)],
             structural_hits=[],
-            k=60
+            k=60,
         )
         assert len(results) == 2
         ids = [r[0] for r in results]
@@ -179,7 +179,7 @@ class TestBlendRRF:
                 StructuralHit("rb-1", causal_score=0.8, component_score=0.5),
                 StructuralHit("rb-2", causal_score=0.0, component_score=0.9),
             ],
-            k=60
+            k=60,
         )
         assert len(results) == 2
         rb1 = next(r for r in results if r[0] == "rb-1")
