@@ -19,7 +19,7 @@ Coverage targets
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import pytest
 from deployd.application.dtos import (
@@ -46,7 +46,7 @@ from deployd.domain.graph.node import GraphNode
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
 
-NOW = datetime.now(UTC)
+NOW = datetime.now(timezone.utc)
 
 
 def make_core_event(
@@ -470,7 +470,7 @@ class TestBuildDiagnosisRequest:
             retrieved_evidence=self.retrieved,
             events=self.events,
         )
-        assert req.incident_summary == "Incident narrative."
+        assert req.incident_summary.narrative == "Incident narrative."
 
     def test_available_evidence_converted(self):
         """CoreEvent objects must become EvidenceDTO — no CoreEvent in output."""

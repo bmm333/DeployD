@@ -56,7 +56,9 @@ class AlternativeHypothesis(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    explanation: str = Field(..., description="Explanation of the alternative hypothesis")
+    explanation: str = Field(
+        ..., min_length=1, description="Explanation of the alternative hypothesis"
+    )
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence level (0.0 to 1.0)")
     supporting_evidence: list[EvidenceReference] = Field(
         default_factory=list, description="Evidence supporting this hypothesis"
@@ -71,8 +73,10 @@ class RemediationRecommendation(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    summary: str = Field(..., description="Summary of the remediation")
-    steps: list[str] = Field(..., description="Ordered list of steps to resolve the issue")
+    summary: str = Field(..., min_length=1, description="Summary of the remediation")
+    steps: list[str] = Field(
+        ..., min_length=1, description="Ordered list of steps to resolve the issue"
+    )
     risk_level: RiskLevel = Field(..., description="Risk level associated with the remediation")
     prerequisites: list[str] = Field(
         default_factory=list, description="Prerequisites before executing the remediation"
@@ -90,13 +94,15 @@ class DiagnosisResult(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    root_cause_explanation: str = Field(..., description="Detailed explanation of the root cause")
+    root_cause_explanation: str = Field(
+        ..., min_length=1, description="Detailed explanation of the root cause"
+    )
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence level (0.0 to 1.0)")
     remediation: RemediationRecommendation = Field(
         ..., description="Recommended remediation action"
     )
     evidence_references: list[EvidenceReference] = Field(
-        default_factory=list, description="References to the evidence used"
+        ..., min_length=1, description="References to the evidence used"
     )
     alternative_hypotheses: list[AlternativeHypothesis] = Field(
         default_factory=list, description="Alternative hypotheses considered"

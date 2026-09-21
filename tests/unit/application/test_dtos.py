@@ -17,7 +17,7 @@ Coverage targets
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import pytest
 from deployd.application.dtos import (
@@ -42,7 +42,7 @@ from pydantic import ValidationError
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
 
-NOW = datetime.now(UTC)
+NOW = datetime.now(timezone.utc)
 
 
 def make_event_dto(**overrides):
@@ -578,9 +578,19 @@ class TestAlternativeHypothesis:
 
 class TestDiagnosisRequest:
     def _make(self, **overrides):
+        from deployd.application.dtos.enums import TriggerType
+        from deployd.application.dtos.incident_summary import IncidentSummaryDTO
+
+        summary_dto = IncidentSummaryDTO(
+            investigation_id="INV-20260816-0001",
+            narrative="api-gateway 502 after deploy.",
+            affected_components=["api-gateway"],
+            trigger_type=TriggerType.AUTO_DETECTED,
+            human_context=None,
+        )
         defaults = {
             "investigation_id": "INV-20260816-0001",
-            "incident_summary": "api-gateway 502 after deploy.",
+            "incident_summary": summary_dto,
             "retrieved_evidence": [make_retrieved_evidence()],
             "available_evidence": [make_evidence_dto()],
             "trigger_type": TriggerType.AUTO_DETECTED,
