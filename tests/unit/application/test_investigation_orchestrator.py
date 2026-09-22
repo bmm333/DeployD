@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from unittest.mock import create_autospec
 
 import pytest
-from deployd.application.dtos.diagnosis import DiagnosisTier
+from deployd.application.dtos.diagnosis import AgentDiagnosis, DiagnosisTier
 from deployd.application.dtos.investigation_request import InvestigationRequest
 from deployd.application.dtos.retrieval import RetrievalCandidate, RetrievalResult
 from deployd.application.orchestrators.investigation_orchestrator import (
@@ -88,7 +88,14 @@ def _two_node_causal_graph() -> tuple[IncidentGraph, uuid.UUID, uuid.UUID]:
 def _stub_agent() -> AgentPort:
     """A strict autospec mock of AgentPort — any unexpected call raises."""
     agent = create_autospec(AgentPort, instance=True)
-    agent.diagnose.return_value = "agent diagnosis summary"
+    agent.diagnose.return_value = AgentDiagnosis(
+        root_cause="mock root cause",
+        confidence="High",
+        reasoning="mock reasoning",
+        recommendation="mock recommendation",
+        evidence_references=["rb-2"],
+    )
+    agent.last_session_id = "mock-session-123"
     return agent
 
 
@@ -272,7 +279,7 @@ class TestTier3Full:
 
     def test_summary_comes_from_agent(self, result):
         diagnosis, _ = result
-        assert diagnosis.remediation.summary == "agent diagnosis summary"
+        assert diagnosis.remediation.summary == "mock root cause"
 
     def test_fsm_state_is_preserved(self, result):
         diagnosis, _ = result
