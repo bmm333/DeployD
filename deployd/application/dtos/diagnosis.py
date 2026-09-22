@@ -101,6 +101,14 @@ class DiagnosisResult(BaseModel):
     remediation: RemediationRecommendation = Field(
         ..., description="Recommended remediation action"
     )
+    # DID-18 WARNING: min_length=1 is intentional (ADR-008).
+    # Tier 2 is currently unaffected because it uses TierDiagnosisResult,
+    # which does NOT inherit this constraint.  When DID-18 wires the Tier-1
+    # agent to produce a DiagnosisResult directly, every code-path that
+    # constructs or returns a DiagnosisResult with an empty list will raise a
+    # ValidationError.  Make sure all builder/factory helpers and agent
+    # post-processing steps guarantee at least one EvidenceReference before
+    # handing off to this model.
     evidence_references: list[EvidenceReference] = Field(
         ..., min_length=1, description="References to the evidence used"
     )
