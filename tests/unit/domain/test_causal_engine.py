@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from unittest.mock import Mock
 from uuid import UUID, uuid4
 
+
 import pytest
 from deployd.domain.causal.causal_engine import CausalEngine
 from deployd.domain.graph.edge import GraphEdge
