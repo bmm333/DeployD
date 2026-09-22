@@ -31,7 +31,9 @@ class ChromaRunbookClient:
                 port=int(os.getenv("CHROMA_PORT", "8000")),
             )
         else:
-            self._client = chromadb.PersistentClient(path=persist_directory)
+            abs_path = os.path.abspath(persist_directory).replace("\\", "/")
+            os.makedirs(abs_path, exist_ok=True)
+            self._client = chromadb.PersistentClient(path=abs_path)
         self._collection = self._client.get_or_create_collection(self.COLLECTION_NAME)
         self._model = SentenceTransformer(embedding_model_name)
 
