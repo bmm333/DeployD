@@ -408,12 +408,21 @@ class AgnoGroqAgent:
         return diagnosis
 
     # Multi-turn follow-up
-    def follow_up(self, session_id: str, message: str) -> str:
+    def follow_up(self, session_id: str, message: str) -> AgentDiagnosis:
         """Continue an investigation with additional context from the engineer.
 
-        Engineer provided context is explicitly framed as **unverified** in
+        Engineer-provided context is explicitly framed as **unverified** in
         the agent prompt.  The agent retains the initial diagnosis and all
         prior follow-up turns as conversation context.
+
+        The follow-up response is wrapped in an ``AgentDiagnosis`` for
+        Protocol consistency: ``root_cause`` carries the updated narrative,
+        ``confidence`` reflects the agent's revised certainty, and
+        ``evidence_references`` is empty (follow-ups do not add new evidence).
+
+        **Scope constraint**: the underlying prompt restricts discussion to
+        the component named in the original ``diagnose()`` call — the
+        component-scope guardrail in the system prompt enforces this.
 
         Parameters
         ----------
@@ -421,9 +430,10 @@ class AgnoGroqAgent:
             Identifier from ``last_session_id`` after calling ``diagnose``.
         message:
             Follow-up from the engineer (e.g. "we deployed v2.3 yesterday").
+
         Returns
         -------
-        Updated analysis incorporating the new context.
+        AgentDiagnosis wrapping the updated analysis.
 
         Raises
         ------
@@ -439,12 +449,24 @@ class AgnoGroqAgent:
 
         message = message.strip()
         if not message:
-            return "Please provide additional context or a specific question."
+            return AgentDiagnosis(
+                root_cause="No additional context was provided.",
+                confidence="Low",
+                reasoning="Empty follow-up message received.",
+                recommendation="Please provide additional context or a specific question.",
+                evidence_references=[],
+            )
 
         if ctx.turn_count >= _MAX_FOLLOW_UP_TURNS:
-            return (
-                f"Maximum follow-up turns ({_MAX_FOLLOW_UP_TURNS}) reached for "
-                f"this session.  Please start a new investigation."
+            return AgentDiagnosis(
+                root_cause=(
+                    f"Maximum follow-up turns ({_MAX_FOLLOW_UP_TURNS}) reached. "
+                    "Please start a new investigation."
+                ),
+                confidence="Low",
+                reasoning=f"Turn limit of {_MAX_FOLLOW_UP_TURNS} exhausted for session {session_id}.",
+                recommendation="Start a new investigation via diagnose().",
+                evidence_references=[],
             )
 
         ctx.turn_count += 1
@@ -456,7 +478,7 @@ class AgnoGroqAgent:
             len(message),
         )
 
-        # engineer input is unverified
+        # Engineer input is framed as unverified hypothesis
         framed_message = (
             "## Engineer-Provided Context (UNVERIFIED)\n"
             "The following was provided by the on-call engineer.  It has "
@@ -471,12 +493,18 @@ class AgnoGroqAgent:
 
         try:
             response = ctx.followup_agent.run(framed_message)
-            result: str = (
+            narrative: str = (
                 response.content if response.content else "Agent returned an empty response."
             )
-            ctx.followup_history.append((message, result))
+            ctx.followup_history.append((message, narrative))
             logger.info("Follow-up complete: session=%s, turn=%d", session_id, ctx.turn_count)
-            return result
+            return AgentDiagnosis(
+                root_cause=narrative,
+                confidence="Medium",
+                reasoning=f"Follow-up turn {ctx.turn_count} for component '{ctx.component}'.",
+                recommendation="Review updated analysis and confirm next steps with the team.",
+                evidence_references=[],
+            )
         except Exception as exc:
             logger.exception("Follow-up failed: session=%s", session_id)
             raise RuntimeError(f"Follow-up failed: {exc}") from exc

@@ -76,8 +76,16 @@ class AgentPort(Protocol):
         """Return a validated, structured diagnosis grounded in evidence."""
         ...
 
-    def follow_up(self, session_id: str, message: str) -> str:
-        """Continue an investigation with additional engineer context."""
+    def follow_up(self, session_id: str, message: str) -> AgentDiagnosis:
+        """Continue an investigation with additional engineer context.
+
+        SCOPE CONSTRAINT: the response MUST be restricted to the component
+        named in the original ``diagnose()`` call.  For any other component
+        the implementation must state that a new investigation is required.
+
+        Returns an ``AgentDiagnosis`` — ``root_cause`` carries the follow-up
+        narrative; ``confidence`` reflects the agent's updated certainty.
+        """
         ...
 
 

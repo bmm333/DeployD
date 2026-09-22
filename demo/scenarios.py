@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
+from deployd.application.dtos.diagnosis import AgentDiagnosis
 from deployd.application.dtos.investigation_request import InvestigationRequest
 from deployd.application.dtos.retrieval import RetrievalCandidate, RetrievalResult
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType, Severity
@@ -41,29 +42,59 @@ class StubAgent:
     """
     Offline stub that satisfies the AgentPort protocol.
 
-    Returns a hard-coded, scenario-specific diagnosis string so the demo
+    Returns a hard-coded, scenario-specific ``AgentDiagnosis`` so the demo
     works without Agno credentials.  The text is deliberately labelled
     [STUB] so it is obvious in the UI that this is simulated.
     """
+
+    def __init__(self) -> None:
+        self._last_session_id: str | None = None
+
+    @property
+    def last_session_id(self) -> str | None:
+        """Session ID of the most recent ``diagnose()`` call."""
+        return self._last_session_id
 
     def diagnose(
         self,
         component: str,
         causal_chains: list[list[GraphNode]],
         candidates: list[RetrievalCandidate],
-    ) -> str:
+    ) -> AgentDiagnosis:
         chain_len = sum(len(c) for c in causal_chains)
         best = candidates[0] if candidates else None
-        rb_ref = f"runbook {best.runbook_id} (score {best.score:.2f})" if best else "no runbook"
-        return (
-            f"[STUB – Tier 3 Grounded Diagnosis]\n\n"
-            f"Component **{component}** shows a causal chain of {chain_len} events "
-            f"consistent with a deploy-triggered crash loop. "
-            f"Historical {rb_ref} documents an identical root cause: a regression "
-            f"shipped in the latest deploy caused repeated process crashes. "
-            f"Recommended action: roll back the deployment and verify the fix "
-            f"with a staged re-deploy before promoting to production.\n\n"
-            f"⚠ Human approval required before any remediation action is executed."
+        rb_ref = best.runbook_id if best else "no runbook"
+        self._last_session_id = "stub-session-001"
+        return AgentDiagnosis(
+            root_cause=(
+                f"[STUB] Component **{component}** shows a causal chain of "
+                f"{chain_len} events consistent with a deploy-triggered crash loop."
+            ),
+            confidence="High",
+            reasoning=(
+                f"Historical {rb_ref} documents an identical root cause: a regression "
+                f"shipped in the latest deploy caused repeated process crashes."
+            ),
+            recommendation=(
+                "Roll back the deployment and verify the fix with a staged re-deploy "
+                "before promoting to production. ⚠ Human approval required."
+            ),
+            evidence_references=[rb_ref] if best else [],
+        )
+
+    def follow_up(self, session_id: str, message: str) -> AgentDiagnosis:
+        return AgentDiagnosis(
+            root_cause=(
+                f'[STUB – Follow-up] Acknowledging context: "{message[:120]}". '
+                "This is a stub response — no live LLM was called."
+            ),
+            confidence="Low",
+            reasoning=(
+                "Follow-up stubs return a fixed response. In production the "
+                "AgnoGroqAgent would continue the session with the new context."
+            ),
+            recommendation="Start a new investigation or use the live agent for follow-up.",
+            evidence_references=[],
         )
 
 
