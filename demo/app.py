@@ -1035,6 +1035,31 @@ if result.remediation.evidence_references:
 h_p7.append("</div>")
 st.markdown("".join(h_p7), unsafe_allow_html=True)
 
+# Tier-3 only: expose raw AgentDiagnosis Pydantic fields in an expander
+if tier_val == "FULL" and result.structured_diagnosis is not None:
+    sd = result.structured_diagnosis
+    with st.expander("🧠 Structured AgentDiagnosis (Pydantic model output)", expanded=False):
+        conf_color = {"High": "#22c55e", "Medium": "#f59e0b", "Low": "#ef4444"}.get(
+            sd.confidence, "#94a3b8"
+        )
+        st.markdown(
+            f'<span style="display:inline-block; background:{conf_color}22; '
+            f"border:1px solid {conf_color}; color:{conf_color}; border-radius:4px; "
+            f'padding:2px 10px; font-size:0.75rem; font-weight:600; margin-bottom:0.75rem;">'
+            f"Confidence: {sd.confidence}</span>",
+            unsafe_allow_html=True,
+        )
+        st.markdown("**Root Cause**")
+        st.code(sd.root_cause, language=None)
+        st.markdown("**Reasoning**")
+        st.code(sd.reasoning, language=None)
+        st.markdown("**Recommendation**")
+        st.code(sd.recommendation, language=None)
+        if sd.evidence_references:
+            st.markdown("**Evidence References**")
+            for ref in sd.evidence_references:
+                st.markdown(f"- `{ref}`")
+
 
 # ---------------------------------------------------------------------------
 # Footer

@@ -63,9 +63,10 @@ def mock_data_dir(tmp_path: Path) -> Path:
     }
     (scenarios_dir / "novel_network_partition.json").write_text(json.dumps(network_scenario))
 
-    # 2. Runbooks
+    # 2. Runbooks & Chroma
     runbooks_dir = data_dir / "runbooks"
     runbooks_dir.mkdir(parents=True)
+    (data_dir / "chroma").mkdir(parents=True, exist_ok=True)
 
     # We add a matching runbook for auth-service OOM
     rb_oom = {
@@ -102,9 +103,13 @@ def test_event_simulator_offline_mode_oom(mock_data_dir: Path) -> None:
 
         # Patch ChromaClient and BM25 to avoid actual vector store logic
         # We patch RetrieveCandidates so we can control what the retriever finds
-        with patch(
-            "deployd.adapters.incoming.simulator.event_simulator.RetrieveCandidates"
-        ) as mock_retriever_cls:
+        with (
+            patch("deployd.adapters.incoming.simulator.event_simulator.ChromaRunbookClient"),
+            patch("deployd.adapters.incoming.simulator.event_simulator.BM25RunbookIndex"),
+            patch(
+                "deployd.adapters.incoming.simulator.event_simulator.RetrieveCandidates"
+            ) as mock_retriever_cls,
+        ):
             mock_retriever = mock_retriever_cls.return_value
             from deployd.application.dtos.retrieval import RetrievalCandidate, RetrievalResult
 
@@ -130,9 +135,13 @@ def test_event_simulator_offline_mode_network_partition(mock_data_dir: Path) -> 
 
         scenario_path = mock_data_dir / "scenarios" / "novel_network_partition.json"
 
-        with patch(
-            "deployd.adapters.incoming.simulator.event_simulator.RetrieveCandidates"
-        ) as mock_retriever_cls:
+        with (
+            patch("deployd.adapters.incoming.simulator.event_simulator.ChromaRunbookClient"),
+            patch("deployd.adapters.incoming.simulator.event_simulator.BM25RunbookIndex"),
+            patch(
+                "deployd.adapters.incoming.simulator.event_simulator.RetrieveCandidates"
+            ) as mock_retriever_cls,
+        ):
             mock_retriever = mock_retriever_cls.return_value
             from deployd.application.dtos.retrieval import RetrievalResult
 

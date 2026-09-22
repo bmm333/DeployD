@@ -73,8 +73,14 @@ class _StubAgent:
             evidence_references=[rb_ref] if best else [],
         )
 
-    def follow_up(self, session_id: str, message: str) -> str:
-        return "[STUB] follow_up not available in offline mode."
+    def follow_up(self, session_id: str, message: str) -> AgentDiagnosis:
+        return AgentDiagnosis(
+            root_cause=f"[STUB] follow_up not available in offline mode (session={session_id}).",
+            confidence="Low",
+            reasoning="[STUB] No LLM was called. GROQ_API_KEY not set.",
+            recommendation="Start a new investigation or use the live agent for follow-up.",
+            evidence_references=[],
+        )
 
 
 # ── SimulatorResult ───────────────────────────────────────────────────────────
