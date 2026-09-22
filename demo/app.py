@@ -1000,6 +1000,28 @@ h_p7.append(f"""
       <p style="color:var(--dp-txt3); font-size:0.82rem; margin:0 0 0.75rem;">
         {_TIER_INTRO[tier_val]}
       </p>
+""")
+if result.structured_diagnosis:
+    diag = result.structured_diagnosis
+    h_p7.append(f"""
+      <div style="background:var(--dp-surface2); border-radius:8px; padding:1rem; color:var(--dp-txt2); font-size:0.85rem; line-height:1.65;">
+        <div style="margin-bottom:0.75rem;">
+          <strong style="color:var(--dp-txt1);">Root Cause:</strong> {diag.root_cause}
+        </div>
+        <div style="margin-bottom:0.75rem;">
+          <strong style="color:var(--dp-txt1);">Reasoning:</strong> {diag.reasoning}
+        </div>
+        <div style="margin-bottom:0.75rem;">
+          <strong style="color:var(--dp-txt1);">Recommendation:</strong> {diag.recommendation}
+        </div>
+        <div>
+          <strong style="color:var(--dp-txt1);">Confidence:</strong> {diag.confidence}
+        </div>
+      </div>
+    </div>
+""")
+else:
+    h_p7.append(f"""
       <div style="background:var(--dp-surface2); border-radius:8px; padding:1rem;
                   color:var(--dp-txt2); font-size:0.85rem; line-height:1.65;
                   white-space:pre-wrap;">{result.remediation.summary}</div>
