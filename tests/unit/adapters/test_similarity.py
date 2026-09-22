@@ -10,7 +10,8 @@ from deployd.adapters.outgoing.vector_store.similarity import (
     COMPONENT_WEIGHT,
     SEMANTIC_WEIGHT,
     ScoreSet,
-    blend,
+    blend_linear,
+    blend_rrf,
 )
 
 
@@ -36,7 +37,7 @@ class TestWeights:
 
 class TestBlend:
     def test_single_source_only_dense(self) -> None:
-        results = blend(
+        results = blend_linear(
             dense_hits=[DenseHit(runbook_id="rb-1", semantic_score=0.8)],
             spares_hits=[],
             structural_hits=[],
@@ -49,7 +50,7 @@ class TestBlend:
         assert final == pytest.approx(SEMANTIC_WEIGHT * 0.8)
 
     def test_single_source_only_sparse(self) -> None:
-        results = blend(
+        results = blend_linear(
             dense_hits=[],
             spares_hits=[SparseHit(runbook_id="rb-1", bm25_score=1.0)],
             structural_hits=[],
@@ -59,7 +60,7 @@ class TestBlend:
         assert final == pytest.approx(BM25_WEIGHT * 1.0)
 
     def test_single_source_only_structural(self) -> None:
-        results = blend(
+        results = blend_linear(
             dense_hits=[],
             spares_hits=[],
             structural_hits=[
@@ -73,7 +74,7 @@ class TestBlend:
 
     def test_all_three_sources_merged(self) -> None:
         """Same runbook_id from all three sources should merge into one entry."""
-        results = blend(
+        results = blend_linear(
             dense_hits=[DenseHit("rb-1", semantic_score=0.9)],
             spares_hits=[SparseHit("rb-1", bm25_score=0.7)],
             structural_hits=[StructuralHit("rb-1", causal_score=0.8, component_score=0.5)],
@@ -86,7 +87,7 @@ class TestBlend:
         assert final == pytest.approx(expected)
 
     def test_different_runbooks_produce_separate_entries(self) -> None:
-        results = blend(
+        results = blend_linear(
             dense_hits=[DenseHit("rb-1", 0.9), DenseHit("rb-2", 0.3)],
             spares_hits=[],
             structural_hits=[],
@@ -96,7 +97,7 @@ class TestBlend:
         assert ids == {"rb-1", "rb-2"}
 
     def test_sorted_by_final_score_descending(self) -> None:
-        results = blend(
+        results = blend_linear(
             dense_hits=[DenseHit("rb-low", 0.1), DenseHit("rb-high", 0.9)],
             spares_hits=[SparseHit("rb-low", 0.1), SparseHit("rb-high", 0.9)],
             structural_hits=[],
@@ -106,12 +107,12 @@ class TestBlend:
         assert results[0][2] >= results[1][2]
 
     def test_all_empty_returns_empty(self) -> None:
-        results = blend([], [], [])
+        results = blend_linear([], [], [])
         assert results == []
 
     def test_perfect_scores_produce_one(self) -> None:
         """If every signal is 1.0, weighted sum should be 1.0."""
-        results = blend(
+        results = blend_linear(
             dense_hits=[DenseHit("rb-1", 1.0)],
             spares_hits=[SparseHit("rb-1", 1.0)],
             structural_hits=[StructuralHit("rb-1", 1.0, 1.0)],
@@ -121,7 +122,7 @@ class TestBlend:
 
     def test_partial_overlap_across_sources(self) -> None:
         """rb-1 in dense + structural, rb-2 only in sparse — should produce 2 entries."""
-        results = blend(
+        results = blend_linear(
             dense_hits=[DenseHit("rb-1", 0.8)],
             spares_hits=[SparseHit("rb-2", 1.0)],
             structural_hits=[StructuralHit("rb-1", 0.6, 0.3)],
@@ -135,3 +136,55 @@ class TestBlend:
         # rb-2 has only bm25
         assert rb2[1].semantic == 0.0
         assert rb2[1].bm25 == 1.0
+
+
+class TestBlendRRF:
+    def test_single_source(self) -> None:
+        results = blend_rrf(
+            dense_hits=[DenseHit(runbook_id="rb-1", semantic_score=0.8)],
+            spares_hits=[],
+            structural_hits=[],
+            k=60,
+        )
+        assert len(results) == 1
+        rb_id, score_set, final = results[0]
+        assert rb_id == "rb-1"
+        assert score_set.semantic == 0.8
+        assert final == pytest.approx(1.0 / (60 + 1))
+
+    def test_multiple_sources_overlap(self) -> None:
+        results = blend_rrf(
+            dense_hits=[DenseHit("rb-1", 0.9), DenseHit("rb-2", 0.8)],
+            spares_hits=[SparseHit("rb-2", 1.0), SparseHit("rb-1", 0.5)],
+            structural_hits=[],
+            k=60,
+        )
+        assert len(results) == 2
+        ids = [r[0] for r in results]
+        # rb-1: dense rank 1, sparse rank 2 => 1/61 + 1/62 = 0.01639 + 0.01612 = 0.0325
+        # rb-2: dense rank 2, sparse rank 1 => 1/62 + 1/61 = 0.0325
+        assert set(ids) == {"rb-1", "rb-2"}
+        # Same score, order depends on sort stability, but both should have the same score
+        assert results[0][2] == pytest.approx(1.0 / 61 + 1.0 / 62)
+
+    def test_all_empty(self) -> None:
+        results = blend_rrf([], [], [])
+        assert results == []
+
+    def test_structural_sources(self) -> None:
+        results = blend_rrf(
+            dense_hits=[],
+            spares_hits=[],
+            structural_hits=[
+                StructuralHit("rb-1", causal_score=0.8, component_score=0.5),
+                StructuralHit("rb-2", causal_score=0.0, component_score=0.9),
+            ],
+            k=60,
+        )
+        assert len(results) == 2
+        rb1 = next(r for r in results if r[0] == "rb-1")
+        rb2 = next(r for r in results if r[0] == "rb-2")
+        # rb-1: causal rank 1 (1/61), component rank 2 (1/62)
+        assert rb1[2] == pytest.approx(1.0 / 61 + 1.0 / 62)
+        # rb-2: causal score 0 (not ranked), component rank 1 (1/61)
+        assert rb2[2] == pytest.approx(1.0 / 61)
