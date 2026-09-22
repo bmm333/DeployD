@@ -93,11 +93,14 @@ class TestRunbookRetrievalBenchmark:
         evidence = RetrievedEvidence(
             runbook_id=top_r_id,
             incident_id=detail.incident_id if detail else "",
-            summary=detail.summary if detail else "",
-            score=final_score,
+            final_score=final_score,
+            semantic_score=score_set.semantic,
+            causal_score=score_set.causal,
+            temporal_score=0.0,
+            component_score=score_set.component,
+            dependency_score=0.0,
             historical_root_cause=detail.root_cause if detail else None,
             historical_fix=detail.fix if detail else None,
-            fix_commands=detail.fix_commands if detail else [],
         )
 
         assert evidence.runbook_id == top_r_id

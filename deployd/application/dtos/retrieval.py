@@ -1,30 +1,34 @@
 """
-DTOs for retrieval candidates and evidence.
+DD-1 / DID-12
+DTOs for retrieval results.
 
-DID-12: Retrieval result contract used by the InvestigationOrchestrator.
+This module contains two families of classes:
 
-The HybridRetriever (DID-7) produces a list of RetrievalCandidates together
-with the confidence threshold that was active at query time.  Bundling both
-into RetrievalResult lets the orchestrator apply the tier-boundary check in a
-single property call without re-specifying the threshold.
+Legacy three-tier retrieval DTOs (DID-12)
+-----------------------------------------
+``RetrievalCandidate`` — a single historical runbook match.
+``RetrievalResult``    — the full output of one HybridRetriever query.
+
+ADR-008 RAG pipeline DTOs
+--------------------------
+``RetrievedEvidence``  — one ranked historical incident returned by the RAG agent.
+``EvidenceReference``  — a compact citation used inside DiagnosisResult to link
+                         claims to evidence.
+
+Neither class leaks ChromaDB internals (Documents, QueryResults, etc.) across
+the boundary.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
+from pydantic import BaseModel, ConfigDict, Field
 
-@dataclass(frozen=True)
-class RetrievedEvidence:
-    """Represents a matched historical runbook with score breakdown and solution details."""
-
-    runbook_id: str
-    incident_id: str
-    summary: str
-    score: float
-    historical_root_cause: str | None = None
-    historical_fix: str | None = None
-    fix_commands: list[str] = field(default_factory=list)
+# ---------------------------------------------------------------------------
+# Legacy three-tier retrieval contract (DID-12)
+# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -67,3 +71,126 @@ class RetrievalResult:
     def strong_candidates(self) -> list[RetrievalCandidate]:
         """All candidates that meet or exceed the confidence threshold."""
         return [c for c in self.candidates if c.score >= self.confidence_threshold]
+
+
+# ---------------------------------------------------------------------------
+# ADR-008 RAG pipeline DTOs
+# ---------------------------------------------------------------------------
+
+
+class RetrievedEvidence(BaseModel):
+    """
+    A single historical incident retrieved from ChromaDB and ranked by the RAG pipeline.
+
+    All numeric score fields are validated as floats in [0.0, 1.0].
+    ``final_score`` is the blended rank used to order results presented to the agent.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    incident_id: str = Field(
+        ...,
+        description="Unique identifier of the historical incident in the vector store.",
+        examples=["INC-20240701-0007"],
+    )
+    final_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Blended relevance score after combining all ranking dimensions (0.0–1.0).",
+        examples=[0.87],
+    )
+    semantic_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Cosine-similarity score from the embedding-based semantic search (0.0–1.0).",
+        examples=[0.91],
+    )
+    causal_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Score reflecting alignment between causal chains (0.0–1.0).",
+        examples=[0.78],
+    )
+    temporal_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Score derived from temporal proximity of events in the incident (0.0–1.0).",
+        examples=[0.65],
+    )
+    component_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Score based on overlap between affected components (0.0–1.0).",
+        examples=[0.80],
+    )
+    dependency_score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Score derived from dependency-graph topology match (0.0–1.0).",
+        examples=[0.72],
+    )
+    matched_causal_chain: list[str] = Field(
+        default_factory=list,
+        description="Ordered list of event types that form the matched causal chain.",
+        examples=[["DEPLOY_STARTED", "DEPENDENCY_FAILURE", "PROCESS_CRASH"]],
+    )
+    matched_nodes: list[str] = Field(
+        default_factory=list,
+        description="Component names that were part of the matched graph sub-structure.",
+        examples=[["api-gateway", "auth-service"]],
+    )
+    historical_root_cause: str | None = Field(
+        default=None,
+        description="Root cause conclusion recorded for the matched historical incident.",
+        examples=["OOMKill caused by memory leak in auth-service v2.3.1"],
+    )
+    historical_fix: str | None = Field(
+        default=None,
+        description="Fix that resolved the matched historical incident.",
+        examples=["Rolled back auth-service to v2.2.9 and applied memory limit patch."],
+    )
+    provenance: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Traceability metadata (e.g. ChromaDB document ID, collection name).",
+    )
+    runbook_id: str | None = Field(
+        default=None,
+        description="ID of the runbook associated with the historical incident, if any.",
+        examples=["RB-AUTH-SERVICE-OOMKILL"],
+    )
+
+
+class EvidenceReference(BaseModel):
+    """
+    A compact citation linking a diagnosis claim to a specific retrieved incident.
+
+    Included in ``DiagnosisResult`` so that every agent assertion is traceable.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    incident_id: str = Field(
+        ...,
+        description="ID of the historical incident being referenced.",
+        examples=["INC-20240701-0007"],
+    )
+    relevance_explanation: str = Field(
+        ...,
+        min_length=1,
+        description="Plain-language explanation of why this incident is relevant to the current diagnosis.",
+        examples=["Same OOMKill pattern on auth-service observed during peak traffic last July."],
+    )
+    similarity_scores: dict[str, float] = Field(
+        default_factory=dict,
+        description=(
+            "Per-dimension similarity scores keyed by dimension name. "
+            "All values must be in [0.0, 1.0] — enforced by the mapper before construction."
+        ),
+        examples=[{"semantic": 0.91, "causal": 0.78, "component": 0.80}],
+    )

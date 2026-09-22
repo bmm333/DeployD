@@ -29,7 +29,7 @@ from deployd.adapters.outgoing.vector_store.bm25_index import BM25RunbookIndex
 from deployd.adapters.outgoing.vector_store.chroma_client import ChromaRunbookClient
 from deployd.adapters.outgoing.vector_store.hybrid_retriever import HybridRetriever
 from deployd.adapters.outgoing.vector_store.runbook_repository import JSONRunbookRepository
-from deployd.application.dtos.diagnosis import AgentDiagnosis, DiagnosisResult
+from deployd.application.dtos.diagnosis import AgentDiagnosis, TierDiagnosisResult
 from deployd.application.dtos.investigation_request import InvestigationRequest
 from deployd.application.orchestrators.investigation_orchestrator import (
     AgentPort,
@@ -88,7 +88,7 @@ class SimulatorResult:
     component: str
     expected_tier: str
     agent_mode: str  # "live/AgnoGroqAgent" or "offline/stub"
-    diagnosis: DiagnosisResult
+    diagnosis: TierDiagnosisResult
 
 
 # ── EventSimulator ────────────────────────────────────────────────────────────

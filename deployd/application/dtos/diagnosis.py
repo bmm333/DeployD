@@ -1,18 +1,34 @@
 """
-DID-12: Output contract of the InvestigationOrchestrator.
+DID-5 / DID-12 / ADR-008: Diagnosis-related DTOs.
 
-DiagnosisResult is the single, typed value the orchestrator returns for every
-investigation regardless of which tier applied.  Callers can branch on `tier`
-without touching any internal orchestrator state.
+This module contains two families of classes:
+
+Legacy three-tier orchestrator DTOs (DID-12)
+---------------------------------------------
+``DiagnosisTier``              — which tier the orchestrator selected.
+``TierRemediation``            — remediation attached to a TierDiagnosisResult.
+``TierDiagnosisResult``        — the output of InvestigationOrchestrator.run().
+
+ADR-008 diagnosis pipeline DTOs
+---------------------------------
+``AlternativeHypothesis``      — an alternative root-cause hypothesis.
+``RemediationRecommendation``  — typed remediation plan (Pydantic, risk-gated).
+``DiagnosisResult``            — the output of the diagnosis agent (Pydantic).
+``DiagnosisRequest``           — the input to the diagnosis agent (Pydantic).
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field as dc_field
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+from deployd.application.dtos.enums import RiskLevel, TriggerType
+from deployd.application.dtos.evidence import EvidenceDTO, MissingEvidence
+from deployd.application.dtos.incident_summary import IncidentSummaryDTO
+from deployd.application.dtos.retrieval import EvidenceReference, RetrievedEvidence
 from deployd.domain.graph.node import GraphNode  # noqa: TCH001
 from deployd.domain.health.process_state import ProcessHealthStatus  # noqa: TCH001
 
@@ -32,6 +48,100 @@ class AgentDiagnosis(BaseModel):
     evidence_references: list[str] = Field(
         default_factory=list,
         description="Runbook IDs cited as evidence (only IDs present in the system)",
+    )
+
+
+class AlternativeHypothesis(BaseModel):
+    """An alternative hypothesis considered by the agent."""
+
+    model_config = ConfigDict(frozen=True)
+
+    explanation: str = Field(
+        ..., min_length=1, description="Explanation of the alternative hypothesis"
+    )
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence level (0.0 to 1.0)")
+    supporting_evidence: list[EvidenceReference] = Field(
+        default_factory=list, description="Evidence supporting this hypothesis"
+    )
+    missing_evidence: list[MissingEvidence] = Field(
+        default_factory=list, description="Evidence missing that would confirm this hypothesis"
+    )
+
+
+class RemediationRecommendation(BaseModel):
+    """A recommended remediation plan."""
+
+    model_config = ConfigDict(frozen=True)
+
+    summary: str = Field(..., min_length=1, description="Summary of the remediation")
+    steps: list[str] = Field(
+        ..., min_length=1, description="Ordered list of steps to resolve the issue"
+    )
+    risk_level: RiskLevel = Field(..., description="Risk level associated with the remediation")
+    prerequisites: list[str] = Field(
+        default_factory=list, description="Prerequisites before executing the remediation"
+    )
+    evidence_references: list[EvidenceReference] = Field(
+        default_factory=list, description="Evidence supporting this remediation"
+    )
+    requires_human_approval: bool = Field(
+        ..., description="Whether human approval is required before execution"
+    )
+
+
+class DiagnosisResult(BaseModel):
+    """The structured diagnosis result returned by the agent."""
+
+    model_config = ConfigDict(frozen=True)
+
+    root_cause_explanation: str = Field(
+        ..., min_length=1, description="Detailed explanation of the root cause"
+    )
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence level (0.0 to 1.0)")
+    remediation: RemediationRecommendation = Field(
+        ..., description="Recommended remediation action"
+    )
+    # DID-18 WARNING: min_length=1 is intentional (ADR-008).
+    # Tier 2 is currently unaffected because it uses TierDiagnosisResult,
+    # which does NOT inherit this constraint.  When DID-18 wires the Tier-1
+    # agent to produce a DiagnosisResult directly, every code-path that
+    # constructs or returns a DiagnosisResult with an empty list will raise a
+    # ValidationError.  Make sure all builder/factory helpers and agent
+    # post-processing steps guarantee at least one EvidenceReference before
+    # handing off to this model.
+    evidence_references: list[EvidenceReference] = Field(
+        ..., min_length=1, description="References to the evidence used"
+    )
+    alternative_hypotheses: list[AlternativeHypothesis] = Field(
+        default_factory=list, description="Alternative hypotheses considered"
+    )
+    missing_evidence: list[MissingEvidence] = Field(
+        default_factory=list, description="Evidence gaps identified during diagnosis"
+    )
+    unsupported_claims: list[str] = Field(
+        default_factory=list, description="Claims made without sufficient evidence"
+    )
+
+
+class DiagnosisRequest(BaseModel):
+    """The input to the diagnosis agent to investigate an incident."""
+
+    model_config = ConfigDict(frozen=True)
+
+    investigation_id: str = Field(..., description="Unique ID for this investigation")
+    incident_summary: IncidentSummaryDTO = Field(
+        ..., description="Synthesised summary of the incident"
+    )
+    retrieved_evidence: list[RetrievedEvidence] = Field(
+        default_factory=list, description="Historical evidence retrieved from vector store"
+    )
+    available_evidence: list[EvidenceDTO] = Field(
+        default_factory=list, description="Currently available systemic evidence"
+    )
+    trigger_type: TriggerType = Field(..., description="How the investigation was initiated")
+    human_description: str | None = Field(
+        default=None,
+        description="Optional description provided by the human triggering the investigation",
     )
 
 
@@ -59,9 +169,9 @@ class DiagnosisTier(str, Enum):
 
 
 @dataclass(frozen=True)
-class RemediationRecommendation:
+class TierRemediation:
     """
-    Suggested remediation attached to every DiagnosisResult.
+    Suggested remediation attached to every TierDiagnosisResult.
 
     The field is always populated — callers should never have to handle a
     missing recommendation.  For Tier-1 and Tier-2 results `summary` states
@@ -74,13 +184,13 @@ class RemediationRecommendation:
 
     summary: str
     requires_human_approval: bool
-    evidence_references: list[str] = field(default_factory=list)
+    evidence_references: list[str] = dc_field(default_factory=list)
 
 
 @dataclass(frozen=True)
-class DiagnosisResult:
+class TierDiagnosisResult:
     """
-    Immutable result of one investigation run.
+    Immutable result of one three-tier investigation run.
 
     `causal_chains` is empty for Tier-1 results (no evidence, nothing to
     traverse).  For Tier-2 and Tier-3 it contains the paths returned by
@@ -90,5 +200,5 @@ class DiagnosisResult:
     tier: DiagnosisTier
     fsm_state: ProcessHealthStatus
     causal_chains: list[list[GraphNode]]
-    remediation: RemediationRecommendation
+    remediation: TierRemediation
     structured_diagnosis: AgentDiagnosis | None = None
