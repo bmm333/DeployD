@@ -1,0 +1,26 @@
+{
+  "fastapi": {
+    "0.115.2": {
+      "requires": {
+        "pydantic": ">=1.10.0"
+      },
+      "conflicts": {
+        "python": "<3.8"
+      }
+    }
+  },
+  "sqlalchemy": {
+    "2.0.25": {
+      "requires": {
+        "python": ">=3.10"
+      }
+    }
+  },
+  "redis": {
+    "6.4.0": {
+      "requires": {
+        "python": ">=3.9"
+      }
+    }
+  }
+}
