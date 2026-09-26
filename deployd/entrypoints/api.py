@@ -1,10 +1,18 @@
 """
-DeployD FastAPI entrypoint.
+deployd/entrypoints/api.py
 
-Wires together:
-  - HttpEventAdapter  : raw telemetry → CoreEvent
-  - EventCorrelator   : CoreEvent → IncidentGraph (CAUSAL edges, emergent severity)
-  - AgnoGroqAgent     : IncidentGraph → grounded AI diagnosis
+FastAPI HTTP entrypoint — composition root for the event ingestion pipeline.
+
+Wiring (construction order)
+---------------------------
+1. IncidentGraph            (domain)
+2. SlidingWindow            (infrastructure — the only class that calls datetime.now())
+3. CorrelateEventsUseCase   (application — orchestrates rules + graph writes)
+4. HttpEventAdapter         (adapter/incoming — translates raw HTTP payload → CoreEvent)
+5. AgnoGroqAgent            (adapter/outgoing — implements AgentPort)
+
+All business logic (severity inference, causal chain traversal) lives in the
+application and domain layers.  This file is a thin HTTP shell.
 """
 
 from __future__ import annotations
@@ -14,8 +22,13 @@ from typing import Any
 
 from deployd.adapters.incoming.http_event_adapter import HttpEventAdapter, RawTelemetryEvent
 from deployd.adapters.outgoing.ai.agno_agent import AgnoGroqAgent
-from deployd.domain.causal.event_correlator import make_correlator
+from deployd.application.use_cases.correlate_events import (
+    CorrelateEventsUseCase,
+    compute_incident_severity,
+)
+from deployd.domain.causal.causal_engine import CausalEngine
 from deployd.domain.graph.graph import IncidentGraph
+from deployd.infrastructure.streaming.sliding_window import SlidingWindow
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -23,14 +36,28 @@ from pydantic import BaseModel
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Application state (in-memory for demo — swap with a persistent store later)
+# Composition root — wire all dependencies
 # ---------------------------------------------------------------------------
 
 _graph = IncidentGraph()
-_correlator = make_correlator(graph=_graph, window_seconds=300)  # 5-minute window
+_window = SlidingWindow(window_seconds=300)  # 5-minute observation window
+_correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window)
 _adapter = HttpEventAdapter()
-_agent = AgnoGroqAgent()
+# AgnoGroqAgent is lazily initialised on first /chat request to avoid
+# hard startup failure when GROQ_API_KEY is absent (CI, tests, event-only usage).
+_agent: AgnoGroqAgent | None = None
+
+
+def _get_agent() -> AgnoGroqAgent:
+    """Return the shared AgnoGroqAgent, initialising it on first call."""
+    global _agent  # noqa: PLW0603
+    if _agent is None:
+        _agent = AgnoGroqAgent()
+    return _agent
+
+
 _chat_history: list[dict[str, str]] = []
+_last_session_id: str | None = None
 
 # ---------------------------------------------------------------------------
 # FastAPI app
@@ -56,13 +83,12 @@ async def receive_event(raw: RawTelemetryEvent) -> dict[str, Any]:
     """
     Ingest a raw telemetry event from any external service.
 
-    The emitter does NOT set severity or incident context — it only reports
-    what happened locally. DeployD infers severity and causal relationships
-    from the accumulated window of events.
+    The emitter does NOT set severity or incident context.  DeployD infers
+    causal relationships and severity from the accumulated event window.
     """
     try:
         core_event = _adapter.translate(raw)
-        _correlator.ingest(core_event)
+        _correlate.ingest(core_event)
         return {
             "status": "ok",
             "event_id": str(core_event.event_id),
@@ -75,50 +101,37 @@ async def receive_event(raw: RawTelemetryEvent) -> dict[str, Any]:
 @app.get("/api/v1/state")  # type: ignore[misc]
 async def get_state() -> dict[str, Any]:
     """
-    Return the current IncidentGraph and chat history.
+    Return the current IncidentGraph state and chat history.
 
-    The global ``tracker_status`` is derived from graph topology:
-    - No causal chains → Healthy
-    - Chain length 1–2 → Degrading
-    - Chain length 3+  → Critical
+    ``tracker_status`` is computed by ``compute_incident_severity()`` — a pure
+    function that derives severity from causal chain depth, not from any label
+    stored on individual events.
     """
-    nodes = []
-    for node in _graph.nodes:
-        evt = node.event
-        nodes.append(
-            {
-                "id": str(node.node_id),
-                "label": evt.description,
-                "type": evt.event_type.value,
-                "severity": evt.severity.value,
-                "source": evt.related_component,
-                "timestamp": evt.timestamp.isoformat(),
-            }
-        )
+    nodes = [
+        {
+            "id": str(node.node_id),
+            "label": node.event.description,
+            "type": node.event.event_type.value,
+            "severity": node.event.severity.value,
+            "source": node.event.related_component,
+            "timestamp": node.event.timestamp.isoformat(),
+        }
+        for node in _graph.nodes
+    ]
 
-    edges = []
-    for edge in _graph.edges:
-        edges.append(
-            {
-                "source": str(edge.source),
-                "target": str(edge.target),
-                "relationship": edge.edge_type.value,
-                "confidence": edge.confidence,
-                "rule_id": edge.rule_id,
-            }
-        )
-
-    # Emergent status: based on graph depth, not on any single event label
-    max_chain_depth = _compute_max_chain_depth()
-    if max_chain_depth == 0:
-        tracker_status = "Healthy"
-    elif max_chain_depth <= 2:
-        tracker_status = "Degrading"
-    else:
-        tracker_status = "Critical"
+    edges = [
+        {
+            "source": str(edge.source),
+            "target": str(edge.target),
+            "relationship": edge.edge_type.value,
+            "confidence": edge.confidence,
+            "rule_id": edge.rule_id,
+        }
+        for edge in _graph.edges
+    ]
 
     return {
-        "tracker_status": tracker_status,
+        "tracker_status": compute_incident_severity(_graph),
         "graphs": {"nodes": nodes, "edges": edges},
         "chat_history": _chat_history,
     }
@@ -129,26 +142,55 @@ async def chat(request: _ChatRequest) -> dict[str, str]:
     """
     Natural-language interaction with the SRE Agent.
 
-    The agent receives the current incident context automatically.
+    Routes through ``AgentPort.diagnose()`` / ``AgentPort.follow_up()`` —
+    never accesses private adapter internals.
     """
+    global _last_session_id  # noqa: PLW0603
+
     _chat_history.append({"role": "user", "content": request.prompt})
 
     try:
-        base_agent = _agent._create_structured_agent()
-        response = base_agent.run(request.prompt)
-
-        if hasattr(response.content, "root_cause"):
+        if not _graph.nodes:
             reply = (
-                f"**Root Cause:** {response.content.root_cause}\n\n"
-                f"**Recommendation:** {response.content.recommendation}"
+                "No incident data available yet. "
+                "Please send some telemetry events to `/api/v1/events` first."
             )
-        elif isinstance(response.content, str):
-            reply = response.content
+        elif _last_session_id:
+            agent = _get_agent()
+            diagnosis = agent.follow_up(_last_session_id, request.prompt)
+            _last_session_id = agent.last_session_id
+            reply = (
+                f"**Root Cause:** {diagnosis.root_cause}\n\n"
+                f"**Confidence:** {diagnosis.confidence}\n\n"
+                f"**Recommendation:** {diagnosis.recommendation}"
+            )
         else:
-            reply = str(response.content)
+            # First message — build causal chains from the graph and diagnose
+            engine = CausalEngine(_graph)
+            root_nodes = _graph.get_root_nodes()
+            component = (
+                (root_nodes[0].event.related_component or "unknown-component")
+                if root_nodes
+                else "unknown-component"
+            )
+            chains: list[list[Any]] = []
+            for root in root_nodes:
+                chains.extend(engine.causal_chain(root.node_id))
 
+            agent = _get_agent()
+            diagnosis = agent.diagnose(
+                component=component,
+                causal_chains=chains,
+                candidates=[],  # retrieval candidates (RAG) — future integration
+            )
+            _last_session_id = agent.last_session_id
+            reply = (
+                f"**Root Cause:** {diagnosis.root_cause}\n\n"
+                f"**Confidence:** {diagnosis.confidence}\n\n"
+                f"**Recommendation:** {diagnosis.recommendation}"
+            )
     except Exception as exc:
-        log.exception("Agent run failed")
+        log.exception("Agent interaction failed")
         reply = f"Agent error: {exc}"
 
     _chat_history.append({"role": "agent", "content": reply})
@@ -157,60 +199,20 @@ async def chat(request: _ChatRequest) -> dict[str, str]:
 
 @app.post("/api/v1/reset")  # type: ignore[misc]
 async def reset_state() -> dict[str, str]:
-    """Reset in-memory state (useful between demo scenarios)."""
-    global _graph, _correlator, _chat_history  # noqa: PLW0603
+    """Reset all in-memory state (used between demo scenarios)."""
+    global _graph, _window, _correlate, _chat_history, _last_session_id, _agent  # noqa: PLW0603
     _graph = IncidentGraph()
-    _correlator = make_correlator(graph=_graph, window_seconds=300)
+    _window = SlidingWindow(window_seconds=300)
+    _correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window)
     _chat_history = []
+    _last_session_id = None
+    _agent = None  # force re-init of agent on next chat
     return {"status": "reset"}
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Internal DTOs
 # ---------------------------------------------------------------------------
-
-
-def _compute_max_chain_depth() -> int:
-    """
-    Compute the length of the longest causal chain in the graph.
-
-    We do a simple BFS/DFS from each root node (no incoming CAUSAL edges)
-    following CAUSAL edges only. This is O(N+E) and acceptable for demo scale.
-    """
-    from deployd.domain.graph.edge_type import EdgeType
-
-    if not _graph.nodes:
-        return 0
-
-    # Build adjacency from CAUSAL edges
-    adj: dict[str, list[str]] = {}
-    for edge in _graph.edges:
-        if edge.edge_type == EdgeType.CAUSAL:
-            adj.setdefault(str(edge.source), []).append(str(edge.target))
-
-    if not adj:
-        return 0  # Nodes exist but no causal links yet → single-node anomalies only
-
-    visited_depth: dict[str, int] = {}
-
-    def dfs(node_id: str, depth: int) -> int:
-        if node_id in visited_depth:
-            return visited_depth[node_id]
-        visited_depth[node_id] = depth
-        children = adj.get(node_id, [])
-        if not children:
-            return depth
-        return max(dfs(child, depth + 1) for child in children)
-
-    # Start DFS from all nodes that have outgoing edges but no incoming CAUSAL edges
-    incoming_targets = {str(e.target) for e in _graph.edges if e.edge_type == EdgeType.CAUSAL}
-    roots = [str(n.node_id) for n in _graph.nodes if str(n.node_id) not in incoming_targets]
-
-    if not roots:
-        # Cycle or no root — fall back to full scan
-        roots = list(adj.keys())
-
-    return max(dfs(r, 1) for r in roots)
 
 
 class _ChatRequest(BaseModel):
