@@ -1,9 +1,4 @@
-"""
-
-Application use case: correlate a raw ``CoreEvent`` against the observation
-window and update the ``IncidentGraph`` with any causal relationships found.
-
-"""
+"""Correlate a raw CoreEvent against the observation window."""
 
 from __future__ import annotations
 
@@ -25,21 +20,7 @@ IncidentSeverity = Literal["Healthy", "Degrading", "Critical"]
 
 
 class CorrelateEventsUseCase:
-    """
-    Streaming event correlation use case.
-
-    Parameters
-    ----------
-    graph
-        The ``IncidentGraph`` to write causal nodes and edges into.
-    event_window
-        An ``EventWindowPort`` implementation that maintains a time-bounded
-        window of recent events.  Injected from the infrastructure layer.
-    rules
-        Ordered sequence of pure correlation rule functions from the domain
-        layer.  Defaults to ``DEFAULT_RULES``.  Override in tests or for
-        feature-flag-based rule toggling.
-    """
+    """Streaming event correlation use case."""
 
     def __init__(
         self,

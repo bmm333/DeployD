@@ -12,19 +12,7 @@ from deployd.domain.entities.core_event import CoreEvent, CoreEventType
 
 @dataclass(frozen=True)
 class RuleMatch:
-    """
-    Returned by a rule when it fires.
-
-    trigger    : The incoming event that caused the rule to fire.
-    cause      : The antecedent event from the window that is the causal
-                 predecessor. ``None`` for root-anomaly rules (RULE-01, RULE-05)
-                 that have no known upstream cause.
-    rule_id    : Stable, human-readable identifier used for edge annotation and
-                 audit trails.
-    confidence : 0.0–1.0 probability that the causal link is real.
-                 Conservative values are preferred; the graph topology provides
-                 the additional signal for severity escalation.
-    """
+    """Returned by a rule when it fires."""
 
     trigger: CoreEvent
     cause: CoreEvent | None
@@ -69,24 +57,7 @@ def rule_db_latency_anomaly(
     event: CoreEvent,
     window: Sequence[CoreEvent],  # noqa: ARG001 — root rule, no window needed
 ) -> list[RuleMatch]:
-    """
-    RULE-01 — DB Latency Anomaly
-
-    Condition
-    ---------
-    A ``STATE_CHANGE`` event from a database-like service with ``latency_ms``
-    (or ``value``) >= 500 ms.
-
-    Action
-    ------
-    Root anomaly node — no causal antecedent.  This node may become the
-    antecedent for RULE-02 and RULE-03 once downstream failures arrive.
-
-    Confidence: 0.75
-        A single high-latency query is observational noise.  Confidence
-        intentionally low so a solitary node does not raise the incident
-        severity on its own.
-    """
+    """RULE-01 — DB Latency Anomaly"""
     if event.event_type is not CoreEventType.STATE_CHANGE:
         return []
     if not _is_db_source(event):
@@ -104,23 +75,7 @@ def rule_downstream_timeout(
     event: CoreEvent,
     window: Sequence[CoreEvent],
 ) -> list[RuleMatch]:
-    """
-    RULE-02 — Downstream Service Timeout after DB Anomaly
-
-    Condition
-    ---------
-    A ``DEPENDENCY_FAILURE`` or ``CONNECTIVITY_LOSS`` event from a **non-DB**
-    service, and the window contains at least one RULE-01 match (DB latency
-    event >= 500 ms).
-
-    Action
-    ------
-    CAUSAL edge: db_anomaly_event ->this_timeout_event.
-    Links to the most recent DB latency anomaly in the window.
-
-    Confidence: 0.80
-        Temporal correlation, not proven causality.
-    """
+    """RULE-02 — Downstream Service Timeout after DB Anomaly"""
     if event.event_type not in (CoreEventType.DEPENDENCY_FAILURE, CoreEventType.CONNECTIVITY_LOSS):
         return []
     if _is_db_source(event):
@@ -163,25 +118,7 @@ def rule_http_500_cluster(
     event: CoreEvent,
     window: Sequence[CoreEvent],
 ) -> list[RuleMatch]:
-    """
-    RULE-03 — HTTP 500 Cluster following Upstream Failure
-
-    Condition
-    ---------
-    1. Incoming event is a ``STATE_CHANGE`` with ``status_code >= 500``.
-    2. At least 3 events with ``status_code >= 500`` from the **same source**
-       exist in the window (includes the current event).
-    3. At least one ``DEPENDENCY_FAILURE`` from a **different** service exists
-       in the window.
-
-    Action
-    ------
-    CAUSAL edge: most-recent upstream_failure ->this event.
-    A solitary 500 is noise; a cluster following upstream failures is a symptom
-    of a cascading incident.
-
-    Confidence: 0.85
-    """
+    """RULE-03 — HTTP 500 Cluster following Upstream Failure"""
     if event.event_type is not CoreEventType.STATE_CHANGE:
         return []
 
@@ -224,20 +161,7 @@ def rule_healthcheck_failure_cascade(
     event: CoreEvent,
     window: Sequence[CoreEvent],
 ) -> list[RuleMatch]:
-    """
-    RULE-04 — Health Check Failure following upstream anomaly
-
-    Condition
-    ---------
-    A ``HEALTH_CHECK_FAIL`` event, and the window contains at least one
-    ``DEPENDENCY_FAILURE`` or a DB latency anomaly from a **different** service.
-
-    Action
-    ------
-    CAUSAL edge: most-recent antecedent ->this healthcheck failure.
-
-    Confidence: 0.78
-    """
+    """RULE-04 — Health Check Failure following upstream anomaly"""
     if event.event_type is not CoreEventType.HEALTH_CHECK_FAIL:
         return []
 
@@ -272,20 +196,7 @@ def rule_resource_exhaustion(
     event: CoreEvent,
     window: Sequence[CoreEvent],  # noqa: ARG001 — root rule
 ) -> list[RuleMatch]:
-    """
-    RULE-05 — Resource Exhaustion
-
-    Condition
-    ---------
-    A ``RESOURCE_EXHAUSTION`` event with CPU or memory usage >= 90%.
-
-    Action
-    ------
-    Root anomaly node — no causal antecedent.  High-utilisation hosts become
-    upstream candidates for RULE-02 and RULE-03.
-
-    Confidence: 0.90
-    """
+    """RULE-05 — Resource Exhaustion"""
     if event.event_type is not CoreEventType.RESOURCE_EXHAUSTION:
         return []
     pct = _resource_percent(event)
