@@ -144,8 +144,8 @@
     .sim-btn.cascade:hover { background: #FF3B3015; }
     .sim-btn:disabled { opacity: 0.4; cursor: default; }
 
-    /* RIGHT: INCIDENT HISTORY */
-    .panel-right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    /* RIGHT: HISTORY — now on left, gets a right border */
+    .panel-right { flex: 1; display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--border); }
     .incident-list { flex: 1; overflow-y: auto; }
 
     .incident-row {
@@ -233,7 +233,15 @@
   </header>
 
   <div class="main">
-    <!-- LEFT: GRAPH + FEED -->
+    <!-- LEFT: INCIDENT HISTORY -->
+    <div class="panel-right">
+      <div class="panel-title">Incident History</div>
+      <div class="incident-list" id="incident-list">
+        <div class="empty-state">No incidents yet.<br/>Incidents are saved when you close them.</div>
+      </div>
+    </div>
+
+    <!-- CENTER: GRAPH + FEED -->
     <div class="panel-left">
       <div class="panel-title">Causal Incident Graph</div>
       <div id="graph-canvas"></div>
@@ -242,7 +250,7 @@
       </div>
     </div>
 
-    <!-- CENTER: CHAT + SIM -->
+    <!-- RIGHT: CHAT + SIM -->
     <div class="panel-center">
       <div class="panel-title">SRE Agent</div>
       <div class="chat-messages" id="chat-messages">
@@ -264,14 +272,6 @@
           <button class="sim-btn" onclick="sendPreset('gateway_500')">Gateway 500</button>
           <button class="sim-btn cascade" onclick="sendCascade()">Full Cascade x50</button>
         </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: INCIDENT HISTORY -->
-    <div class="panel-right">
-      <div class="panel-title">Incident History</div>
-      <div class="incident-list" id="incident-list">
-        <div class="empty-state">No incidents yet.<br/>Incidents are saved when you close them.</div>
       </div>
     </div>
   </div>
