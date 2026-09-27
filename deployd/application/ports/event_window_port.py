@@ -1,20 +1,4 @@
-"""
-deployd/application/ports/event_window_port.py
-
-Port (outgoing secondary port) for the event observation window.
-
-The ``EventWindowPort`` Protocol decouples the ``CorrelateEventsUseCase`` from
-any concrete buffer implementation.  Concretions live in the infrastructure
-layer (``deployd/infrastructure/streaming/``).
-
-Production swap path
---------------------
-Today:   SlidingWindow (in-memory deque, no external dependencies)
-Future:  RedisStreamsWindow (XRANGE query over Redis Streams time-series)
-
-The use case imports ``EventWindowPort`` only.  Swapping the implementation
-requires no changes to any application or domain file.
-"""
+"""Port for the event observation window."""
 
 from __future__ import annotations
 
