@@ -1,14 +1,7 @@
 """
 HTTP Incoming Event Adapter.
 
-Translates raw telemetry payloads (as emitted by external services —
-EC2 instances, K8s pods, load balancers, etc.) into domain ``CoreEvent``
-objects. This is the ONLY place where raw infrastructure vocabulary is
-translated into domain semantics. Nothing downstream ever sees the raw payload.
-
-Production note: this adapter pattern means that in the future you can swap
-the transport (CloudWatch → Prometheus → Datadog webhook) without touching
-anything in the domain layer. You only add a new adapter.
+Translates raw telemetry payloads into domain ``CoreEvent`` objects.
 """
 
 from __future__ import annotations
@@ -110,24 +103,13 @@ def _map_event_type(raw_type: str) -> CoreEventType:
 
 
 # ---------------------------------------------------------------------------
-# Severity: NOT provided by the emitter — assigned by the adapter heuristics
-# then REFINED by the EventCorrelator.
-#
-# The adapter assigns a PROVISIONAL severity based on the raw metadata so that
-# the correlator has an initial signal to work with. The correlator may UPGRADE
-# severity (never downgrade) as patterns accumulate.
+# Severity: Assigned by the adapter heuristics based on raw metadata.
 # ---------------------------------------------------------------------------
 
 
 def _provisional_severity(event: RawTelemetryEvent) -> Severity:
     """
     Assign a provisional (locally-scoped) severity based on metric thresholds.
-
-    This is NOT the incident severity — it is only a per-event signal. The
-    actual incident severity emerges from the causal chain topology.
-
-    Thresholds are intentionally conservative: we prefer false negatives here
-    because the correlator is responsible for the final assessment.
     """
     meta = event.metadata
     raw_type = event.event_type.upper()
