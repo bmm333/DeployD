@@ -148,10 +148,6 @@ def compute_incident_severity(graph: IncidentGraph) -> IncidentSeverity:
     """
     Derive the global incident severity from the causal chain topology.
 
-    Severity is an **emergent property** of the graph — it is never stored in
-    any individual event.  The longer the deepest causal chain, the more
-    services are implicated, and the higher the severity.
-
     Thresholds
     ----------
     Healthy   : no nodes in the graph (no anomalies observed)
