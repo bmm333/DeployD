@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeployD — Incident Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/dist/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0d0e11;
+      --surface:  #161820;
+      --surface2: #1e2029;
+      --border:   #2a2c38;
+      --text:     #e4e6f0;
+      --muted:    #6b7089;
+      --blue:     #007AFF;
+      --green:    #34C759;
+      --amber:    #FF9500;
+      --red:      #FF3B30;
+      --radius:   10px;
+    }
+    html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+    .app { display: flex; flex-direction: column; height: 100vh; }
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 20px; height: 54px; flex-shrink: 0;
+      background: rgba(22, 24, 32, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .logo { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo span { color: var(--blue); }
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      background: var(--surface2); border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status-badge.healthy  { color: var(--green); border-color: #34C75930; }
+    .status-badge.healthy .status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-badge.degrading { color: var(--amber); border-color: #FF950030; }
+    .status-badge.degrading .status-dot { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+    .status-badge.critical { color: var(--red); border-color: #FF3B3030; animation: pulse-badge 1.5s infinite; }
+    .status-badge.critical .status-dot { background: var(--red); box-shadow: 0 0 8px var(--red); }
+    @keyframes pulse-badge { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    header .spacer { flex: 1; }
+    .kpi { font-size: 12px; color: var(--muted); }
+    .kpi strong { color: var(--text); font-weight: 600; }
+    .btn {
+      padding: 6px 14px; border-radius: var(--radius); font-size: 12px; font-weight: 500;
+      font-family: 'Inter', sans-serif; cursor: pointer; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text);
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn:hover { background: var(--border); }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+    .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-primary:hover { background: #0066d6; }
+    .btn-danger { background: transparent; color: var(--red); border-color: #FF3B3040; }
+    .btn-danger:hover { background: #FF3B3015; }
+    .main { display: flex; flex: 1; overflow: hidden; }
+    .panel-left {
+      width: 55%; display: flex; flex-direction: column;
+      border-right: 1px solid var(--border);
+    }
+    .panel-title {
+      padding: 12px 16px; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted);
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    #graph-canvas { flex: 1; min-height: 0; background: var(--bg); }
+    .node-feed { height: 220px; overflow-y: auto; border-top: 1px solid var(--border); flex-shrink: 0; }
+    .node-card {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .node-card:hover { background: var(--surface2); }
+    .sev-pill {
+      padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;
+      letter-spacing: 0.4px; flex-shrink: 0; margin-top: 1px;
+    }
+    .sev-INFO     { background: #6b708922; color: var(--muted); }
+    .sev-WARNING  { background: #FF950020; color: var(--amber); }
+    .sev-ERROR    { background: #FF3B3020; color: var(--red); }
+    .sev-CRITICAL { background: #FF3B3030; color: var(--red); font-weight: 700; }
+    .node-content { flex: 1; min-width: 0; }
+    .node-label { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .node-meta { display: flex; gap: 8px; margin-top: 3px; flex-wrap: wrap; }
+    .node-source { font-size: 11px; color: var(--blue); }
+    .node-time { font-size: 11px; color: var(--muted); }
+    .node-type { font-size: 10px; color: var(--muted); background: var(--surface2); padding: 1px 6px; border-radius: 4px; }
+    .empty-state { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .panel-right { flex: 1; display: flex; flex-direction: column; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .msg { display: flex; flex-direction: column; max-width: 80%; }
+    .msg.user { align-self: flex-end; align-items: flex-end; }
+    .msg.agent { align-self: flex-start; align-items: flex-start; }
+    .msg-role { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; color: var(--muted); }
+    .msg-bubble { padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.55; }
+    .msg.user .msg-bubble { background: var(--blue); color: #fff; border-bottom-right-radius: 4px; }
+    .msg.agent .msg-bubble { background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+    .msg.agent .msg-bubble strong { color: var(--blue); font-weight: 600; }
+    .msg.agent .msg-bubble p { margin-bottom: 8px; }
+    .msg.agent .msg-bubble p:last-child { margin-bottom: 0; }
+    .chat-input-area {
+      padding: 12px 16px; border-top: 1px solid var(--border);
+      display: flex; gap: 8px; flex-shrink: 0;
+      background: rgba(22, 24, 32, 0.6);
+    }
+    .chat-input {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 9px 14px; color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 13px;
+      outline: none; transition: border-color 0.15s; resize: none;
+    }
+    .chat-input:focus { border-color: var(--blue); }
+    .chat-input::placeholder { color: var(--muted); }
+    .chat-input:disabled { opacity: 0.5; }
+    .sim-panel { border-top: 1px solid var(--border); background: var(--surface); }
+    .sim-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 16px; cursor: pointer; user-select: none;
+    }
+    .sim-header-label { font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); }
+    .sim-chevron { font-size: 10px; color: var(--muted); transition: transform 0.2s; }
+    .sim-chevron.open { transform: rotate(180deg); }
+    .sim-body { padding: 10px 16px 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .sim-body.collapsed { display: none; }
+    .sim-btn {
+      padding: 6px 12px; border-radius: var(--radius); font-size: 11px; font-weight: 500;
+      font-family: 'Inter', sans-serif; cursor: pointer; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text); transition: all 0.15s;
+    }
+    .sim-btn:hover { border-color: var(--blue); color: var(--blue); background: #007AFF12; }
+    .sim-btn.cascade { border-color: #FF3B3040; color: var(--red); }
+    .sim-btn.cascade:hover { background: #FF3B3015; }
+    .sim-btn:disabled { opacity: 0.4; cursor: default; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .typing-indicator { display: flex; gap: 4px; align-items: center; }
+    .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: typing 1.2s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+    @media (max-width: 768px) {
+      .main { flex-direction: column; }
+      .panel-left { width: 100%; height: 50%; border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">Deploy<span>D</span></div>
+    <div id="status-badge" class="status-badge healthy">
+      <div class="status-dot"></div>
+      <span id="status-text">Healthy</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="kpi">Nodes: <strong id="node-count">0</strong></div>
+    <div class="kpi" style="margin-left:8px;">Edges: <strong id="edge-count">0</strong></div>
+    <button class="btn btn-danger" style="margin-left:16px;" onclick="resetState()">Reset</button>
+  </header>
+  <div class="main">
+    <div class="panel-left">
+      <div class="panel-title">Causal Incident Graph</div>
+      <div id="graph-canvas"></div>
+      <div class="node-feed" id="node-feed">
+        <div class="empty-state">No events yet.<br/>Use the simulation panel to ingest telemetry.</div>
+      </div>
+    </div>
+    <div class="panel-right">
+      <div class="panel-title">SRE Agent</div>
+      <div class="chat-messages" id="chat-messages">
+        <div class="empty-state" id="chat-empty">Ask the SRE Agent to investigate an incident.<br/>Ingest some events first, then type below.</div>
+      </div>
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chat-input" placeholder="Ask the SRE Agent..." rows="1"
+          onkeydown="handleKey(event)"></textarea>
+        <button class="btn btn-primary" id="send-btn" onclick="sendChat()">Send</button>
+      </div>
+      <div class="sim-panel">
+        <div class="sim-header" onclick="toggleSim()">
+          <span class="sim-header-label">Simulate Events</span>
+          <span class="sim-chevron open" id="sim-chevron">&#9650;</span>
+        </div>
+        <div class="sim-body" id="sim-body">
+          <button class="sim-btn" onclick="sendPreset('db_latency')">DB Latency Spike</button>
+          <button class="sim-btn" onclick="sendPreset('auth_timeout')">Auth Timeout</button>
+          <button class="sim-btn" onclick="sendPreset('gateway_500')">Gateway 500</button>
+          <button class="sim-btn cascade" onclick="sendCascade()">Full Cascade x50</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const API = 'http://localhost:8081';
+const networkNodes = new vis.DataSet([]);
+const networkEdges = new vis.DataSet([]);
+const container = document.getElementById('graph-canvas');
+const network = new vis.Network(container, { nodes: networkNodes, edges: networkEdges }, {
+  physics: { enabled: true, barnesHut: { gravitationalConstant: -4000, springLength: 140, damping: 0.2 } },
+  edges: {
+    arrows: { to: { enabled: true, scaleFactor: 0.6 } },
+    color: { color: '#3a3d50', highlight: '#007AFF' },
+    width: 1.5,
+    smooth: { type: 'curvedCW', roundness: 0.2 }
+  },
+  nodes: {
+    shape: 'dot', size: 14,
+    font: { color: '#e4e6f0', size: 11, face: 'Inter' },
+    borderWidth: 2,
+  },
+  interaction: { tooltipDelay: 200, hover: true },
+  layout: { improvedLayout: false }
+});
+
+function severityColor(sev) {
+  return { INFO: '#6b7089', WARNING: '#FF9500', ERROR: '#FF3B30', CRITICAL: '#FF3B30' }[sev] || '#6b7089';
+}
+function severityBorder(sev) {
+  return { INFO: '#8a8faa', WARNING: '#ffb340', ERROR: '#ff6055', CRITICAL: '#ff0000' }[sev] || '#8a8faa';
+}
+
+let knownNodeIds = new Set();
+let knownEdgeIds = new Set();
+let chatHistory = [];
+let pendingSend = false;
+let simOpen = true;
+
+async function poll() {
+  try {
+    const res = await fetch(`${API}/api/v1/state`);
+    if (!res.ok) return;
+    const data = await res.json();
+    updateStatus(data.tracker_status);
+    updateGraph(data.graphs.nodes, data.graphs.edges);
+    updateChat(data.chat_history);
+  } catch (_) {}
+}
+
+function updateStatus(status) {
+  const badge = document.getElementById('status-badge');
+  const text = document.getElementById('status-text');
+  badge.className = 'status-badge ' + (status || 'healthy').toLowerCase();
+  text.textContent = status || 'Healthy';
+}
+
+function updateGraph(nodes, edges) {
+  document.getElementById('node-count').textContent = nodes.length;
+  document.getElementById('edge-count').textContent = edges.length;
+
+  const currentNodeIds = new Set(nodes.map(n => n.id));
+  [...knownNodeIds].filter(id => !currentNodeIds.has(id)).forEach(id => {
+    networkNodes.remove(id); knownNodeIds.delete(id);
+  });
+  nodes.forEach(n => {
+    const color = severityColor(n.severity);
+    const border = severityBorder(n.severity);
+    const d = {
+      id: n.id,
+      label: (n.source || '?') + '\n' + (n.type || ''),
+      title: n.label,
+      color: { background: color + '22', border: border, highlight: { background: color + '44', border: border } },
+      size: n.severity === 'CRITICAL' ? 20 : 14,
+    };
+    if (knownNodeIds.has(n.id)) networkNodes.update(d);
+    else { networkNodes.add(d); knownNodeIds.add(n.id); }
+  });
+
+  const currentEdgeIds = new Set(edges.map(e => e.source + '->' + e.target));
+  [...knownEdgeIds].filter(id => !currentEdgeIds.has(id)).forEach(id => {
+    networkEdges.remove(id); knownEdgeIds.delete(id);
+  });
+  edges.forEach(e => {
+    const eid = e.source + '->' + e.target;
+    if (!knownEdgeIds.has(eid)) {
+      networkEdges.add({
+        id: eid, from: e.source, to: e.target,
+        title: `${e.relationship} | ${e.rule_id || ''} | conf ${Math.round(e.confidence * 100)}%`,
+        color: { color: e.relationship === 'CAUSAL' ? '#FF9500' : '#4a4d66' },
+        dashes: e.relationship !== 'CAUSAL',
+      });
+      knownEdgeIds.add(eid);
+    }
+  });
+
+  renderNodeFeed(nodes);
+}
+
+function renderNodeFeed(nodes) {
+  const feed = document.getElementById('node-feed');
+  if (!nodes.length) {
+    feed.innerHTML = '<div class="empty-state">No events yet.<br/>Use the simulation panel to ingest telemetry.</div>';
+    return;
+  }
+  const sorted = [...nodes].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  feed.innerHTML = sorted.map(n => {
+    const time = new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return `<div class="node-card">
+      <span class="sev-pill sev-${n.severity}">${n.severity}</span>
+      <div class="node-content">
+        <div class="node-label" title="${n.label}">${n.label}</div>
+        <div class="node-meta">
+          <span class="node-source">${n.source || '—'}</span>
+          <span class="node-type">${n.type}</span>
+          <span class="node-time">${time}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateChat(history) {
+  if (!history || history.length === chatHistory.length) return;
+  const lastNew = history[history.length - 1];
+  if (pendingSend && lastNew && lastNew.role === 'agent') {
+    pendingSend = false;
+    enableInput();
+    removeTypingIndicator();
+  }
+  chatHistory = [...history];
+  renderChat();
+}
+
+function renderChat() {
+  const c = document.getElementById('chat-messages');
+  document.getElementById('chat-empty')?.remove();
+  c.querySelectorAll('.msg').forEach(m => m.remove());
+  const typing = c.querySelector('.msg-typing');
+  chatHistory.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = 'msg ' + (msg.role === 'user' ? 'user' : 'agent');
+    const content = msg.role === 'agent' ? marked.parse(msg.content) : escapeHtml(msg.content);
+    div.innerHTML = `<div class="msg-role">${msg.role === 'user' ? 'You' : 'SRE Agent'}</div><div class="msg-bubble">${content}</div>`;
+    if (typing) c.insertBefore(div, typing); else c.appendChild(div);
+  });
+  c.scrollTop = c.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showTypingIndicator() {
+  const c = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg agent msg-typing';
+  div.innerHTML = `<div class="msg-role">SRE Agent</div><div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  c.appendChild(div);
+  c.scrollTop = c.scrollHeight;
+}
+
+function removeTypingIndicator() { document.querySelector('.msg-typing')?.remove(); }
+function enableInput() {
+  document.getElementById('chat-input').disabled = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('send-btn').textContent = 'Send';
+}
+function disableInput() {
+  document.getElementById('chat-input').disabled = true;
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('send-btn').textContent = '...';
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const prompt = input.value.trim();
+  if (!prompt || pendingSend) return;
+  input.value = '';
+  pendingSend = true;
+  disableInput();
+  const c = document.getElementById('chat-messages');
+  document.getElementById('chat-empty')?.remove();
+  const userDiv = document.createElement('div');
+  userDiv.className = 'msg user';
+  userDiv.innerHTML = `<div class="msg-role">You</div><div class="msg-bubble">${escapeHtml(prompt)}</div>`;
+  c.appendChild(userDiv);
+  showTypingIndicator();
+  c.scrollTop = c.scrollHeight;
+  try {
+    await fetch(`${API}/api/v1/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+  } catch (_) { removeTypingIndicator(); pendingSend = false; enableInput(); }
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function resetState() {
+  await fetch(`${API}/api/v1/reset`, { method: 'POST' });
+  networkNodes.clear(); networkEdges.clear();
+  knownNodeIds.clear(); knownEdgeIds.clear();
+  chatHistory = []; pendingSend = false;
+  enableInput();
+  document.getElementById('chat-messages').innerHTML = '<div class="empty-state" id="chat-empty">Ask the SRE Agent to investigate an incident.<br/>Ingest some events first, then type below.</div>';
+  document.getElementById('node-feed').innerHTML = '<div class="empty-state">No events yet.<br/>Use the simulation panel to ingest telemetry.</div>';
+  updateStatus('Healthy');
+  document.getElementById('node-count').textContent = '0';
+  document.getElementById('edge-count').textContent = '0';
+}
+
+function ts() { return new Date().toISOString(); }
+const PRESETS = {
+  db_latency:    { source: 'postgres-primary', event_type: 'LATENCY',        metadata: { latency_ms: 842, value: 842 },   description: 'PostgreSQL query latency spike' },
+  auth_timeout:  { source: 'auth-service',     event_type: 'REQUEST_TIMEOUT', metadata: { duration_ms: 5000 },             description: 'auth-service postgres connection timeout' },
+  gateway_500:   { source: 'api-gateway',      event_type: 'HTTP_RESPONSE',   metadata: { status_code: 503, latency_ms: 6200 }, description: 'api-gateway 503 from auth-service upstream' },
+};
+
+async function postEvent(key) {
+  const p = { ...PRESETS[key], timestamp: ts() };
+  await fetch(`${API}/api/v1/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(p)
+  });
+}
+
+async function sendPreset(key) { await postEvent(key); }
+
+async function sendCascade() {
+  document.querySelectorAll('.sim-btn').forEach(b => b.disabled = true);
+  const seq = ['db_latency','db_latency','db_latency','auth_timeout','auth_timeout','gateway_500'];
+  const rounds = Math.ceil(50 / seq.length);
+  for (let r = 0; r < rounds; r++) {
+    for (const k of seq) {
+      await postEvent(k);
+      await new Promise(res => setTimeout(res, 150));
+    }
+  }
+  document.querySelectorAll('.sim-btn').forEach(b => b.disabled = false);
+}
+
+function toggleSim() {
+  simOpen = !simOpen;
+  document.getElementById('sim-body').classList.toggle('collapsed', !simOpen);
+  document.getElementById('sim-chevron').classList.toggle('open', simOpen);
+}
+
+poll();
+setInterval(poll, 2000);
+</script>
+</body>
+</html>
