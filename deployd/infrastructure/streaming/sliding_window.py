@@ -1,27 +1,5 @@
 """
-deployd/infrastructure/streaming/sliding_window.py
-
 Concrete implementation of ``EventWindowPort`` backed by an in-memory deque.
-
-This is the **only** file in the event correlation stack that is allowed to
-call ``datetime.now(timezone.utc)``.  System-clock coupling is an
-infrastructure concern — it belongs here, not in the domain or application
-layers.
-
-Production swap path
---------------------
-Replace the body of ``SlidingWindow`` with a Redis Streams ``XRANGE`` query
-(e.g. ``XRANGE events - + COUNT 1000 MINID <cutoff_ms>``).  The
-``EventWindowPort`` interface is satisfied identically — no other file changes.
-
-    class RedisStreamsWindow:
-        def append(self, event: CoreEvent) -> None:
-            self._client.xadd("events", _serialise(event))
-
-        def snapshot(self) -> list[CoreEvent]:
-            cutoff = (datetime.now(timezone.utc) - self._window).timestamp()
-            raw = self._client.xrange("events", min=f"{int(cutoff*1000)}-0")
-            return [_deserialise(r) for _, r in raw]
 """
 
 from __future__ import annotations
@@ -45,8 +23,7 @@ class SlidingWindow:
     ----------
     window_seconds
         Width of the observation window in seconds.  Defaults to 300 (5 min).
-        5 minutes is the standard correlation window for distributed systems
-        where cascading failures propagate slowly through dependency chains.
+        cascading failures propagate slowly through dependency chains.
     """
 
     def __init__(self, window_seconds: float = DEFAULT_WINDOW_SECONDS) -> None:
@@ -61,10 +38,6 @@ class SlidingWindow:
     def snapshot(self) -> list[CoreEvent]:
         """Return a copy of all events currently in the window (oldest first)."""
         return list(self._deque)
-
-    # ------------------------------------------------------------------
-    # Private
-    # ------------------------------------------------------------------
 
     def _prune(self) -> None:
         cutoff = datetime.now(timezone.utc) - self._window

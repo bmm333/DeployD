@@ -1,33 +1,4 @@
-"""
-deployd/domain/causal/causal_rule.py
-
-Pure correlation rule predicates for the DeployD causal inference engine.
-
-Rules are stateless pure functions with the signature:
-
-    CorrelationRuleFn = Callable[[CoreEvent, Sequence[CoreEvent]], list[RuleMatch]]
-
-- ``event``  : the newly ingested event being evaluated.
-- ``window`` : a snapshot of all events currently in the observation window,
-               **already time-filtered** by the infrastructure layer.
-               Rules never call ``datetime.now()``.
-
-This purity guarantee means every rule can be unit-tested with simple fixtures —
-no mocking of clocks, no databases, no I/O.
-
-Rule catalogue
---------------
-RULE-01  DB Latency Anomaly       — root node, no causal antecedent
-RULE-02  Downstream Timeout       — CAUSAL edge: DB → failing service
-RULE-03  HTTP 500 Cluster         — CAUSAL edge: upstream failure → gateway
-RULE-04  Healthcheck Cascade      — CAUSAL edge: anomaly → health-check failure
-RULE-05  Resource Exhaustion      — root node, no causal antecedent
-
-Extending rules
----------------
-Add a new function with the same signature and append it to ``DEFAULT_RULES``.
-No other file needs to change.
-"""
+"""Pure correlation rule predicates for the DeployD causal inference engine."""
 
 from __future__ import annotations
 
@@ -36,9 +7,7 @@ from dataclasses import dataclass, field
 
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType
 
-# ---------------------------------------------------------------------------
 # Result type
-# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -63,15 +32,10 @@ class RuleMatch:
     confidence: float = field(default=0.85)
 
 
-# ---------------------------------------------------------------------------
 # Type alias
-# ---------------------------------------------------------------------------
 
 CorrelationRuleFn = Callable[[CoreEvent, Sequence[CoreEvent]], list[RuleMatch]]
 
-# ---------------------------------------------------------------------------
-# Helper predicates (private)
-# ---------------------------------------------------------------------------
 
 _DB_KEYWORDS = frozenset(
     {"db", "database", "postgres", "postgresql", "mysql", "redis", "mongo", "dynamodb", "rds"}
@@ -99,11 +63,6 @@ def _resource_percent(event: CoreEvent) -> float | None:
         if isinstance(val, int | float):
             return float(val)
     return None
-
-
-# ---------------------------------------------------------------------------
-# Rule implementations
-# ---------------------------------------------------------------------------
 
 
 def rule_db_latency_anomaly(
@@ -156,7 +115,7 @@ def rule_downstream_timeout(
 
     Action
     ------
-    CAUSAL edge: db_anomaly_event → this_timeout_event.
+    CAUSAL edge: db_anomaly_event ->this_timeout_event.
     Links to the most recent DB latency anomaly in the window.
 
     Confidence: 0.80
@@ -165,7 +124,7 @@ def rule_downstream_timeout(
     if event.event_type not in (CoreEventType.DEPENDENCY_FAILURE, CoreEventType.CONNECTIVITY_LOSS):
         return []
     if _is_db_source(event):
-        return []  # DB timing out itself → RULE-01 handles it
+        return []  # DB timing out itself ->RULE-01 handles it
 
     # Only fire for explicit timeout / connection error raw types
     raw_type = str(event.metadata.get("_raw_event_type", "")).upper()
@@ -217,7 +176,7 @@ def rule_http_500_cluster(
 
     Action
     ------
-    CAUSAL edge: most-recent upstream_failure → this event.
+    CAUSAL edge: most-recent upstream_failure ->this event.
     A solitary 500 is noise; a cluster following upstream failures is a symptom
     of a cascading incident.
 
@@ -275,7 +234,7 @@ def rule_healthcheck_failure_cascade(
 
     Action
     ------
-    CAUSAL edge: most-recent antecedent → this healthcheck failure.
+    CAUSAL edge: most-recent antecedent ->this healthcheck failure.
 
     Confidence: 0.78
     """
@@ -342,10 +301,6 @@ def rule_resource_exhaustion(
         )
     ]
 
-
-# ---------------------------------------------------------------------------
-# Default rule set — evaluated in order on every ingested event
-# ---------------------------------------------------------------------------
 
 DEFAULT_RULES: Sequence[CorrelationRuleFn] = [
     rule_db_latency_anomaly,

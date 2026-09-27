@@ -1,19 +1,4 @@
-"""
-deployd/entrypoints/api.py
-
-FastAPI HTTP entrypoint — composition root for the event ingestion pipeline.
-
-Wiring (construction order)
----------------------------
-1. IncidentGraph            (domain)
-2. SlidingWindow            (infrastructure — the only class that calls datetime.now())
-3. CorrelateEventsUseCase   (application — orchestrates rules + graph writes)
-4. HttpEventAdapter         (adapter/incoming — translates raw HTTP payload → CoreEvent)
-5. AgnoGroqAgent            (adapter/outgoing — implements AgentPort)
-
-All business logic (severity inference, causal chain traversal) lives in the
-application and domain layers.  This file is a thin HTTP shell.
-"""
+"""FastAPI HTTP entrypoint for the event ingestion pipeline."""
 
 from __future__ import annotations
 
@@ -35,21 +20,15 @@ from pydantic import BaseModel
 
 log = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Composition root — wire all dependencies
-# ---------------------------------------------------------------------------
 
 _graph = IncidentGraph()
 _window = SlidingWindow(window_seconds=300)  # 5-minute observation window
 _correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window)
 _adapter = HttpEventAdapter()
-# AgnoGroqAgent is lazily initialised on first /chat request to avoid
-# hard startup failure when GROQ_API_KEY is absent (CI, tests, event-only usage).
 _agent: AgnoGroqAgent | None = None
 
 
 def _get_agent() -> AgnoGroqAgent:
-    """Return the shared AgnoGroqAgent, initialising it on first call."""
     global _agent  # noqa: PLW0603
     if _agent is None:
         _agent = AgnoGroqAgent()
@@ -58,10 +37,6 @@ def _get_agent() -> AgnoGroqAgent:
 
 _chat_history: list[dict[str, str]] = []
 _last_session_id: str | None = None
-
-# ---------------------------------------------------------------------------
-# FastAPI app
-# ---------------------------------------------------------------------------
 
 app = FastAPI(title="DeployD API", version="1.0.0")
 
@@ -73,19 +48,8 @@ app.add_middleware(
 )
 
 
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
-
-
 @app.post("/api/v1/events", status_code=200)  # type: ignore[misc]
 async def receive_event(raw: RawTelemetryEvent) -> dict[str, Any]:
-    """
-    Ingest a raw telemetry event from any external service.
-
-    The emitter does NOT set severity or incident context.  DeployD infers
-    causal relationships and severity from the accumulated event window.
-    """
     try:
         core_event = _adapter.translate(raw)
         _correlate.ingest(core_event)
@@ -100,13 +64,6 @@ async def receive_event(raw: RawTelemetryEvent) -> dict[str, Any]:
 
 @app.get("/api/v1/state")  # type: ignore[misc]
 async def get_state() -> dict[str, Any]:
-    """
-    Return the current IncidentGraph state and chat history.
-
-    ``tracker_status`` is computed by ``compute_incident_severity()`` — a pure
-    function that derives severity from causal chain depth, not from any label
-    stored on individual events.
-    """
     nodes = [
         {
             "id": str(node.node_id),
@@ -139,12 +96,6 @@ async def get_state() -> dict[str, Any]:
 
 @app.post("/api/v1/chat")  # type: ignore[misc]
 async def chat(request: _ChatRequest) -> dict[str, str]:
-    """
-    Natural-language interaction with the SRE Agent.
-
-    Routes through ``AgentPort.diagnose()`` / ``AgentPort.follow_up()`` —
-    never accesses private adapter internals.
-    """
     global _last_session_id  # noqa: PLW0603
 
     _chat_history.append({"role": "user", "content": request.prompt})
@@ -181,7 +132,7 @@ async def chat(request: _ChatRequest) -> dict[str, str]:
             diagnosis = agent.diagnose(
                 component=component,
                 causal_chains=chains,
-                candidates=[],  # retrieval candidates (RAG) — future integration
+                candidates=[],
             )
             _last_session_id = agent.last_session_id
             reply = (
@@ -208,11 +159,6 @@ async def reset_state() -> dict[str, str]:
     _last_session_id = None
     _agent = None  # force re-init of agent on next chat
     return {"status": "reset"}
-
-
-# ---------------------------------------------------------------------------
-# Internal DTOs
-# ---------------------------------------------------------------------------
 
 
 class _ChatRequest(BaseModel):
