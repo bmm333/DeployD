@@ -13,18 +13,7 @@ DEFAULT_WINDOW_SECONDS: float = 5 * 60  # 5 minutes
 
 
 class SlidingWindow:
-    """
-    An in-memory, time-bounded deque of ``CoreEvent`` objects.
-
-    Events older than ``window_seconds`` from *now* are pruned on every
-    ``append`` call.  Memory usage is O(events within the window).
-
-    Parameters
-    ----------
-    window_seconds
-        Width of the observation window in seconds.  Defaults to 300 (5 min).
-        cascading failures propagate slowly through dependency chains.
-    """
+    """An in-memory, time-bounded deque of ``CoreEvent`` objects."""
 
     def __init__(self, window_seconds: float = DEFAULT_WINDOW_SECONDS) -> None:
         self._window = timedelta(seconds=window_seconds)
