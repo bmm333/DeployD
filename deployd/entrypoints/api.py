@@ -18,12 +18,13 @@ from deployd.application.use_cases.incident_lifecycle import (
     ListIncidentsUseCase,
 )
 from deployd.domain.causal.causal_engine import CausalEngine
+from deployd.domain.entities.core_event import Severity
 from deployd.domain.graph.graph import IncidentGraph
 from deployd.infrastructure.persistence.sqlite_incident_repository import (
     SQLiteIncidentRepository,
 )
 from deployd.infrastructure.streaming.sliding_window import SlidingWindow
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -44,6 +45,7 @@ _agent: AgnoGroqAgent | None = None
 
 _chat_history: list[dict[str, str]] = []
 _last_session_id: str | None = None
+_auto_diagnosed_incident_id: str | None = None
 
 
 def _get_agent() -> AgnoGroqAgent:
@@ -80,12 +82,22 @@ app.add_middleware(
 
 
 @app.post("/api/v1/events", status_code=200)  # type: ignore[misc]
-async def receive_event(raw: RawTelemetryEvent) -> dict[str, Any]:
+async def receive_event(
+    raw: RawTelemetryEvent, background_tasks: BackgroundTasks
+) -> dict[str, Any]:
+    global _auto_diagnosed_incident_id  # noqa: PLW0603
     try:
         core_event = _adapter.translate(raw)
         _correlate.ingest(core_event)
         incident = _lifecycle.ensure_open(core_event)
         _lifecycle.update_severity(core_event.severity)
+
+        if core_event.severity == Severity.CRITICAL and _auto_diagnosed_incident_id != str(
+            incident.id
+        ):
+            _auto_diagnosed_incident_id = str(incident.id)
+            background_tasks.add_task(_auto_diagnose, str(incident.id))
+
         return {
             "status": "ok",
             "event_id": str(core_event.event_id),
@@ -121,7 +133,57 @@ async def get_state() -> dict[str, Any]:
     }
 
 
-# ── Chat ──────────────────────────────────────────────────────────────────────
+# ── Chat & Auto-Diagnose ────────────────────────────────────────────────────────
+
+
+def _auto_diagnose(incident_id: str) -> None:
+    global _last_session_id  # noqa: PLW0603
+    try:
+        if not _graph.nodes:
+            return
+
+        _chat_history.append(
+            {
+                "role": "user",
+                "content": "The system reached CRITICAL severity. Please diagnose the root cause.",
+            }
+        )
+        engine = CausalEngine(_graph)
+        root_nodes = _graph.get_root_nodes()
+        component = (
+            (root_nodes[0].event.related_component or "unknown-component")
+            if root_nodes
+            else "unknown-component"
+        )
+        chains: list[list[Any]] = []
+        for root in root_nodes:
+            chains.extend(engine.causal_chain(root.node_id))
+
+        agent = _get_agent()
+        diagnosis = agent.diagnose(
+            component=component,
+            causal_chains=chains,
+            candidates=[],
+        )
+        _last_session_id = agent.last_session_id
+        reply = (
+            f"**Root Cause:** {diagnosis.root_cause}\n\n"
+            f"**Confidence:** {diagnosis.confidence}\n\n"
+            f"**Recommendation:** {diagnosis.recommendation}"
+        )
+        _chat_history.append({"role": "agent", "content": reply})
+
+        # Persist chat
+        current = _incident_repo.get_current()
+        if current and str(current.id) == incident_id:
+            current.chat_history = list(_chat_history)
+            if current.root_cause_summary is None:
+                current.root_cause_summary = reply[:300]
+            _incident_repo.save(current)
+
+    except Exception as exc:
+        log.exception("Auto-diagnose failed")
+        _chat_history.append({"role": "agent", "content": f"Auto-diagnosis error: {exc}"})
 
 
 @app.post("/api/v1/chat")  # type: ignore[misc]
@@ -207,6 +269,7 @@ async def reset_state() -> dict[str, Any]:
     _correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window)
     _chat_history = []
     _last_session_id = None
+    _auto_diagnosed_incident_id = None
     _agent = None
 
     return {
