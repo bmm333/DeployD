@@ -381,7 +381,7 @@ class AgnoGroqAgent:
         agent = self._create_structured_agent()
         response = agent.run(user_message)
 
-        # Agno returns content as Any when output_model is set;
+        # Agno returns content as Any when output_schema is set;
         # at runtime it will be an AgentDiagnosis instance.
         if not isinstance(response.content, AgentDiagnosis):
             msg = f"Expected AgentDiagnosis, got {type(response.content).__name__}"
@@ -524,7 +524,7 @@ class AgnoGroqAgent:
             model=Groq(id=self.MODEL_ID),
             tools=self._tools or None,
             instructions=self._system_prompt,
-            output_model=AgentDiagnosis,
+            output_schema=AgentDiagnosis,
             structured_outputs=True,
             markdown=False,
         )
