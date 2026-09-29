@@ -18,7 +18,6 @@ from deployd.application.use_cases.incident_lifecycle import (
     ListIncidentsUseCase,
 )
 from deployd.domain.causal.causal_engine import CausalEngine
-from deployd.domain.entities.core_event import Severity
 from deployd.domain.graph.graph import IncidentGraph
 from deployd.infrastructure.persistence.sqlite_incident_repository import (
     SQLiteIncidentRepository,
@@ -92,7 +91,8 @@ async def receive_event(
         incident = _lifecycle.ensure_open(core_event)
         _lifecycle.update_severity(core_event.severity)
 
-        if core_event.severity == Severity.CRITICAL and _auto_diagnosed_incident_id != str(
+        current_global_severity = compute_incident_severity(_graph)
+        if current_global_severity == "Critical" and _auto_diagnosed_incident_id != str(
             incident.id
         ):
             _auto_diagnosed_incident_id = str(incident.id)
@@ -184,6 +184,10 @@ def _auto_diagnose(incident_id: str) -> None:
     except Exception as exc:
         log.exception("Auto-diagnose failed")
         _chat_history.append({"role": "agent", "content": f"Auto-diagnosis error: {exc}"})
+
+
+class _ChatRequest(BaseModel):
+    prompt: str
 
 
 @app.post("/api/v1/chat")  # type: ignore[misc]
@@ -315,7 +319,3 @@ async def get_incident(incident_id: uuid.UUID) -> dict[str, Any]:
         "root_cause_summary": incident.root_cause_summary,
         "duration_seconds": incident.duration_seconds,
     }
-
-
-class _ChatRequest(BaseModel):
-    prompt: str
