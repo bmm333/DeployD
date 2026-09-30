@@ -168,38 +168,6 @@
       text-overflow: ellipsis; font-style: italic;
     }
 
-    /* MODAL */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0; z-index: 100;
-      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
-      align-items: center; justify-content: center;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-      width: 80vw; max-width: 900px; max-height: 85vh;
-      display: flex; flex-direction: column; overflow: hidden;
-    }
-    .modal-header {
-      display: flex; align-items: center; gap: 10px;
-      padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
-    }
-    .modal-title { font-size: 14px; font-weight: 600; flex: 1; }
-    .modal-close {
-      width: 28px; height: 28px; border-radius: 50%; border: none;
-      background: var(--surface2); color: var(--muted); cursor: pointer;
-      font-size: 14px; display: flex; align-items: center; justify-content: center;
-    }
-    .modal-close:hover { background: var(--border); color: var(--text); }
-    .modal-body { display: flex; flex: 1; overflow: hidden; }
-    .modal-chat { width: 55%; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; border-right: 1px solid var(--border); }
-    .modal-nodes { flex: 1; overflow-y: auto; padding: 12px 16px; }
-    .modal-node-row {
-      display: flex; align-items: flex-start; gap: 8px;
-      padding: 8px 0; border-bottom: 1px solid var(--border);
-    }
-    .modal-node-row:last-child { border-bottom: none; }
-
     /* SCROLLBARS */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -229,7 +197,8 @@
     <div class="spacer"></div>
     <div class="kpi">Nodes: <strong id="node-count">0</strong></div>
     <div class="kpi" style="margin-left:8px;">Edges: <strong id="edge-count">0</strong></div>
-    <button class="btn btn-danger" style="margin-left:16px;" onclick="resetState()">Close Incident</button>
+    <button class="btn btn-primary" id="return-live-btn" style="margin-left:16px; display:none;" onclick="returnToLive()">Return to Live</button>
+    <button class="btn btn-danger" id="close-incident-btn" style="margin-left:8px;" onclick="resetState()">Close Incident</button>
   </header>
 
   <div class="main">
@@ -271,31 +240,18 @@
           <button class="sim-btn" onclick="sendPreset('auth_timeout')">Auth Timeout</button>
           <button class="sim-btn" onclick="sendPreset('gateway_500')">Gateway 500</button>
           <button class="sim-btn cascade" onclick="sendCascade()">Full Cascade x50</button>
+          <button class="sim-btn" onclick="sendConfigDrift()">Config Drift (Real)</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- INCIDENT DETAIL MODAL -->
-<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modal-title">Incident Detail</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="modal-meta"></div>
-      </div>
-      <button class="modal-close" onclick="closeModal()">&#215;</button>
-    </div>
-    <div class="modal-body">
-      <div class="modal-chat" id="modal-chat"></div>
-      <div class="modal-nodes" id="modal-nodes"></div>
-    </div>
-  </div>
+
 </div>
 
 <script>
-const API = 'http://localhost:8081';
+const API = 'http://localhost:8000';
 
 // ── VIS-NETWORK ───────────────────────────────────────────────────────────────
 const networkNodes = new vis.DataSet([]);
@@ -312,7 +268,7 @@ const network = new vis.Network(
     },
     nodes: { shape: 'dot', size: 14, font: { color: '#e4e6f0', size: 11, face: 'Inter' }, borderWidth: 2 },
     interaction: { tooltipDelay: 200, hover: true },
-    layout: { improvedLayout: false }
+    layout: { hierarchical: { enabled: true, direction: 'UD', sortMethod: 'hubsize' } }
   }
 );
 
@@ -464,6 +420,103 @@ async function postEvent(key) {
     body: JSON.stringify({...PRESETS[key], timestamp: new Date().toISOString()}) });
 }
 async function sendPreset(key) { await postEvent(key); }
+
+async function sendConfigDrift() {
+  document.querySelectorAll('.sim-btn').forEach(b=>b.disabled=true);
+  try {
+    const res = await fetch(`${API}/api/v1/reset`, {method: 'POST'});
+    if (!res.ok) throw new Error('Reset failed');
+
+    // Simulate API calls by calling a script on backend if it existed, but we can just post the JSON directly from frontend!
+    // Since we wrote the python script, let's just make the JS post the events over time.
+    let t = new Date();
+    t = new Date(t.getTime() - 240000);
+
+    const events = [
+      {
+        "source": "redis-cache-cluster",
+        "event_type": "STATE_CHANGE",
+        "metadata": {"config_key": "maxmemory-policy", "old_value": "allkeys-lru", "new_value": "noeviction"},
+        "description": "Config changed: maxmemory-policy to noeviction",
+        "timestamp": t.toISOString()
+      },
+      {
+        "source": "redis-cache-cluster",
+        "event_type": "MEMORY_SAMPLE",
+        "metadata": {"memory_percent": 99.5},
+        "description": "Redis memory at 99.5%",
+        "timestamp": new Date(t.getTime() + 60000).toISOString()
+      },
+      {
+        "source": "user-service",
+        "event_type": "REQUEST_TIMEOUT",
+        "metadata": {"dependency": "redis-cache-cluster", "dependency": "redis-cache-cluster"},
+        "description": "Timeout connecting to Redis",
+        "timestamp": new Date(t.getTime() + 120000).toISOString()
+      },
+      {
+        "source": "user-service",
+        "event_type": "STATE_CHANGE",
+        "metadata": {"status_code": 500},
+        "description": "Internal Server Error in user-service",
+        "timestamp": new Date(t.getTime() + 180000).toISOString()
+      },
+      {
+        "source": "user-service",
+        "event_type": "STATE_CHANGE",
+        "metadata": {"status_code": 500},
+        "description": "Internal Server Error in user-service",
+        "timestamp": new Date(t.getTime() + 181000).toISOString()
+      },
+      {
+        "source": "user-service",
+        "event_type": "STATE_CHANGE",
+        "metadata": {"status_code": 500},
+        "description": "Internal Server Error in user-service",
+        "timestamp": new Date(t.getTime() + 182000).toISOString()
+      },
+      {
+        "source": "api-gateway",
+        "event_type": "HTTP_ERROR",
+        "metadata": {"dependency": "user-service", "dependency": "user-service"},
+        "description": "user-service returning 500",
+        "timestamp": new Date(t.getTime() + 240000).toISOString()
+      },
+      {
+        "source": "api-gateway",
+        "event_type": "STATE_CHANGE",
+        "metadata": {"status_code": 503},
+        "description": "Gateway returning 503",
+        "timestamp": new Date(t.getTime() + 300000).toISOString()
+      },
+      {
+        "source": "api-gateway",
+        "event_type": "STATE_CHANGE",
+        "metadata": {"status_code": 503},
+        "description": "Gateway returning 503",
+        "timestamp": new Date(t.getTime() + 301000).toISOString()
+      },
+      {
+        "source": "api-gateway",
+        "event_type": "STATE_CHANGE",
+        "metadata": {"status_code": 503},
+        "description": "Gateway returning 503",
+        "timestamp": new Date(t.getTime() + 302000).toISOString()
+      }
+    ];
+
+    for (const e of events) {
+      await fetch(`${API}/api/v1/events`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(e)
+      });
+      await new Promise(r => setTimeout(r, 500));
+    }
+  } catch(e) { console.error(e); }
+  document.querySelectorAll('.sim-btn').forEach(b=>b.disabled=false);
+}
+
 async function sendCascade() {
   document.querySelectorAll('.sim-btn').forEach(b=>b.disabled=true);
   const seq = ['db_latency','db_latency','db_latency','auth_timeout','auth_timeout','gateway_500'];
@@ -518,72 +571,48 @@ function renderIncidents(incidents) {
   }).join('');
 }
 
+
 async function openIncident(id) {
   try {
     const res = await fetch(`${API}/api/v1/incidents/${id}`);
     if (!res.ok) return;
     const inc = await res.json();
-    showModal(inc);
+
+    clearInterval(pollStateInterval);
+    document.getElementById('return-live-btn').style.display = 'block';
+    document.getElementById('close-incident-btn').style.display = 'none';
+    document.querySelector('.sim-panel').style.display = 'none';
+    document.getElementById('chat-input').disabled = true;
+    document.getElementById('chat-input').placeholder = 'Chat is disabled for historical incidents.';
+    document.getElementById('send-btn').disabled = true;
+
+    updateStatus('Historical');
+    updateGraph(inc.graph_snapshot.nodes || [], inc.graph_snapshot.edges || []);
+
+    // reset chat and update it
+    document.getElementById('chat-messages').innerHTML = '';
+    chatHistory = [];
+    updateChat(inc.chat_history || []);
   } catch(_) {}
 }
 
-function showModal(inc) {
-  const opened = new Date(inc.opened_at).toLocaleString();
-  const resolved = inc.resolved_at ? new Date(inc.resolved_at).toLocaleString() : 'OPEN';
-  document.getElementById('modal-title').textContent = `Incident #${inc.id.slice(0,8)}`;
-  document.getElementById('modal-meta').textContent = `${opened} → ${resolved} · ${inc.peak_severity} · ${inc.graph_snapshot.length} nodes`;
-
-  const chatContainer = document.getElementById('modal-chat');
-  chatContainer.innerHTML = '';
-  if (!inc.chat_history.length) {
-    chatContainer.innerHTML = '<div class="empty-state">No agent conversation for this incident.</div>';
-  } else {
-    inc.chat_history.forEach(msg => {
-      const div = document.createElement('div');
-      div.className = 'msg ' + (msg.role==='user'?'user':'agent');
-      const content = msg.role==='agent' ? marked.parse(msg.content) : esc(msg.content);
-      div.innerHTML = `<div class="msg-role">${msg.role==='user'?'You':'SRE Agent'}</div><div class="msg-bubble">${content}</div>`;
-      chatContainer.appendChild(div);
-    });
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  }
-
-  const nodesContainer = document.getElementById('modal-nodes');
-  nodesContainer.innerHTML = '';
-  if (!inc.graph_snapshot.length) {
-    nodesContainer.innerHTML = '<div class="empty-state">No graph snapshot.</div>';
-  } else {
-    const label = document.createElement('div');
-    label.className = 'panel-title';
-    label.style.cssText = 'padding:0 0 10px; border:none; margin-bottom:4px;';
-    label.textContent = `Graph Snapshot (${inc.graph_snapshot.length} nodes)`;
-    nodesContainer.appendChild(label);
-    inc.graph_snapshot.forEach(n => {
-      const t = new Date(n.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      const row = document.createElement('div');
-      row.className = 'modal-node-row';
-      row.innerHTML = `<span class="sev-pill ${severityClass(n.severity)}">${n.severity}</span>
-        <div class="node-content">
-          <div class="node-label" title="${n.label}">${n.label}</div>
-          <div class="node-meta"><span class="node-source">${n.source||'—'}</span><span class="node-type">${n.type}</span><span class="node-time">${t}</span></div>
-        </div>`;
-      nodesContainer.appendChild(row);
-    });
-  }
-
-  document.getElementById('modal-overlay').classList.add('open');
-}
-
-function closeModal(e) {
-  if (!e || e.target === document.getElementById('modal-overlay') || e.currentTarget?.classList?.contains('modal-close'))
-    document.getElementById('modal-overlay').classList.remove('open');
+function returnToLive() {
+  document.getElementById('return-live-btn').style.display = 'none';
+  document.getElementById('close-incident-btn').style.display = 'block';
+  document.querySelector('.sim-panel').style.display = 'block';
+  document.getElementById('chat-input').disabled = false;
+  document.getElementById('chat-input').placeholder = 'Ask the SRE Agent...';
+  document.getElementById('send-btn').disabled = false;
+  pollStateInterval = setInterval(poll, 2000);
+  poll();
 }
 
 // ── START ──────────────────────────────────────────────────────────────────────
 poll();
 pollIncidents();
-setInterval(poll, 2000);
+let pollStateInterval = setInterval(poll, 2000);
 setInterval(pollIncidents, 8000);
+
 </script>
 </body>
 </html>

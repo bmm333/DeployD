@@ -1,0 +1,3 @@
+- Investigate graph physics vs hierarchical layout
+- Modify openIncident to replace main UI elements
+- Add state flag to pause live polling when viewing past incidents

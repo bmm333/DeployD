@@ -8,6 +8,7 @@ from typing import Literal
 
 from deployd.application.ports.event_window_port import EventWindowPort
 from deployd.domain.causal.causal_rule import DEFAULT_RULES, CorrelationRuleFn, RuleMatch
+from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.entities.core_event import CoreEvent
 from deployd.domain.graph.edge import GraphEdge
 from deployd.domain.graph.edge_type import EdgeType
@@ -26,10 +27,12 @@ class CorrelateEventsUseCase:
         self,
         graph: IncidentGraph,
         event_window: EventWindowPort,
+        config: CorrelationConfig,
         rules: Sequence[CorrelationRuleFn] | None = None,
     ) -> None:
         self._graph = graph
         self._window = event_window
+        self._config = config
         self._rules: Sequence[CorrelationRuleFn] = rules if rules is not None else DEFAULT_RULES
         # Internal index: event_id (str) ->GraphNode, for edge wiring.
         # Avoids a second graph lookup on every edge creation.
@@ -54,7 +57,7 @@ class CorrelateEventsUseCase:
         snapshot = self._window.snapshot()
 
         for rule_fn in self._rules:
-            matches = rule_fn(event, snapshot)
+            matches = rule_fn(event, snapshot, self._config)
             for match in matches:
                 self._apply_match(match)
 

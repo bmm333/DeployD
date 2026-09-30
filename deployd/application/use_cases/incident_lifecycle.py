@@ -38,7 +38,7 @@ class IncidentLifecycleUseCase:
 
     def close_current(
         self,
-        graph_snapshot: list[dict[str, object]],
+        graph_snapshot: dict[str, object],
         chat_history: list[dict[str, str]],
         root_cause_summary: str | None = None,
     ) -> Incident | None:

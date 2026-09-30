@@ -288,7 +288,7 @@ class AgnoGroqAgent:
     This preserves backward compatibility with the current orchestrator.
     """
 
-    MODEL_ID = "llama-3.3-70b-versatile"
+    MODEL_ID = "qwen/qwen3.8-27b"
 
     def __init__(
         self,

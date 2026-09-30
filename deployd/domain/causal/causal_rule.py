@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
+from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType
 
 # Result type
@@ -21,49 +22,49 @@ class RuleMatch:
 
 
 # Type alias
-
-CorrelationRuleFn = Callable[[CoreEvent, Sequence[CoreEvent]], list[RuleMatch]]
-
-
-_DB_KEYWORDS = frozenset(
-    {"db", "database", "postgres", "postgresql", "mysql", "redis", "mongo", "dynamodb", "rds"}
-)
+CorrelationRuleFn = Callable[[CoreEvent, Sequence[CoreEvent], CorrelationConfig], list[RuleMatch]]
 
 
-def _is_db_source(event: CoreEvent) -> bool:
+def _is_db_source(event: CoreEvent, config: CorrelationConfig) -> bool:
     source = (event.related_component or "").lower()
-    return any(kw in source for kw in _DB_KEYWORDS)
+    return any(kw in source for kw in config.database_components)
 
 
-def _latency_value(event: CoreEvent) -> float | None:
+def _latency_value(event: CoreEvent, config: CorrelationConfig) -> float | None:
     """Extract a numeric latency value from event metadata, if present."""
-    for key in ("latency_ms", "duration_ms", "value"):
-        val = event.metadata.get(key)
-        if isinstance(val, int | float):
-            return float(val)
+    val = config.get_metric(event.metadata, "latency_ms")
+    if isinstance(val, int | float):
+        return float(val)
     return None
 
 
-def _resource_percent(event: CoreEvent) -> float | None:
+def _resource_percent(event: CoreEvent, config: CorrelationConfig) -> float | None:
     """Extract a CPU/memory usage percentage from event metadata, if present."""
-    for key in ("percent", "cpu_percent", "memory_percent", "usage_percent"):
-        val = event.metadata.get(key)
-        if isinstance(val, int | float):
-            return float(val)
+    val = config.get_metric(event.metadata, "memory_percent")
+    if isinstance(val, int | float):
+        return float(val)
+    return None
+
+
+def _status_code(event: CoreEvent, config: CorrelationConfig) -> int | None:
+    val = config.get_metric(event.metadata, "status_code")
+    if isinstance(val, int):
+        return val
     return None
 
 
 def rule_db_latency_anomaly(
     event: CoreEvent,
     window: Sequence[CoreEvent],  # noqa: ARG001 — root rule, no window needed
+    config: CorrelationConfig,
 ) -> list[RuleMatch]:
     """RULE-01 — DB Latency Anomaly"""
     if event.event_type is not CoreEventType.STATE_CHANGE:
         return []
-    if not _is_db_source(event):
+    if not _is_db_source(event, config):
         return []
-    latency = _latency_value(event)
-    if latency is None or latency < 500:
+    latency = _latency_value(event, config)
+    if latency is None or latency < config.thresholds.latency_ms:
         return []
 
     return [
@@ -74,11 +75,12 @@ def rule_db_latency_anomaly(
 def rule_downstream_timeout(
     event: CoreEvent,
     window: Sequence[CoreEvent],
+    config: CorrelationConfig,
 ) -> list[RuleMatch]:
     """RULE-02 — Downstream Service Timeout after DB Anomaly"""
     if event.event_type not in (CoreEventType.DEPENDENCY_FAILURE, CoreEventType.CONNECTIVITY_LOSS):
         return []
-    if _is_db_source(event):
+    if _is_db_source(event, config):
         return []  # DB timing out itself ->RULE-01 handles it
 
     # Only fire for explicit timeout / connection error raw types
@@ -92,23 +94,29 @@ def rule_downstream_timeout(
     ):
         return []
 
-    # Locate most recent DB latency anomaly in the window
-    db_anomalies = [
+    # Locate most recent DB latency anomaly or Resource Exhaustion in the window
+    antecedents = [
         e
         for e in window
-        if e.event_type is CoreEventType.STATE_CHANGE
-        and _is_db_source(e)
-        and (_latency_value(e) or 0.0) >= 500
+        if (
+            e.event_type is CoreEventType.STATE_CHANGE
+            and _is_db_source(e, config)
+            and (_latency_value(e, config) or 0.0) >= config.thresholds.latency_ms
+        )
+        or (
+            e.event_type is CoreEventType.RESOURCE_EXHAUSTION
+            and (_resource_percent(e, config) or 0.0) >= config.thresholds.resource_percent
+        )
     ]
-    if not db_anomalies:
+    if not antecedents:
         return []
 
-    cause = max(db_anomalies, key=lambda e: e.timestamp)
+    cause = max(antecedents, key=lambda e: e.timestamp)
     return [
         RuleMatch(
             trigger=event,
             cause=cause,
-            rule_id="RULE-02-DOWNSTREAM-TIMEOUT-AFTER-DB",
+            rule_id="RULE-02-DOWNSTREAM-TIMEOUT-AFTER-ANOMALY",
             confidence=0.80,
         )
     ]
@@ -117,32 +125,25 @@ def rule_downstream_timeout(
 def rule_http_500_cluster(
     event: CoreEvent,
     window: Sequence[CoreEvent],
+    config: CorrelationConfig,
 ) -> list[RuleMatch]:
     """RULE-03 — HTTP 500 Cluster following Upstream Failure"""
     if event.event_type is not CoreEventType.STATE_CHANGE:
         return []
 
-    status = event.metadata.get("status_code")
+    status = config.get_metric(event.metadata, "status_code")
     if not isinstance(status, int) or status < 500:
         return []
 
     source = event.related_component or ""
 
     cluster = [
-        e
-        for e in window
-        if e.related_component == source
-        and isinstance(e.metadata.get("status_code"), int)
-        and e.metadata["status_code"] >= 500  # type: ignore[operator]
+        e for e in window if e.related_component == source and (_status_code(e, config) or 0) >= 500
     ]
-    if len(cluster) < 3:
+    if len(cluster) < config.thresholds.error_rate:
         return []
 
-    upstream_failures = [
-        e
-        for e in window
-        if e.event_type is CoreEventType.DEPENDENCY_FAILURE and e.related_component != source
-    ]
+    upstream_failures = [e for e in window if e.event_type is CoreEventType.DEPENDENCY_FAILURE]
     if not upstream_failures:
         return []
 
@@ -160,6 +161,7 @@ def rule_http_500_cluster(
 def rule_healthcheck_failure_cascade(
     event: CoreEvent,
     window: Sequence[CoreEvent],
+    config: CorrelationConfig,
 ) -> list[RuleMatch]:
     """RULE-04 — Health Check Failure following upstream anomaly"""
     if event.event_type is not CoreEventType.HEALTH_CHECK_FAIL:
@@ -173,8 +175,8 @@ def rule_healthcheck_failure_cascade(
             e.event_type is CoreEventType.DEPENDENCY_FAILURE
             or (
                 e.event_type is CoreEventType.STATE_CHANGE
-                and _is_db_source(e)
-                and (_latency_value(e) or 0.0) >= 500
+                and _is_db_source(e, config)
+                and (_latency_value(e, config) or 0.0) >= config.thresholds.latency_ms
             )
         )
     ]
@@ -195,20 +197,54 @@ def rule_healthcheck_failure_cascade(
 def rule_resource_exhaustion(
     event: CoreEvent,
     window: Sequence[CoreEvent],  # noqa: ARG001 — root rule
+    config: CorrelationConfig,
 ) -> list[RuleMatch]:
     """RULE-05 — Resource Exhaustion"""
     if event.event_type is not CoreEventType.RESOURCE_EXHAUSTION:
         return []
-    pct = _resource_percent(event)
-    if pct is None or pct < 90:
+    pct = _resource_percent(event, config)
+    if pct is None or pct < config.thresholds.resource_percent:
+        return []
+
+    # Check if there is a config drift that might have caused it
+    config_drifts = [
+        e
+        for e in window
+        if e.event_type is CoreEventType.STATE_CHANGE
+        and ("config" in (e.related_component or "").lower() or "config" in e.description.lower())
+    ]
+    cause = max(config_drifts, key=lambda e: e.timestamp) if config_drifts else None
+
+    return [
+        RuleMatch(
+            trigger=event,
+            cause=cause,
+            rule_id="RULE-05-RESOURCE-EXHAUSTION",
+            confidence=0.90,
+        )
+    ]
+
+
+def rule_config_drift(
+    event: CoreEvent,
+    window: Sequence[CoreEvent],
+    config: CorrelationConfig,
+) -> list[RuleMatch]:
+    """RULE-06 — Config Drift Anomaly"""
+    if event.event_type is not CoreEventType.STATE_CHANGE:
+        return []
+    if (
+        "config" not in (event.related_component or "").lower()
+        and "config" not in event.description.lower()
+    ):
         return []
 
     return [
         RuleMatch(
             trigger=event,
             cause=None,
-            rule_id="RULE-05-RESOURCE-EXHAUSTION",
-            confidence=0.90,
+            rule_id="RULE-06-CONFIG-DRIFT",
+            confidence=0.95,
         )
     ]
 
@@ -219,4 +255,5 @@ DEFAULT_RULES: Sequence[CorrelationRuleFn] = [
     rule_http_500_cluster,
     rule_healthcheck_failure_cascade,
     rule_resource_exhaustion,
+    rule_config_drift,
 ]

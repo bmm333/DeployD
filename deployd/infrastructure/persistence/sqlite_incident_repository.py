@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS incidents (
     resolved_at     TEXT,
     status          TEXT NOT NULL DEFAULT 'OPEN',
     peak_severity   TEXT NOT NULL DEFAULT 'INFO',
-    graph_snapshot  TEXT NOT NULL DEFAULT '[]',
+    graph_snapshot  TEXT NOT NULL DEFAULT '{"nodes": [], "edges": []}',
     chat_history    TEXT NOT NULL DEFAULT '[]',
     root_cause_summary TEXT
 );

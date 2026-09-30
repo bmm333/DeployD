@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from deployd.domain.entities.core_event import Severity
 
 
-class Incident(BaseModel):  # type: ignore[misc]
+class Incident(BaseModel):  # type: ignore
     """A bounded episode of correlated anomalies, from first event to resolution."""
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
@@ -19,7 +19,7 @@ class Incident(BaseModel):  # type: ignore[misc]
     resolved_at: datetime | None = None
     status: Literal["OPEN", "RESOLVED"] = "OPEN"
     peak_severity: Severity = Severity.INFO
-    graph_snapshot: list[dict[str, object]] = Field(default_factory=list)
+    graph_snapshot: dict[str, object] = Field(default_factory=lambda: {"nodes": [], "edges": []})  # type: ignore[arg-type]
     chat_history: list[dict[str, str]] = Field(default_factory=list)
     root_cause_summary: str | None = None
 
@@ -28,7 +28,7 @@ class Incident(BaseModel):  # type: ignore[misc]
     def resolve(
         self,
         resolved_at: datetime,
-        graph_snapshot: list[dict[str, object]],
+        graph_snapshot: dict[str, object],
         chat_history: list[dict[str, str]],
         root_cause_summary: str | None,
     ) -> None:

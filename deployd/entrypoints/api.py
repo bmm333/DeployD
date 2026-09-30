@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from typing import Any
@@ -18,6 +19,7 @@ from deployd.application.use_cases.incident_lifecycle import (
     ListIncidentsUseCase,
 )
 from deployd.domain.causal.causal_engine import CausalEngine
+from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.graph.graph import IncidentGraph
 from deployd.infrastructure.persistence.sqlite_incident_repository import (
     SQLiteIncidentRepository,
@@ -38,7 +40,12 @@ _get_incident = GetIncidentUseCase(_incident_repo)
 # ── In-memory pipeline ────────────────────────────────────────────────────────
 _graph = IncidentGraph()
 _window = SlidingWindow(window_seconds=300)
-_correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window)
+
+with open("/home/m3b/DeployD/data/correlation_config.json") as f:
+    _config_data = json.load(f)
+    _config = CorrelationConfig(**_config_data)
+
+_correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window, config=_config)
 _adapter = HttpEventAdapter()
 _agent: AgnoGroqAgent | None = None
 
@@ -54,18 +61,30 @@ def _get_agent() -> AgnoGroqAgent:
     return _agent
 
 
-def _graph_snapshot() -> list[dict[str, Any]]:
-    return [
-        {
-            "id": str(node.node_id),
-            "label": node.event.description,
-            "type": node.event.event_type.value,
-            "severity": node.event.severity.value,
-            "source": node.event.related_component,
-            "timestamp": node.event.timestamp.isoformat(),
-        }
-        for node in _graph.nodes
-    ]
+def _graph_snapshot() -> dict[str, Any]:
+    return {
+        "nodes": [
+            {
+                "id": str(node.node_id),
+                "label": node.event.description,
+                "type": node.event.event_type.value,
+                "severity": node.event.severity.value,
+                "source": node.event.related_component,
+                "timestamp": node.event.timestamp.isoformat(),
+            }
+            for node in _graph.nodes
+        ],
+        "edges": [
+            {
+                "source": str(edge.source),
+                "target": str(edge.target),
+                "relationship": edge.edge_type.value,
+                "confidence": edge.confidence,
+                "rule_id": edge.rule_id,
+            }
+            for edge in _graph.edges
+        ],
+    }
 
 
 app = FastAPI(title="DeployD API", version="1.0.0")
@@ -113,22 +132,11 @@ async def receive_event(
 
 @app.get("/api/v1/state")  # type: ignore[misc]
 async def get_state() -> dict[str, Any]:
-    nodes = _graph_snapshot()
-    edges = [
-        {
-            "source": str(edge.source),
-            "target": str(edge.target),
-            "relationship": edge.edge_type.value,
-            "confidence": edge.confidence,
-            "rule_id": edge.rule_id,
-        }
-        for edge in _graph.edges
-    ]
     current = _incident_repo.get_current()
     return {
         "tracker_status": compute_incident_severity(_graph),
         "incident_id": str(current.id) if current else None,
-        "graphs": {"nodes": nodes, "edges": edges},
+        "graphs": _graph_snapshot(),
         "chat_history": _chat_history,
     }
 
@@ -270,7 +278,7 @@ async def reset_state() -> dict[str, Any]:
 
     _graph = IncidentGraph()
     _window = SlidingWindow(window_seconds=300)
-    _correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window)
+    _correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window, config=_config)
     _chat_history = []
     _last_session_id = None
     _auto_diagnosed_incident_id = None
@@ -295,7 +303,7 @@ async def list_incidents() -> list[dict[str, Any]]:
             "resolved_at": inc.resolved_at.isoformat() if inc.resolved_at else None,
             "status": inc.status,
             "peak_severity": inc.peak_severity.value,
-            "node_count": len(inc.graph_snapshot),
+            "node_count": len(inc.graph_snapshot.get("nodes", [])),  # type: ignore[arg-type]
             "duration_seconds": inc.duration_seconds,
             "root_cause_summary": inc.root_cause_summary,
         }
