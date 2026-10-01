@@ -31,4 +31,11 @@ experiments/results/
 Thumbs.db
 .agents/
 .agents
-data/
+.claude/
+AGENTS.md
+
+# Runtime data (rebuilt by seed_runbooks.py / created by the API)
+data/chroma/
+data/deployd.db
+*.log
+*.sqlite3

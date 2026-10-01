@@ -1,0 +1,8 @@
+[
+  {"timestamp": "2026-09-30T10:00:00Z", "source": "postgres-primary", "event_type": "LATENCY",
+   "metadata": {"latency_ms": 3200}, "description": "postgres-primary connection latency 3.2s, connection pool exhausted"},
+  {"timestamp": "2026-09-30T10:00:20Z", "source": "payment-service", "event_type": "REQUEST_TIMEOUT",
+   "metadata": {"dependency": "postgres-primary"}, "description": "payment-service could not reach postgres-primary: connection timeout"},
+  {"timestamp": "2026-09-30T10:00:40Z", "source": "checkout-service", "event_type": "HEALTHCHECK_FAIL",
+   "metadata": {}, "description": "checkout-service readiness failed: payment backend unavailable"}
+]

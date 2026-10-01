@@ -31,12 +31,29 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
     restart: unless-stopped
 
-  frontend:
-    image: nginx:alpine
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      - streamlit
+      - run
+      - demo/live_app.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+      - --server.headless=true
+    # Pure API client: no Chroma access and no LLM key (only the backend holds it).
+    depends_on:
+      backend:
+        condition: service_started
     ports:
-      - "3000:80"
+      - "8501:8501"
     volumes:
-      - ./frontend:/usr/share/nginx/html:ro
+      - ./data:/app/data:ro
+    environment:
+      - DEPLOYD_API_URL=http://backend:8000
+      # the graph iframe fetches the API from the browser
+      - DEPLOYD_PUBLIC_API_URL=http://localhost:8000
     restart: unless-stopped
 
 volumes:

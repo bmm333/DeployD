@@ -4,12 +4,15 @@ for dense retrival on runbooks.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from typing import Any
 
 import chromadb
 from sentence_transformers import SentenceTransformer
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -34,8 +37,25 @@ class ChromaRunbookClient:
             abs_path = os.path.abspath(persist_directory).replace("\\", "/")
             os.makedirs(abs_path, exist_ok=True)
             self._client = chromadb.PersistentClient(path=abs_path)
-        self._collection = self._client.get_or_create_collection(self.COLLECTION_NAME)
+        self._collection = self._open_cosine_collection()
         self._model = SentenceTransformer(embedding_model_name)
+
+    def _open_cosine_collection(self) -> Any:
+        config: Any = {"hnsw": {"space": "cosine"}}
+        collection = self._client.get_or_create_collection(
+            self.COLLECTION_NAME, configuration=config
+        )
+        space = (collection.configuration_json.get("hnsw") or {}).get("space")
+        if space != "cosine":
+            logger.warning(
+                "Chroma collection %r uses %r distance; recreating it with cosine. "
+                "Re-index runbooks (scripts/seed_runbooks.py) if nothing else does.",
+                self.COLLECTION_NAME,
+                space,
+            )
+            self._client.delete_collection(self.COLLECTION_NAME)
+            collection = self._client.create_collection(self.COLLECTION_NAME, configuration=config)
+        return collection
 
     def index_runbook(self, runbook_id: str, summary: str, metadata: dict[str, Any]) -> None:
         """
@@ -55,7 +75,7 @@ class ChromaRunbookClient:
             n_results=top_k,
             where=metadata_filter or None,
         )
-        # returns cosine distance
+        # cosine distance in [0, 2]; the collection is forced to cosine space
         hits: list[DenseHit] = []
         ids = results.get("ids", [[]])[0]
         distances = results.get("distances", [[]])[0]
