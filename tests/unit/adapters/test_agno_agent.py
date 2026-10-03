@@ -23,6 +23,7 @@ from deployd.adapters.outgoing.ai.agno_agent import (
     _format_candidates,
     _format_chains,
     _format_diagnosis,
+    _make_get_runbook_detail_tool,
     _make_search_runbooks_tool,
 )
 from deployd.adapters.outgoing.vector_store.chroma_client import DenseHit
@@ -337,6 +338,29 @@ def test_search_tool_registers_returned_ids_and_caps_output(repo: JSONRunbookRep
 def test_search_tool_handles_no_hits(repo: JSONRunbookRepository) -> None:
     tool = _make_search_runbooks_tool(_FakeChroma([]), repo, set())  # type: ignore[arg-type]  # fake
     assert tool("disk full on inventory") == "No matching runbooks found for this query."
+
+
+# ── get_runbook_detail tool ───────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("runbook_id", [OOM_ID, " rb-auth-service-oomkill "])
+def test_detail_tool_returns_real_runbooks(repo: JSONRunbookRepository, runbook_id: str) -> None:
+    output = _make_get_runbook_detail_tool(repo)(runbook_id)
+
+    assert output.startswith(f"Runbook: {OOM_ID}")
+    assert "Commands:" in output
+    assert len(output) <= agno_agent._TOOL_OUTPUT_MAX_CHARS
+
+
+@pytest.mark.parametrize("runbook_id", ["rb_auth_service_oom", "", "RB-", "RB-X; DROP TABLE"])
+def test_detail_tool_rejects_malformed_ids(repo: JSONRunbookRepository, runbook_id: str) -> None:
+    assert _make_get_runbook_detail_tool(repo)(runbook_id).startswith("Error: invalid runbook_id")
+
+
+def test_detail_tool_reports_unknown_ids(repo: JSONRunbookRepository) -> None:
+    output = _make_get_runbook_detail_tool(repo)("RB-DOES-NOT-EXIST")
+
+    assert output == "Runbook 'RB-DOES-NOT-EXIST' not found in the historical database."
 
 
 # ── Prompt formatting helpers ─────────────────────────────────────────────────

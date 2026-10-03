@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -106,6 +107,7 @@ def _repo_root() -> Path:
 _TOOL_OUTPUT_MAX_CHARS = 1500
 _TOOL_QUERY_MIN_CHARS = 3
 _TOOL_QUERY_MAX_CHARS = 500
+_RUNBOOK_ID_PATTERN = re.compile(r"RB-[A-Z0-9-]{1,80}")
 
 
 def _make_search_runbooks_tool(
@@ -234,15 +236,14 @@ def _make_get_runbook_detail_tool(
         and need the complete remediation procedure, including commands.
 
         Args:
-            runbook_id: The runbook identifier (e.g. 'rb_payment_db_timeout').
+            runbook_id: The runbook identifier (e.g. 'RB-PAYMENT-DB-TIMEOUT').
 
         Returns:
             Full runbook details including fix commands and causal chain.
         """
-        # Input validation
-        runbook_id = runbook_id.strip()
-        if not runbook_id.startswith("rb_"):
-            return "Error: invalid runbook_id format. Must start with 'rb_'."
+        runbook_id = runbook_id.strip().upper()
+        if not _RUNBOOK_ID_PATTERN.fullmatch(runbook_id):
+            return "Error: invalid runbook_id format. Expected e.g. 'RB-PAYMENT-DB-TIMEOUT'."
 
         logger.info("Tool call: get_runbook_detail(runbook_id=%r)", runbook_id)
 
