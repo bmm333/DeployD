@@ -8,8 +8,10 @@ search_runbooks tool and the prompt formatting helpers.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -23,7 +25,12 @@ from deployd.adapters.outgoing.ai.agno_agent import (
     _format_candidates,
     _format_chains,
     _format_diagnosis,
+    _make_check_dependencies_tool,
+    _make_get_runbook_detail_tool,
     _make_search_runbooks_tool,
+)
+from deployd.adapters.outgoing.registry.json_component_repository import (
+    JSONComponentRepository,
 )
 from deployd.adapters.outgoing.vector_store.chroma_client import DenseHit
 from deployd.adapters.outgoing.vector_store.runbook_repository import JSONRunbookRepository
@@ -337,6 +344,80 @@ def test_search_tool_registers_returned_ids_and_caps_output(repo: JSONRunbookRep
 def test_search_tool_handles_no_hits(repo: JSONRunbookRepository) -> None:
     tool = _make_search_runbooks_tool(_FakeChroma([]), repo, set())  # type: ignore[arg-type]  # fake
     assert tool("disk full on inventory") == "No matching runbooks found for this query."
+
+
+# ── get_runbook_detail tool ───────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("runbook_id", [OOM_ID, " rb-auth-service-oomkill "])
+def test_detail_tool_returns_real_runbooks(repo: JSONRunbookRepository, runbook_id: str) -> None:
+    output = _make_get_runbook_detail_tool(repo)(runbook_id)
+
+    assert output.startswith(f"Runbook: {OOM_ID}")
+    assert "Commands:" in output
+    assert len(output) <= agno_agent._TOOL_OUTPUT_MAX_CHARS
+
+
+@pytest.mark.parametrize("runbook_id", ["rb_auth_service_oom", "", "RB-", "RB-X; DROP TABLE"])
+def test_detail_tool_rejects_malformed_ids(repo: JSONRunbookRepository, runbook_id: str) -> None:
+    assert _make_get_runbook_detail_tool(repo)(runbook_id).startswith("Error: invalid runbook_id")
+
+
+def test_detail_tool_reports_unknown_ids(repo: JSONRunbookRepository) -> None:
+    output = _make_get_runbook_detail_tool(repo)("RB-DOES-NOT-EXIST")
+
+    assert output == "Runbook 'RB-DOES-NOT-EXIST' not found in the historical database."
+
+
+# ── check_component_dependencies tool ─────────────────────────────────────────
+
+
+@pytest.fixture
+def registry(tmp_path: Path) -> JSONComponentRepository:
+    components = {
+        "payment-service": {
+            "runtime": {"name": "python", "version": "3.13"},
+            "frameworks": {"fastapi": "0.115.2"},
+            "dependencies": {"pydantic": "1.10.14"},
+        }
+    }
+    constraints = {"fastapi": {"0.115.2": {"requires": {"pydantic": ">=2.0.0"}}}}
+    (tmp_path / "components.json").write_text(json.dumps(components))
+    (tmp_path / "constraints.json").write_text(json.dumps(constraints))
+    return JSONComponentRepository(tmp_path / "components.json", tmp_path / "constraints.json")
+
+
+def test_dependency_tool_reports_registered_component(registry: JSONComponentRepository) -> None:
+    evidence: set[str] = set()
+
+    output = _make_check_dependencies_tool(registry, evidence)(" Payment-Service ")
+
+    assert "Status: INCOMPATIBLE" in output
+    assert "pydantic: 1.10.14" in output
+    assert len(evidence) == 1 and next(iter(evidence)) in output
+
+
+def test_dependency_tool_gives_no_evidence_for_unknown_components(
+    registry: JSONComponentRepository,
+) -> None:
+    evidence: set[str] = set()
+
+    output = _make_check_dependencies_tool(registry, evidence)("does-not-exist")
+
+    assert output == "Component 'does-not-exist' is not in the registry; no compatibility evidence."
+    assert evidence == set()
+
+
+@pytest.mark.parametrize("component", ["", "payment service", "../etc/passwd", "x" * 65])
+def test_dependency_tool_rejects_malformed_names(
+    registry: JSONComponentRepository, component: str
+) -> None:
+    evidence: set[str] = set()
+
+    output = _make_check_dependencies_tool(registry, evidence)(component)
+
+    assert output.startswith("Error: invalid component name")
+    assert evidence == set()
 
 
 # ── Prompt formatting helpers ─────────────────────────────────────────────────

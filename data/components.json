@@ -9,7 +9,7 @@
       "fastapi": "0.115.2"
     },
     "dependencies": {
-      "pydantic": "1.10.14",
+      "pydantic": "2.10.0",
       "redis": "6.4.0",
       "sqlalchemy": "2.0.25"
     }
@@ -26,6 +26,109 @@
     "dependencies": {
       "pydantic": "2.10.0",
       "redis": "6.4.0"
+    }
+  },
+  "auth-service": {
+    "environment": "production",
+    "runtime": {
+      "name": "python",
+      "version": "3.12"
+    },
+    "frameworks": {
+      "fastapi": "0.115.2"
+    },
+    "dependencies": {
+      "pydantic": "2.10.0",
+      "redis": "6.4.0",
+      "pyjwt": "2.9.0"
+    }
+  },
+  "search-service": {
+    "environment": "production",
+    "runtime": {
+      "name": "python",
+      "version": "3.12"
+    },
+    "frameworks": {
+      "fastapi": "0.115.2"
+    },
+    "dependencies": {
+      "pydantic": "2.10.0",
+      "elasticsearch": "8.15.1"
+    }
+  },
+  "checkout-service": {
+    "environment": "production",
+    "runtime": {
+      "name": "python",
+      "version": "3.12"
+    },
+    "frameworks": {
+      "fastapi": "0.115.2"
+    },
+    "dependencies": {
+      "pydantic": "2.10.0",
+      "redis": "6.4.0",
+      "httpx": "0.27.2"
+    }
+  },
+  "reporting-service": {
+    "environment": "production",
+    "runtime": {
+      "name": "python",
+      "version": "3.12"
+    },
+    "frameworks": {
+      "fastapi": "0.115.2"
+    },
+    "dependencies": {
+      "pydantic": "2.10.0",
+      "sqlalchemy": "2.0.25",
+      "psycopg": "3.2.3"
+    }
+  },
+  "api-gateway": {
+    "environment": "production",
+    "runtime": {
+      "name": "node",
+      "version": "20.17.0"
+    },
+    "frameworks": {
+      "express": "4.21.0"
+    },
+    "dependencies": {
+      "http-proxy-middleware": "3.0.2"
+    }
+  },
+  "dashboard-ui": {
+    "environment": "production",
+    "runtime": {
+      "name": "node",
+      "version": "20.17.0"
+    },
+    "frameworks": {
+      "next": "14.2.15"
+    }
+  },
+  "elasticsearch-cluster": {
+    "environment": "production",
+    "runtime": {
+      "name": "elasticsearch",
+      "version": "8.15.1"
+    }
+  },
+  "postgres-primary": {
+    "environment": "production",
+    "runtime": {
+      "name": "postgres",
+      "version": "16.4"
+    }
+  },
+  "analytics-postgres": {
+    "environment": "production",
+    "runtime": {
+      "name": "postgres",
+      "version": "15.8"
     }
   }
 }

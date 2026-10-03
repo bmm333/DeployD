@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -106,6 +107,8 @@ def _repo_root() -> Path:
 _TOOL_OUTPUT_MAX_CHARS = 1500
 _TOOL_QUERY_MIN_CHARS = 3
 _TOOL_QUERY_MAX_CHARS = 500
+_RUNBOOK_ID_PATTERN = re.compile(r"RB-[A-Z0-9-]{1,80}")
+_COMPONENT_NAME_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{0,63}")
 
 
 def _make_search_runbooks_tool(
@@ -189,7 +192,14 @@ def _make_check_dependencies_tool(
         Returns:
             A formatted compatibility report with an evidence ID.
         """
+        component = component.strip().lower()
+        if not _COMPONENT_NAME_PATTERN.fullmatch(component):
+            return "Error: invalid component name. Expected e.g. 'payment-service'."
+
         logger.info("Tool call: check_component_dependencies(component=%r)", component)
+
+        if registry.get_component_state(component) is None:
+            return f"Component '{component}' is not in the registry; no compatibility evidence."
 
         report = registry.check_compatibility(component)
 
@@ -212,7 +222,7 @@ def _make_check_dependencies_tool(
             for v in report.violations:
                 lines.append(f"  - {v}")
 
-        return "\n".join(lines)
+        return "\n".join(lines)[:_TOOL_OUTPUT_MAX_CHARS]
 
     return check_component_dependencies
 
@@ -234,15 +244,14 @@ def _make_get_runbook_detail_tool(
         and need the complete remediation procedure, including commands.
 
         Args:
-            runbook_id: The runbook identifier (e.g. 'rb_payment_db_timeout').
+            runbook_id: The runbook identifier (e.g. 'RB-PAYMENT-DB-TIMEOUT').
 
         Returns:
             Full runbook details including fix commands and causal chain.
         """
-        # Input validation
-        runbook_id = runbook_id.strip()
-        if not runbook_id.startswith("rb_"):
-            return "Error: invalid runbook_id format. Must start with 'rb_'."
+        runbook_id = runbook_id.strip().upper()
+        if not _RUNBOOK_ID_PATTERN.fullmatch(runbook_id):
+            return "Error: invalid runbook_id format. Expected e.g. 'RB-PAYMENT-DB-TIMEOUT'."
 
         logger.info("Tool call: get_runbook_detail(runbook_id=%r)", runbook_id)
 
