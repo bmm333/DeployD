@@ -19,7 +19,6 @@ from deployd.adapters.outgoing.vector_store.graph_index import GraphIndex
 from deployd.adapters.outgoing.vector_store.graph_store import GraphStore, RunbookStructure
 from deployd.adapters.outgoing.vector_store.runbook_repository import JSONRunbookRepository
 from deployd.adapters.outgoing.vector_store.similarity import blend_linear, blend_rrf
-from deployd.application.dtos.retrieval import RetrievedEvidence
 
 ROOT = Path(__file__).parent.parent
 RUNBOOKS_DIR = ROOT / "data" / "runbooks"
@@ -27,6 +26,8 @@ CHROMA_DIR = str(ROOT / "data" / "chroma")
 QUERIES_FILE = RUNBOOKS_DIR / "test_queries.json"
 
 K = 3
+# Tier-3 gate threshold used by HybridRetriever (see investigation_orchestrator.py)
+GATE_THRESHOLD = 0.5
 
 
 def load_runbooks() -> list[dict]:
@@ -63,22 +64,8 @@ def build_system_adapters(runbooks: list[dict]):
     return chroma, bm25, graph_index, repo
 
 
-def process_results(results, repo, expected):
-    retrieved_evidence_list: list[RetrievedEvidence] = []
-    for r_id, _score_set, score in results[:K]:
-        detail = repo.get_by_id(r_id)
-        evidence = RetrievedEvidence(
-            runbook_id=r_id,
-            incident_id=detail.incident_id if detail else "",
-            summary=detail.summary if detail else "",
-            score=score,
-            historical_root_cause=detail.root_cause if detail else None,
-            historical_fix=detail.fix if detail else None,
-            fix_commands=detail.fix_commands if detail else [],
-        )
-        retrieved_evidence_list.append(evidence)
-
-    returned_ids = [e.runbook_id for e in retrieved_evidence_list]
+def process_results(results, expected):
+    returned_ids = [r_id for r_id, _score_set, _score in results[:K]]
     is_hit = expected is not None and expected in returned_ids
     return returned_ids, is_hit
 
@@ -86,12 +73,13 @@ def process_results(results, repo, expected):
 def main() -> None:
     runbooks = load_runbooks()
     queries = load_queries()
-    chroma, bm25, graph_index, repo = build_system_adapters(runbooks)
+    chroma, bm25, graph_index, _repo = build_system_adapters(runbooks)
 
     by_category_lin: dict[str, list[bool]] = defaultdict(list)
     by_category_rrf: dict[str, list[bool]] = defaultdict(list)
     total_hits_lin = 0
     total_hits_rrf = 0
+    gate_open = 0
 
     print(
         f"\nEvaluating {len(queries)} queries with REAL STRUCTURAL CONTEXT (recall@{K})\n"
@@ -117,8 +105,8 @@ def main() -> None:
         results_lin = blend_linear(dense_hits, sparse_hits, struct_hits)
         results_rrf = blend_rrf(dense_hits, sparse_hits, struct_hits, k=60)
 
-        ids_lin, hit_lin = process_results(results_lin, repo, expected)
-        ids_rrf, hit_rrf = process_results(results_rrf, repo, expected)
+        ids_lin, hit_lin = process_results(results_lin, expected)
+        ids_rrf, hit_rrf = process_results(results_rrf, expected)
 
         total_hits_lin += int(hit_lin)
         by_category_lin[category].append(hit_lin)
@@ -138,6 +126,11 @@ def main() -> None:
             top1_str = "NONE"
         print(f"[LIN] TOP-1: {top1_str}")
         print(f"[LIN] TOP-{K}: {ids_lin} | RESULT: {'Y HIT' if hit_lin else 'N MISS'}")
+        opens = bool(top1_lin) and top1_lin[2] >= GATE_THRESHOLD and top1_lin[0] == expected
+        gate_open += int(opens)
+        print(
+            f"[LIN] GATE (top-1 correct and >= {GATE_THRESHOLD}): {'OPEN' if opens else 'CLOSED'}"
+        )
 
         top1_rrf = results_rrf[0] if results_rrf else None
         if top1_rrf:
@@ -165,6 +158,10 @@ def main() -> None:
     total = len(queries)
     print(f"\nrecall@{K} TOTAL [LINEAR]: {total_hits_lin}/{total} ({total_hits_lin / total:.2f})")
     print(f"recall@{K} TOTAL [RRF]:    {total_hits_rrf}/{total} ({total_hits_rrf / total:.2f})")
+    print(
+        f"Tier-3 gate open [LINEAR, top-1 correct and >= {GATE_THRESHOLD}]: "
+        f"{gate_open}/{total} ({gate_open / total:.2f})"
+    )
     print("\n[VERIFIED] Evaluation completed for both Linear and RRF fusion.")
 
 

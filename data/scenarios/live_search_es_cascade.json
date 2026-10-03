@@ -1,0 +1,8 @@
+[
+  {"timestamp": "2026-09-30T10:00:00Z", "source": "elasticsearch-cluster", "event_type": "CPU_SAMPLE",
+   "metadata": {"cpu_percent": 98}, "description": "elasticsearch-cluster CPU 98%, heavy reindex job saturating data nodes"},
+  {"timestamp": "2026-09-30T10:00:45Z", "source": "search-service", "event_type": "REQUEST_TIMEOUT",
+   "metadata": {"latency_ms": 8000, "dependency": "elasticsearch-cluster"}, "description": "search-service query to elasticsearch timed out after 8s"},
+  {"timestamp": "2026-09-30T10:01:10Z", "source": "api-gateway", "event_type": "HEALTHCHECK_FAIL",
+   "metadata": {}, "description": "api-gateway readiness failed: /search upstream not responding"}
+]

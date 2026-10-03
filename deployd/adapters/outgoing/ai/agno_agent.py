@@ -19,9 +19,12 @@ Multi-turn support distinguishes two evidence categories:
 
 Model choice
 ------------
-Groq / Llama-3.3-70b-versatile — ~750 tok/s inference speed matters when
-an engineer is waiting for a diagnosis during an active incident.  The free
-tier is sufficient for the project demo.
+Groq / openai/gpt-oss-120b — fast inference matters when an engineer is
+waiting for a diagnosis during an active incident, and it supports tool calling
+plus structured output.  Llama-3.3-70b-versatile is no longer served by Groq;
+qwen/qwen3.8-27b is capped at 1000 output tokens/min on the free tier, which a
+single grounded diagnosis already exceeds.  The free tier (8000 tokens/min) is
+sufficient for the project demo: ~3k tokens per diagnosis, ~2k per follow-up.
 """
 
 from __future__ import annotations
@@ -35,6 +38,7 @@ from typing import TYPE_CHECKING
 
 from agno.agent import Agent
 from agno.models.groq import Groq
+from agno.run.base import RunStatus
 from deployd.application.dtos.diagnosis import AgentDiagnosis
 
 if TYPE_CHECKING:
@@ -263,7 +267,8 @@ def _make_get_runbook_detail_tool(
 
 # Agent
 
-_MAX_FOLLOW_UP_TURNS = 5
+MAX_FOLLOW_UP_TURNS = 5
+_MAX_FOLLOW_UP_TURNS = MAX_FOLLOW_UP_TURNS
 
 
 class AgnoGroqAgent:
@@ -288,7 +293,7 @@ class AgnoGroqAgent:
     This preserves backward compatibility with the current orchestrator.
     """
 
-    MODEL_ID = "llama-3.3-70b-versatile"
+    MODEL_ID = "openai/gpt-oss-120b"
 
     def __init__(
         self,
@@ -332,6 +337,7 @@ class AgnoGroqAgent:
         # In-memory dict for the PoC.  Production: use Redis / DB.
         self._sessions: dict[str, _SessionContext] = {}
         self._last_session_id: str | None = None
+        self._last_token_usage: int | None = None
 
         logger.info(
             "AgnoGroqAgent initialised: model=%s, tools=%d",
@@ -380,8 +386,10 @@ class AgnoGroqAgent:
         # Step 1: Run agent with structured output
         agent = self._create_structured_agent()
         response = agent.run(user_message)
+        self._last_token_usage = _total_tokens(response)
+        _raise_on_failed_run(response)
 
-        # Agno returns content as Any when output_model is set;
+        # Agno returns content as Any when output_schema is set;
         # at runtime it will be an AgentDiagnosis instance.
         if not isinstance(response.content, AgentDiagnosis):
             msg = f"Expected AgentDiagnosis, got {type(response.content).__name__}"
@@ -493,6 +501,8 @@ class AgnoGroqAgent:
 
         try:
             response = ctx.followup_agent.run(framed_message)
+            self._last_token_usage = _total_tokens(response)
+            _raise_on_failed_run(response)
             narrative: str = (
                 response.content if response.content else "Agent returned an empty response."
             )
@@ -517,14 +527,25 @@ class AgnoGroqAgent:
         """
         return self._last_session_id
 
+    @property
+    def last_token_usage(self) -> int | None:
+        """Total tokens (input + output) of the most recent LLM run, if reported."""
+        return self._last_token_usage
+
     # Internal
     def _create_structured_agent(self) -> Agent:
-        """Agent with ``output_model`` for validated structured output."""
+        """Agent with ``output_schema`` for validated structured output.
+
+        Groq rejects JSON mode combined with tool calling.  With tools, the
+        reasoning run therefore goes without a response format and a separate
+        parser pass (same model, no tools) maps its answer onto AgentDiagnosis.
+        """
         return Agent(
             model=Groq(id=self.MODEL_ID),
             tools=self._tools or None,
             instructions=self._system_prompt,
-            output_model=AgentDiagnosis,
+            output_schema=AgentDiagnosis,
+            parser_model=Groq(id=self.MODEL_ID) if self._tools else None,
             structured_outputs=True,
             markdown=False,
         )
@@ -608,6 +629,19 @@ class AgnoGroqAgent:
 
 
 # Formatting Helpers
+
+
+def _raise_on_failed_run(response: object) -> None:
+    """Agno reports provider errors (rate limits, bad requests) as the run *content*
+    with status ERROR instead of raising; never let that pass as an answer."""
+    if getattr(response, "status", None) == RunStatus.error:
+        raise RuntimeError(f"LLM provider error: {getattr(response, 'content', '')}")
+
+
+def _total_tokens(response: object) -> int | None:
+    """Read total token usage from an Agno run response, if the model reported it."""
+    total = getattr(getattr(response, "metrics", None), "total_tokens", None)
+    return total if isinstance(total, int) else None
 
 
 def _format_diagnosis(diagnosis: AgentDiagnosis) -> str:
