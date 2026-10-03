@@ -8,6 +8,7 @@ search_runbooks tool and the prompt formatting helpers.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -372,10 +373,18 @@ def test_detail_tool_reports_unknown_ids(repo: JSONRunbookRepository) -> None:
 
 
 @pytest.fixture
-def registry() -> JSONComponentRepository:
-    return JSONComponentRepository(
-        Path("data/components.json"), Path("data/compatibility_constraints.json")
-    )
+def registry(tmp_path: Path) -> JSONComponentRepository:
+    components = {
+        "payment-service": {
+            "runtime": {"name": "python", "version": "3.13"},
+            "frameworks": {"fastapi": "0.115.2"},
+            "dependencies": {"pydantic": "1.10.14"},
+        }
+    }
+    constraints = {"fastapi": {"0.115.2": {"requires": {"pydantic": ">=2.0.0"}}}}
+    (tmp_path / "components.json").write_text(json.dumps(components))
+    (tmp_path / "constraints.json").write_text(json.dumps(constraints))
+    return JSONComponentRepository(tmp_path / "components.json", tmp_path / "constraints.json")
 
 
 def test_dependency_tool_reports_registered_component(registry: JSONComponentRepository) -> None:
