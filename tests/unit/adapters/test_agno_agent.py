@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -23,8 +24,12 @@ from deployd.adapters.outgoing.ai.agno_agent import (
     _format_candidates,
     _format_chains,
     _format_diagnosis,
+    _make_check_dependencies_tool,
     _make_get_runbook_detail_tool,
     _make_search_runbooks_tool,
+)
+from deployd.adapters.outgoing.registry.json_component_repository import (
+    JSONComponentRepository,
 )
 from deployd.adapters.outgoing.vector_store.chroma_client import DenseHit
 from deployd.adapters.outgoing.vector_store.runbook_repository import JSONRunbookRepository
@@ -361,6 +366,49 @@ def test_detail_tool_reports_unknown_ids(repo: JSONRunbookRepository) -> None:
     output = _make_get_runbook_detail_tool(repo)("RB-DOES-NOT-EXIST")
 
     assert output == "Runbook 'RB-DOES-NOT-EXIST' not found in the historical database."
+
+
+# ── check_component_dependencies tool ─────────────────────────────────────────
+
+
+@pytest.fixture
+def registry() -> JSONComponentRepository:
+    return JSONComponentRepository(
+        Path("data/components.json"), Path("data/compatibility_constraints.json")
+    )
+
+
+def test_dependency_tool_reports_registered_component(registry: JSONComponentRepository) -> None:
+    evidence: set[str] = set()
+
+    output = _make_check_dependencies_tool(registry, evidence)(" Payment-Service ")
+
+    assert "Status: INCOMPATIBLE" in output
+    assert "pydantic: 1.10.14" in output
+    assert len(evidence) == 1 and next(iter(evidence)) in output
+
+
+def test_dependency_tool_gives_no_evidence_for_unknown_components(
+    registry: JSONComponentRepository,
+) -> None:
+    evidence: set[str] = set()
+
+    output = _make_check_dependencies_tool(registry, evidence)("does-not-exist")
+
+    assert output == "Component 'does-not-exist' is not in the registry; no compatibility evidence."
+    assert evidence == set()
+
+
+@pytest.mark.parametrize("component", ["", "payment service", "../etc/passwd", "x" * 65])
+def test_dependency_tool_rejects_malformed_names(
+    registry: JSONComponentRepository, component: str
+) -> None:
+    evidence: set[str] = set()
+
+    output = _make_check_dependencies_tool(registry, evidence)(component)
+
+    assert output.startswith("Error: invalid component name")
+    assert evidence == set()
 
 
 # ── Prompt formatting helpers ─────────────────────────────────────────────────
