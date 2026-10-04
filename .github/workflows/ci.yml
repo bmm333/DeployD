@@ -67,8 +67,14 @@ jobs:
           cache: "pip"
           cache-dependency-path: requirements-dev.lock
 
-      - name: Install dependencies and pip-audit
-        run: pip install -e ".[dev]" pip-audit
+      - name: Install pip-audit (locked version)
+        run: pip install "$(grep -E '^pip-audit==' requirements-dev.lock)"
 
-      - name: Audit dependencies for vulnerabilities
-        run: pip-audit || true
+      # Accepted risk, no fixed release yet: the chromadb advisories target the Chroma server
+      # HTTP API (trust_remote_code collection RCE, RBAC/tenant checks). Our server is only
+      # reachable inside the compose network, without auth or multi-tenancy. Re-check on upgrade.
+      - name: Audit locked runtime dependencies
+        run: >
+          pip-audit -r requirements.lock --disable-pip --no-deps
+          --ignore-vuln PYSEC-2026-311 --ignore-vuln PYSEC-2026-3813
+          --ignore-vuln PYSEC-2026-3814 --ignore-vuln PYSEC-2026-3815
