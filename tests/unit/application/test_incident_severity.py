@@ -70,3 +70,8 @@ def test_branching_counts_the_longest_path_not_the_number_of_edges() -> None:
 def test_only_causal_edges_count() -> None:
     temporal = _graph(3, [(0, 1), (1, 2)], edge_type=EdgeType.TEMPORAL)
     assert compute_incident_severity(temporal) != "Critical"
+
+
+def test_isolated_anomaly_is_degrading_not_healthy() -> None:
+    # A node exists only because a rule flagged an anomaly, e.g. memory at 97%.
+    assert compute_incident_severity(_graph(1, [])) == "Degrading"

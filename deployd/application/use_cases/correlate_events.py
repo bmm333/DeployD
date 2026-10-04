@@ -134,14 +134,13 @@ def compute_incident_severity(graph: IncidentGraph) -> IncidentSeverity:
     """
     Derive the global incident severity from the longest CAUSAL chain, in hops (edges).
 
-    Healthy   : no anomalies, or anomalies not yet causally linked
-    Degrading : longest causal chain is shorter than ``CRITICAL_MIN_HOPS``
+    Healthy   : no anomalies in the graph
+    Degrading : anomalies observed, longest causal chain shorter than ``CRITICAL_MIN_HOPS``
     Critical  : longest causal chain spans ``CRITICAL_MIN_HOPS`` or more hops (A → B → C)
     """
-    hops = _longest_causal_chain_hops(graph)
-    if hops == 0:
+    if not graph.nodes:
         return "Healthy"
-    if hops < CRITICAL_MIN_HOPS:
+    if _longest_causal_chain_hops(graph) < CRITICAL_MIN_HOPS:
         return "Degrading"
     return "Critical"
 
