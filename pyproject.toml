@@ -76,9 +76,7 @@ addopts = [
     "--cov=deployd",
     "--cov-report=term-missing",
     "--cov-report=xml:coverage.xml",
-    # Known gap, pre-existing: coverage was 77.5% before the incident-lifecycle
-    # cleanup. Temporarily lowered from 80; restore to 80 once features are done.
-    "--cov-fail-under=75",
+    "--cov-fail-under=80",
     "-v",
 ]
 
