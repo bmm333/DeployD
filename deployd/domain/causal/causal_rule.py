@@ -6,6 +6,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from deployd.domain.causal.config import CorrelationConfig
+from deployd.domain.causal.topology import Topology
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType
 
 # Result type
@@ -22,7 +23,22 @@ class RuleMatch:
 
 
 # Type alias
-CorrelationRuleFn = Callable[[CoreEvent, Sequence[CoreEvent], CorrelationConfig], list[RuleMatch]]
+CorrelationRuleFn = Callable[
+    [CoreEvent, Sequence[CoreEvent], CorrelationConfig, Topology], list[RuleMatch]
+]
+
+
+def _linked(effect: CoreEvent, cause: CoreEvent, topology: Topology) -> bool:
+    """Whether *cause* can propagate to *effect*: same component, a declared call,
+    or the effect event names the cause's component as its dependency."""
+    caller, callee = effect.related_component, cause.related_component
+    if not caller or not callee:
+        return False
+    return (
+        caller == callee
+        or topology.calls_component(caller, callee)
+        or effect.metadata.get("dependency") == callee
+    )
 
 
 def _is_db_source(event: CoreEvent, config: CorrelationConfig) -> bool:
@@ -57,6 +73,7 @@ def rule_db_latency_anomaly(
     event: CoreEvent,
     window: Sequence[CoreEvent],  # noqa: ARG001 — root rule, no window needed
     config: CorrelationConfig,
+    topology: Topology,
 ) -> list[RuleMatch]:
     """RULE-01 — DB Latency Anomaly"""
     if event.event_type is not CoreEventType.STATE_CHANGE:
@@ -76,6 +93,7 @@ def rule_downstream_timeout(
     event: CoreEvent,
     window: Sequence[CoreEvent],
     config: CorrelationConfig,
+    topology: Topology,
 ) -> list[RuleMatch]:
     """RULE-02 — Downstream Service Timeout after DB Anomaly"""
     if event.event_type not in (CoreEventType.DEPENDENCY_FAILURE, CoreEventType.CONNECTIVITY_LOSS):
@@ -94,18 +112,21 @@ def rule_downstream_timeout(
     ):
         return []
 
-    # Locate most recent DB latency anomaly or Resource Exhaustion in the window
+    # Most recent DB latency anomaly or resource exhaustion on a component this one depends on
     antecedents = [
         e
         for e in window
-        if (
-            e.event_type is CoreEventType.STATE_CHANGE
-            and _is_db_source(e, config)
-            and (_latency_value(e, config) or 0.0) >= config.thresholds.latency_ms
-        )
-        or (
-            e.event_type is CoreEventType.RESOURCE_EXHAUSTION
-            and (_resource_percent(e, config) or 0.0) >= config.thresholds.resource_percent
+        if _linked(event, e, topology)
+        and (
+            (
+                e.event_type is CoreEventType.STATE_CHANGE
+                and _is_db_source(e, config)
+                and (_latency_value(e, config) or 0.0) >= config.thresholds.latency_ms
+            )
+            or (
+                e.event_type is CoreEventType.RESOURCE_EXHAUSTION
+                and (_resource_percent(e, config) or 0.0) >= config.thresholds.resource_percent
+            )
         )
     ]
     if not antecedents:
@@ -126,6 +147,7 @@ def rule_http_500_cluster(
     event: CoreEvent,
     window: Sequence[CoreEvent],
     config: CorrelationConfig,
+    topology: Topology,
 ) -> list[RuleMatch]:
     """RULE-03 — HTTP 500 Cluster following Upstream Failure"""
     if event.event_type is not CoreEventType.STATE_CHANGE:
@@ -143,7 +165,11 @@ def rule_http_500_cluster(
     if len(cluster) < config.thresholds.error_rate:
         return []
 
-    upstream_failures = [e for e in window if e.event_type is CoreEventType.DEPENDENCY_FAILURE]
+    upstream_failures = [
+        e
+        for e in window
+        if e.event_type is CoreEventType.DEPENDENCY_FAILURE and _linked(event, e, topology)
+    ]
     if not upstream_failures:
         return []
 
@@ -162,6 +188,7 @@ def rule_healthcheck_failure_cascade(
     event: CoreEvent,
     window: Sequence[CoreEvent],
     config: CorrelationConfig,
+    topology: Topology,
 ) -> list[RuleMatch]:
     """RULE-04 — Health Check Failure following upstream anomaly"""
     if event.event_type is not CoreEventType.HEALTH_CHECK_FAIL:
@@ -171,6 +198,7 @@ def rule_healthcheck_failure_cascade(
         e
         for e in window
         if e.related_component != event.related_component
+        and _linked(event, e, topology)
         and (
             e.event_type is CoreEventType.DEPENDENCY_FAILURE
             or (
@@ -196,8 +224,9 @@ def rule_healthcheck_failure_cascade(
 
 def rule_resource_exhaustion(
     event: CoreEvent,
-    window: Sequence[CoreEvent],  # noqa: ARG001 — root rule
+    window: Sequence[CoreEvent],
     config: CorrelationConfig,
+    topology: Topology,
 ) -> list[RuleMatch]:
     """RULE-05 — Resource Exhaustion"""
     if event.event_type is not CoreEventType.RESOURCE_EXHAUSTION:
@@ -211,6 +240,7 @@ def rule_resource_exhaustion(
         e
         for e in window
         if e.event_type is CoreEventType.STATE_CHANGE
+        and _linked(event, e, topology)
         and ("config" in (e.related_component or "").lower() or "config" in e.description.lower())
     ]
     cause = max(config_drifts, key=lambda e: e.timestamp) if config_drifts else None
@@ -229,6 +259,7 @@ def rule_config_drift(
     event: CoreEvent,
     window: Sequence[CoreEvent],
     config: CorrelationConfig,
+    topology: Topology,
 ) -> list[RuleMatch]:
     """RULE-06 — Config Drift Anomaly"""
     if event.event_type is not CoreEventType.STATE_CHANGE:

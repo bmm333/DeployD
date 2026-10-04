@@ -25,6 +25,7 @@ from deployd.adapters.outgoing.ai.agno_agent import MAX_FOLLOW_UP_TURNS, AgnoGro
 from deployd.adapters.outgoing.registry.json_component_repository import (
     JSONComponentRepository,
 )
+from deployd.adapters.outgoing.registry.json_topology import load_topology
 from deployd.adapters.outgoing.vector_store.bm25_index import BM25RunbookIndex
 from deployd.adapters.outgoing.vector_store.chroma_client import ChromaRunbookClient
 from deployd.adapters.outgoing.vector_store.graph_index import GraphIndex
@@ -96,7 +97,10 @@ _window = SlidingWindow(window_seconds=300)
 with (_DATA_DIR / "correlation_config.json").open(encoding="utf-8") as f:
     _config = CorrelationConfig(**json.load(f))
 
-_correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window, config=_config)
+_topology = load_topology(_DATA_DIR / "components.json")
+_correlate = CorrelateEventsUseCase(
+    graph=_graph, event_window=_window, config=_config, topology=_topology
+)
 _adapter = HttpEventAdapter()
 
 # Investigation state
@@ -521,7 +525,9 @@ async def reset_state() -> dict[str, Any]:
 
     _graph = IncidentGraph()
     _window = SlidingWindow(window_seconds=300)
-    _correlate = CorrelateEventsUseCase(graph=_graph, event_window=_window, config=_config)
+    _correlate = CorrelateEventsUseCase(
+        graph=_graph, event_window=_window, config=_config, topology=_topology
+    )
     _chat_history = []
     _decision_trace = None
     _session = None

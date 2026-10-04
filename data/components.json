@@ -12,7 +12,10 @@
       "pydantic": "2.10.0",
       "redis": "6.4.0",
       "sqlalchemy": "2.0.25"
-    }
+    },
+    "calls": [
+      "postgres-primary"
+    ]
   },
   "order-service": {
     "environment": "production",
@@ -26,7 +29,10 @@
     "dependencies": {
       "pydantic": "2.10.0",
       "redis": "6.4.0"
-    }
+    },
+    "calls": [
+      "payment-service"
+    ]
   },
   "auth-service": {
     "environment": "production",
@@ -55,7 +61,10 @@
     "dependencies": {
       "pydantic": "2.10.0",
       "elasticsearch": "8.15.1"
-    }
+    },
+    "calls": [
+      "elasticsearch-cluster"
+    ]
   },
   "checkout-service": {
     "environment": "production",
@@ -70,7 +79,10 @@
       "pydantic": "2.10.0",
       "redis": "6.4.0",
       "httpx": "0.27.2"
-    }
+    },
+    "calls": [
+      "payment-service"
+    ]
   },
   "reporting-service": {
     "environment": "production",
@@ -85,7 +97,10 @@
       "pydantic": "2.10.0",
       "sqlalchemy": "2.0.25",
       "psycopg": "3.2.3"
-    }
+    },
+    "calls": [
+      "analytics-postgres"
+    ]
   },
   "api-gateway": {
     "environment": "production",
@@ -98,7 +113,12 @@
     },
     "dependencies": {
       "http-proxy-middleware": "3.0.2"
-    }
+    },
+    "calls": [
+      "auth-service",
+      "search-service",
+      "checkout-service"
+    ]
   },
   "dashboard-ui": {
     "environment": "production",
@@ -108,7 +128,10 @@
     },
     "frameworks": {
       "next": "14.2.15"
-    }
+    },
+    "calls": [
+      "reporting-service"
+    ]
   },
   "elasticsearch-cluster": {
     "environment": "production",
