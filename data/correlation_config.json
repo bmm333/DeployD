@@ -1,0 +1,13 @@
+{
+  "database_components": ["db", "postgres", "redis", "mongo", "data-store", "dynamodb", "rds", "mysql"],
+  "thresholds": {
+    "latency_ms": 500,
+    "resource_percent": 90,
+    "error_rate": 3
+  },
+  "metric_field_aliases": {
+    "status_code": ["response_code", "http_status", "status", "status_code"],
+    "latency_ms": ["duration_ms", "response_time_ms", "latency", "latency_ms", "value"],
+    "memory_percent": ["mem_usage", "ram_pct", "percent", "cpu_percent", "memory_percent", "usage_percent"]
+  }
+}

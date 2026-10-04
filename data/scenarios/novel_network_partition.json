@@ -1,0 +1,32 @@
+{
+  "scenario_id": "novel-network-partition",
+  "description": "Novel network partition on payment-service — no runbook match, expected Tier 2 CHAIN_ONLY",
+  "component": "payment-service",
+  "expected_tier": "CHAIN_ONLY",
+  "retrieval_query": "payment-service intermittent connectivity loss network partition between microservices unknown failure",
+  "events": [
+    {
+      "event_type": "CONNECTIVITY_LOSS",
+      "severity": "WARNING",
+      "timestamp_offset_seconds": 0,
+      "description": "Intermittent packet loss detected between payment-service and order-service (15% drop rate)",
+      "metadata": {"drop_rate_pct": 15, "target": "order-service"}
+    },
+    {
+      "event_type": "HEALTH_CHECK_FAIL",
+      "severity": "ERROR",
+      "timestamp_offset_seconds": 12,
+      "description": "payment-service health check failed: downstream order-service unreachable",
+      "metadata": {"endpoint": "/health", "downstream": "order-service"},
+      "causal_parent_index": 0
+    },
+    {
+      "event_type": "DEPENDENCY_FAILURE",
+      "severity": "CRITICAL",
+      "timestamp_offset_seconds": 25,
+      "description": "payment-service unable to process transactions: order-service dependency timeout exceeded",
+      "metadata": {"timeout_ms": 5000, "dependency": "order-service"},
+      "causal_parent_index": 1
+    }
+  ]
+}

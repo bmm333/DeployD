@@ -7,10 +7,12 @@ The InvestigationOrchestrator is the single enforcement point for the
 
 from deployd.application.orchestrators.investigation_orchestrator import (
     AgentPort,
+    BoundaryViolationError,
     InvestigationOrchestrator,
 )
 
 __all__ = [
     "AgentPort",
+    "BoundaryViolationError",
     "InvestigationOrchestrator",
 ]

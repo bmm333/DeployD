@@ -1,9 +1,3 @@
-# TWO services : ChromaDB(Vector store) and Python app
-# Chroma runs as a separate HTTP server instead of process embedded
-
-# How to run: docker compose up
-# to start only the backend without ui: docker compose up chroma
-
 services:
   chroma:
     image: chromadb/chroma:latest
@@ -20,7 +14,7 @@ services:
     environment:
       ANONYMIZED_TELEMETRY: "false"
 
-  app:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -28,15 +22,39 @@ services:
       chroma:
         condition: service_healthy
     ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    restart: unless-stopped
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      - streamlit
+      - run
+      - demo/live_app.py
+      - --server.address=0.0.0.0
+      - --server.port=8501
+      - --server.headless=true
+    # Pure API client: no Chroma access and no LLM key (only the backend holds it).
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
       - "8501:8501"
     volumes:
-      - ./data/runbooks:/app/data/runbooks:ro
-      - investigation_data:/app/data/investigations
+      - ./data:/app/data:ro
     environment:
-      CHROMA_HOST: "chroma"
-      CHROMA_PORT: "8000"
+      - DEPLOYD_API_URL=http://backend:8000
+      # the graph iframe fetches the API from the browser
+      - DEPLOYD_PUBLIC_API_URL=http://localhost:8000
     restart: unless-stopped
 
 volumes:
   chroma_data:
-  investigation_data:

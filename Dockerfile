@@ -1,4 +1,4 @@
-# Stage 1: builder — install dependencies
+# Stage 1: builder - install dependencies
 FROM python:3.10-slim AS builder
 
 WORKDIR /build
@@ -6,7 +6,7 @@ WORKDIR /build
 COPY pyproject.toml .
 COPY deployd/ ./deployd/
 
-RUN pip install --no-cache-dir --prefix=/install .
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu --prefix=/install .
 
 # Stage 2: runtime
 FROM python:3.10-slim AS runtime
@@ -18,16 +18,12 @@ WORKDIR /app
 
 COPY --from=builder /install /usr/local
 
+COPY pyproject.toml ./
 COPY deployd/ ./deployd/
+COPY data/ ./data/
+COPY prompts/ ./prompts/
 COPY demo/ ./demo/
-COPY data/runbooks/ ./data/runbooks/
-COPY scripts/ ./scripts/
 
-RUN mkdir -p data/investigations data/chroma
+EXPOSE 8000 8501
 
-# Streamlit
-EXPOSE 8501
-
-CMD ["streamlit", "run", "demo/app.py", \
-     "--server.address=0.0.0.0", \
-     "--server.headless=true"]
+CMD ["uvicorn", "deployd.entrypoints.api:app", "--host", "0.0.0.0", "--port", "8000"]

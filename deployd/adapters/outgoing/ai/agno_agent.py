@@ -19,15 +19,19 @@ Multi-turn support distinguishes two evidence categories:
 
 Model choice
 ------------
-Groq / Llama-3.3-70b-versatile — ~750 tok/s inference speed matters when
-an engineer is waiting for a diagnosis during an active incident.  The free
-tier is sufficient for the project demo.
+Groq / openai/gpt-oss-120b — fast inference matters when an engineer is
+waiting for a diagnosis during an active incident, and it supports tool calling
+plus structured output.  Llama-3.3-70b-versatile is no longer served by Groq;
+qwen/qwen3.8-27b is capped at 1000 output tokens/min on the free tier, which a
+single grounded diagnosis already exceeds.  The free tier (8000 tokens/min) is
+sufficient for the project demo: ~3k tokens per diagnosis, ~2k per follow-up.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import re
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -35,6 +39,7 @@ from typing import TYPE_CHECKING
 
 from agno.agent import Agent
 from agno.models.groq import Groq
+from agno.run.base import RunStatus
 from deployd.application.dtos.diagnosis import AgentDiagnosis
 
 if TYPE_CHECKING:
@@ -102,6 +107,8 @@ def _repo_root() -> Path:
 _TOOL_OUTPUT_MAX_CHARS = 1500
 _TOOL_QUERY_MIN_CHARS = 3
 _TOOL_QUERY_MAX_CHARS = 500
+_RUNBOOK_ID_PATTERN = re.compile(r"RB-[A-Z0-9-]{1,80}")
+_COMPONENT_NAME_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{0,63}")
 
 
 def _make_search_runbooks_tool(
@@ -185,7 +192,14 @@ def _make_check_dependencies_tool(
         Returns:
             A formatted compatibility report with an evidence ID.
         """
+        component = component.strip().lower()
+        if not _COMPONENT_NAME_PATTERN.fullmatch(component):
+            return "Error: invalid component name. Expected e.g. 'payment-service'."
+
         logger.info("Tool call: check_component_dependencies(component=%r)", component)
+
+        if registry.get_component_state(component) is None:
+            return f"Component '{component}' is not in the registry; no compatibility evidence."
 
         report = registry.check_compatibility(component)
 
@@ -208,7 +222,7 @@ def _make_check_dependencies_tool(
             for v in report.violations:
                 lines.append(f"  - {v}")
 
-        return "\n".join(lines)
+        return "\n".join(lines)[:_TOOL_OUTPUT_MAX_CHARS]
 
     return check_component_dependencies
 
@@ -230,15 +244,14 @@ def _make_get_runbook_detail_tool(
         and need the complete remediation procedure, including commands.
 
         Args:
-            runbook_id: The runbook identifier (e.g. 'rb_payment_db_timeout').
+            runbook_id: The runbook identifier (e.g. 'RB-PAYMENT-DB-TIMEOUT').
 
         Returns:
             Full runbook details including fix commands and causal chain.
         """
-        # Input validation
-        runbook_id = runbook_id.strip()
-        if not runbook_id.startswith("rb_"):
-            return "Error: invalid runbook_id format. Must start with 'rb_'."
+        runbook_id = runbook_id.strip().upper()
+        if not _RUNBOOK_ID_PATTERN.fullmatch(runbook_id):
+            return "Error: invalid runbook_id format. Expected e.g. 'RB-PAYMENT-DB-TIMEOUT'."
 
         logger.info("Tool call: get_runbook_detail(runbook_id=%r)", runbook_id)
 
@@ -263,7 +276,8 @@ def _make_get_runbook_detail_tool(
 
 # Agent
 
-_MAX_FOLLOW_UP_TURNS = 5
+MAX_FOLLOW_UP_TURNS = 5
+_MAX_FOLLOW_UP_TURNS = MAX_FOLLOW_UP_TURNS
 
 
 class AgnoGroqAgent:
@@ -288,7 +302,7 @@ class AgnoGroqAgent:
     This preserves backward compatibility with the current orchestrator.
     """
 
-    MODEL_ID = "llama-3.3-70b-versatile"
+    MODEL_ID = "openai/gpt-oss-120b"
 
     def __init__(
         self,
@@ -332,6 +346,7 @@ class AgnoGroqAgent:
         # In-memory dict for the PoC.  Production: use Redis / DB.
         self._sessions: dict[str, _SessionContext] = {}
         self._last_session_id: str | None = None
+        self._last_token_usage: int | None = None
 
         logger.info(
             "AgnoGroqAgent initialised: model=%s, tools=%d",
@@ -380,8 +395,10 @@ class AgnoGroqAgent:
         # Step 1: Run agent with structured output
         agent = self._create_structured_agent()
         response = agent.run(user_message)
+        self._last_token_usage = _total_tokens(response)
+        _raise_on_failed_run(response)
 
-        # Agno returns content as Any when output_model is set;
+        # Agno returns content as Any when output_schema is set;
         # at runtime it will be an AgentDiagnosis instance.
         if not isinstance(response.content, AgentDiagnosis):
             msg = f"Expected AgentDiagnosis, got {type(response.content).__name__}"
@@ -408,12 +425,21 @@ class AgnoGroqAgent:
         return diagnosis
 
     # Multi-turn follow-up
-    def follow_up(self, session_id: str, message: str) -> str:
+    def follow_up(self, session_id: str, message: str) -> AgentDiagnosis:
         """Continue an investigation with additional context from the engineer.
 
-        Engineer provided context is explicitly framed as **unverified** in
+        Engineer-provided context is explicitly framed as **unverified** in
         the agent prompt.  The agent retains the initial diagnosis and all
         prior follow-up turns as conversation context.
+
+        The follow-up response is wrapped in an ``AgentDiagnosis`` for
+        Protocol consistency: ``root_cause`` carries the updated narrative,
+        ``confidence`` reflects the agent's revised certainty, and
+        ``evidence_references`` is empty (follow-ups do not add new evidence).
+
+        **Scope constraint**: the underlying prompt restricts discussion to
+        the component named in the original ``diagnose()`` call — the
+        component-scope guardrail in the system prompt enforces this.
 
         Parameters
         ----------
@@ -421,9 +447,10 @@ class AgnoGroqAgent:
             Identifier from ``last_session_id`` after calling ``diagnose``.
         message:
             Follow-up from the engineer (e.g. "we deployed v2.3 yesterday").
+
         Returns
         -------
-        Updated analysis incorporating the new context.
+        AgentDiagnosis wrapping the updated analysis.
 
         Raises
         ------
@@ -439,12 +466,24 @@ class AgnoGroqAgent:
 
         message = message.strip()
         if not message:
-            return "Please provide additional context or a specific question."
+            return AgentDiagnosis(
+                root_cause="No additional context was provided.",
+                confidence="Low",
+                reasoning="Empty follow-up message received.",
+                recommendation="Please provide additional context or a specific question.",
+                evidence_references=[],
+            )
 
         if ctx.turn_count >= _MAX_FOLLOW_UP_TURNS:
-            return (
-                f"Maximum follow-up turns ({_MAX_FOLLOW_UP_TURNS}) reached for "
-                f"this session.  Please start a new investigation."
+            return AgentDiagnosis(
+                root_cause=(
+                    f"Maximum follow-up turns ({_MAX_FOLLOW_UP_TURNS}) reached. "
+                    "Please start a new investigation."
+                ),
+                confidence="Low",
+                reasoning=f"Turn limit of {_MAX_FOLLOW_UP_TURNS} exhausted for session {session_id}.",
+                recommendation="Start a new investigation via diagnose().",
+                evidence_references=[],
             )
 
         ctx.turn_count += 1
@@ -456,7 +495,7 @@ class AgnoGroqAgent:
             len(message),
         )
 
-        # engineer input is unverified
+        # Engineer input is framed as unverified hypothesis
         framed_message = (
             "## Engineer-Provided Context (UNVERIFIED)\n"
             "The following was provided by the on-call engineer.  It has "
@@ -471,12 +510,20 @@ class AgnoGroqAgent:
 
         try:
             response = ctx.followup_agent.run(framed_message)
-            result: str = (
+            self._last_token_usage = _total_tokens(response)
+            _raise_on_failed_run(response)
+            narrative: str = (
                 response.content if response.content else "Agent returned an empty response."
             )
-            ctx.followup_history.append((message, result))
+            ctx.followup_history.append((message, narrative))
             logger.info("Follow-up complete: session=%s, turn=%d", session_id, ctx.turn_count)
-            return result
+            return AgentDiagnosis(
+                root_cause=narrative,
+                confidence="Medium",
+                reasoning=f"Follow-up turn {ctx.turn_count} for component '{ctx.component}'.",
+                recommendation="Review updated analysis and confirm next steps with the team.",
+                evidence_references=[],
+            )
         except Exception as exc:
             logger.exception("Follow-up failed: session=%s", session_id)
             raise RuntimeError(f"Follow-up failed: {exc}") from exc
@@ -489,14 +536,25 @@ class AgnoGroqAgent:
         """
         return self._last_session_id
 
+    @property
+    def last_token_usage(self) -> int | None:
+        """Total tokens (input + output) of the most recent LLM run, if reported."""
+        return self._last_token_usage
+
     # Internal
     def _create_structured_agent(self) -> Agent:
-        """Agent with ``output_model`` for validated structured output."""
+        """Agent with ``output_schema`` for validated structured output.
+
+        Groq rejects JSON mode combined with tool calling.  With tools, the
+        reasoning run therefore goes without a response format and a separate
+        parser pass (same model, no tools) maps its answer onto AgentDiagnosis.
+        """
         return Agent(
             model=Groq(id=self.MODEL_ID),
             tools=self._tools or None,
             instructions=self._system_prompt,
-            output_model=AgentDiagnosis,
+            output_schema=AgentDiagnosis,
+            parser_model=Groq(id=self.MODEL_ID) if self._tools else None,
             structured_outputs=True,
             markdown=False,
         )
@@ -580,6 +638,19 @@ class AgnoGroqAgent:
 
 
 # Formatting Helpers
+
+
+def _raise_on_failed_run(response: object) -> None:
+    """Agno reports provider errors (rate limits, bad requests) as the run *content*
+    with status ERROR instead of raising; never let that pass as an answer."""
+    if getattr(response, "status", None) == RunStatus.error:
+        raise RuntimeError(f"LLM provider error: {getattr(response, 'content', '')}")
+
+
+def _total_tokens(response: object) -> int | None:
+    """Read total token usage from an Agno run response, if the model reported it."""
+    total = getattr(getattr(response, "metrics", None), "total_tokens", None)
+    return total if isinstance(total, int) else None
 
 
 def _format_diagnosis(diagnosis: AgentDiagnosis) -> str:
