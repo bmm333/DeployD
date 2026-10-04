@@ -288,9 +288,8 @@ numpy==2.2.6
     #   sentence-transformers
     #   streamlit
     #   transformers
-oauthlib==3.3.1
-    # via
-    #   requests-oauthlib
+oauthlib==4.0.0
+    # via requests-oauthlib
 onnxruntime==1.23.2
     # via
     #   chromadb
@@ -633,7 +632,7 @@ typing-inspection==0.4.4
 tzdata==2026.3
     # via
     #   pandas
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   kubernetes
     #   requests
