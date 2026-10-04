@@ -232,8 +232,7 @@ def _parse_events(raw: str) -> list[dict[str, Any]]:
 def _rebase_timestamps(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Shift timestamps so the last event is 'now', keeping the relative spacing.
 
-    The backend correlates inside a wall-clock sliding window (5 min), so a
-    recorded file with old timestamps would be pruned before any rule fires.
+    Correlation uses event time, so this is cosmetic: times and incident durations look current.
     """
     try:
         stamps = [
@@ -793,8 +792,8 @@ def live_console() -> None:
         rebase = st.checkbox(
             "Replay: rebase timestamps to now",
             value=True,
-            help="Keeps the spacing between events but moves them into the backend's "
-            "5-minute correlation window.",
+            help="Keeps the spacing between events. Correlation works either way; "
+            "this only makes times and incident durations look current.",
         )
         c1, c2 = st.columns(2)
         one_by_one = c1.button("Send one by one", use_container_width=True, disabled=bool(ss.queue))
