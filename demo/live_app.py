@@ -506,7 +506,7 @@ def _render_trace(trace: dict[str, Any] | None, investigating: bool, status: str
         else:
             body = (
                 "The gate runs automatically when the incident reaches CRITICAL "
-                "(causal chain ≥ 3 hops). Until then: no LLM, zero tokens."
+                "(causal chain of 2+ hops, A → B → C). Until then: no LLM, zero tokens."
             )
         st.markdown(f'<div class="dp-card dp-muted">{body}</div>', unsafe_allow_html=True)
         return
@@ -682,7 +682,7 @@ def _render_chat(state: dict[str, Any], incident_components: set[str]) -> None:
                 )
             elif status == "Degrading":
                 msg = (
-                    "A causal chain is forming but is shorter than 3 hops. "
+                    "Anomalies detected, causal chain shorter than 2 hops. "
                     "Deterministic only until the incident is CRITICAL."
                 )
             else:
