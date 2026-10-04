@@ -54,5 +54,7 @@ def test_recorded_oom_scenario_still_correlates() -> None:
 
     edges, severity = _replay(events, timedelta(0))
 
-    assert len(edges) == 3
+    # config reload → memory 97% → gateway timeout; the auth-service health check is a
+    # sibling symptom, not caused by the gateway (auth-service does not call it).
+    assert len(edges) == 2
     assert severity == "Critical"
