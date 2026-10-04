@@ -19,6 +19,8 @@ log = logging.getLogger(__name__)
 
 IncidentSeverity = Literal["Healthy", "Degrading", "Critical"]
 
+CRITICAL_MIN_HOPS = 2
+
 
 class CorrelateEventsUseCase:
     """Streaming event correlation use case."""
@@ -130,36 +132,22 @@ class CorrelateEventsUseCase:
 
 def compute_incident_severity(graph: IncidentGraph) -> IncidentSeverity:
     """
-    Derive the global incident severity from the causal chain topology.
+    Derive the global incident severity from the longest CAUSAL chain, in hops (edges).
 
-    Thresholds
-    ----------
-    Healthy   : no nodes in the graph (no anomalies observed)
-    Degrading : nodes exist but the longest causal chain is <= 2 hops
-    Critical  : the longest causal chain spans 3 or more hops
-
-    Parameters
-    ----------
-    graph
-        The accumulated ``IncidentGraph`` after all events have been ingested.
-
-    Returns
-    -------
-    Literal["Healthy", "Degrading", "Critical"]
+    Healthy   : no anomalies, or anomalies not yet causally linked
+    Degrading : longest causal chain is shorter than ``CRITICAL_MIN_HOPS``
+    Critical  : longest causal chain spans ``CRITICAL_MIN_HOPS`` or more hops (A → B → C)
     """
-    if not graph.nodes:
+    hops = _longest_causal_chain_hops(graph)
+    if hops == 0:
         return "Healthy"
-
-    depth = _max_causal_chain_depth(graph)
-    if depth == 0:
-        return "Healthy"
-    if depth <= 2:
+    if hops < CRITICAL_MIN_HOPS:
         return "Degrading"
     return "Critical"
 
 
-def _max_causal_chain_depth(graph: IncidentGraph) -> int:
-    """Return the number of hops in the longest CAUSAL path in the graph."""
+def _longest_causal_chain_hops(graph: IncidentGraph) -> int:
+    """Number of edges on the longest CAUSAL path in the graph."""
     adj: dict[str, list[str]] = {}
     incoming_set: set[str] = set()
     for edge in graph.edges:
@@ -168,17 +156,14 @@ def _max_causal_chain_depth(graph: IncidentGraph) -> int:
             incoming_set.add(str(edge.target))
 
     if not adj:
-        return 0  # Nodes exist (anomalies) but no causal links yet
+        return 0
 
     memo: dict[str, int] = {}
 
     def dfs(node_id: str) -> int:
-        if node_id in memo:
-            return memo[node_id]
-        children = adj.get(node_id, [])
-        depth = 1 + (max((dfs(c) for c in children), default=0))
-        memo[node_id] = depth
-        return depth
+        if node_id not in memo:
+            memo[node_id] = max((1 + dfs(c) for c in adj.get(node_id, [])), default=0)
+        return memo[node_id]
 
     roots = [str(n.node_id) for n in graph.nodes if str(n.node_id) not in incoming_set]
     if not roots:
