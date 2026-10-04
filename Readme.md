@@ -26,3 +26,7 @@ If you read through this and have a take on the architecture, on where the deter
 
 Arben Mema, Luca Lupi
 Computer Science students of Università del Piemonte Orientale.
+
+## Limitations
+
+Currently, the platform acts as a single-tenant Proof of Concept (PoC). State and incident contexts are maintained globally, which means concurrent events from different environments are processed in the same graph, and web requests to endpoints like `/chat` or `/reset` assume a single active incident session.
