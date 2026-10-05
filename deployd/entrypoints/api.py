@@ -471,7 +471,7 @@ def chat(request: _ChatRequest) -> dict[str, str]:
     prompt = request.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=422, detail="Empty prompt")
-    
+
     with _chat_lock:
         with _state_lock:
             _post("user", "user", prompt)
@@ -511,7 +511,7 @@ def chat(request: _ChatRequest) -> dict[str, str]:
                 )
                 _persist_chat()
                 return {"status": "ok"}
-            
+
             session_snapshot = _session.copy()
             current_incident = _incident_repo.get_current()
             incident_id = str(current_incident.id) if current_incident else None
@@ -536,12 +536,12 @@ def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: 
             _post("system", "error", f"{_provider_hint(str(exc))}\n\n`{str(exc)[:240]}`")
             _persist_chat()
         return
-    
+
     with _state_lock:
         current_incident = _incident_repo.get_current()
         if not current_incident or str(current_incident.id) != target_incident_id:
             return
-        
+
         if _session and _session["id"] == session["id"]:
             _session["turn"] = min(_session["turn"] + 1, _session["max_turns"])
             _post(
