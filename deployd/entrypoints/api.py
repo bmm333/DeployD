@@ -9,6 +9,7 @@ the chat answers deterministically and never calls the LLM.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import os
@@ -363,7 +364,7 @@ def _run_investigation(target_incident_id: str) -> None:
             )
             fsm_state_val = _fsm_state(component)
             rules_fired_val = _chain_rules(chain)
-            graph_snapshot = _graph  # Or just pass the shared ref, orchestrator only reads
+            graph_snapshot = copy.deepcopy(_graph)
 
         stack = _get_retrieval()
         retrieval, breakdown = stack.retriever.retrieve_scored(
