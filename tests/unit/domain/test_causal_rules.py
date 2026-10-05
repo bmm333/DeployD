@@ -5,10 +5,12 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from deployd.domain.causal.causal_rule import (
+    rule_db_latency_anomaly,
     rule_downstream_timeout,
     rule_healthcheck_failure_cascade,
     rule_http_500_cluster,
     rule_resource_exhaustion,
+    rule_config_drift,
 )
 from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.causal.topology import Topology
@@ -151,3 +153,57 @@ def test_rule05_unrelated_config_drift_leaves_the_exhaustion_as_a_root() -> None
     [match] = rule_resource_exhaustion(hot, [drift, hot], CONFIG, TOPOLOGY)
 
     assert match.cause is None
+
+
+# ── RULE-01: DB Latency Anomaly ───────────────────────────────────────────────
+
+def test_rule01_positive() -> None:
+    event = _ev("postgres-primary", CoreEventType.STATE_CHANGE, 0, latency_ms=600)
+    [match] = rule_db_latency_anomaly(event, [], CONFIG, TOPOLOGY)
+    assert match.cause is None
+    assert match.rule_id == "RULE-01-DB-LATENCY-ANOMALY"
+
+
+def test_rule01_negative_not_db() -> None:
+    event = _ev("auth-service", CoreEventType.STATE_CHANGE, 0, latency_ms=600)
+    assert rule_db_latency_anomaly(event, [], CONFIG, TOPOLOGY) == []
+
+
+def test_rule01_negative_below_threshold() -> None:
+    event = _ev("postgres-primary", CoreEventType.STATE_CHANGE, 0, latency_ms=499)
+    assert rule_db_latency_anomaly(event, [], CONFIG, TOPOLOGY) == []
+
+
+def test_rule01_boundary_threshold() -> None:
+    event = _ev("postgres-primary", CoreEventType.STATE_CHANGE, 0, latency_ms=500)
+    [match] = rule_db_latency_anomaly(event, [], CONFIG, TOPOLOGY)
+    assert match.rule_id == "RULE-01-DB-LATENCY-ANOMALY"
+
+
+# ── RULE-06: Config Drift ─────────────────────────────────────────────────────
+
+def test_rule06_positive_component_name() -> None:
+    event = _ev("config-server", CoreEventType.STATE_CHANGE, 0, "Updated")
+    [match] = rule_config_drift(event, [], CONFIG, TOPOLOGY)
+    assert match.rule_id == "RULE-06-CONFIG-DRIFT"
+
+
+def test_rule06_positive_description() -> None:
+    event = _ev("auth-service", CoreEventType.STATE_CHANGE, 0, "Config changed")
+    [match] = rule_config_drift(event, [], CONFIG, TOPOLOGY)
+    assert match.rule_id == "RULE-06-CONFIG-DRIFT"
+
+
+def test_rule06_negative() -> None:
+    event = _ev("auth-service", CoreEventType.STATE_CHANGE, 0, "Restarted")
+    assert rule_config_drift(event, [], CONFIG, TOPOLOGY) == []
+
+
+# ── CorrelationConfig & Metric Extraction ─────────────────────────────────────
+
+def test_config_get_metric_resolves_alias() -> None:
+    assert CONFIG.get_metric({"cpu_percent": 95}, "memory_percent") == 95
+
+
+def test_config_get_metric_missing() -> None:
+    assert CONFIG.get_metric({"other_metric": 95}, "memory_percent") is None
