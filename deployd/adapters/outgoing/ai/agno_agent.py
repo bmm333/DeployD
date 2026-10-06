@@ -74,11 +74,16 @@ class _SessionContext:
 
 # Prompt Loading cached
 
-_PROMPT_CACHE: str | None = None
+_PROMPT_VERSION_HEADER = re.compile(r"# prompt-version: (\d+\.\d+\.\d+)\n")
+_PROMPT_CACHE: tuple[str, str] | None = None
 
 
-def _load_system_prompt() -> str:
-    """Load and cache the system prompt from ``prompts/agno_diagnosis.txt``."""
+def _load_system_prompt() -> tuple[str, str]:
+    """Load and cache ``(version, text)`` of ``prompts/agno_diagnosis.txt``.
+
+    The file must start with ``# prompt-version: X.Y.Z``; the header is stripped
+    from the text sent to the model.
+    """
     global _PROMPT_CACHE  # noqa: PLW0603
     if _PROMPT_CACHE is not None:
         return _PROMPT_CACHE
@@ -89,8 +94,15 @@ def _load_system_prompt() -> str:
             f"System prompt not found at {prompt_path}. "
             "Create prompts/agno_diagnosis.txt before initializing the agent."
         )
-    _PROMPT_CACHE = prompt_path.read_text(encoding="utf-8")
+    _PROMPT_CACHE = _parse_prompt(prompt_path.read_text(encoding="utf-8"))
     return _PROMPT_CACHE
+
+
+def _parse_prompt(raw: str) -> tuple[str, str]:
+    header = _PROMPT_VERSION_HEADER.match(raw)
+    if header is None:
+        raise ValueError("System prompt must start with '# prompt-version: X.Y.Z'")
+    return header.group(1), raw[header.end() :]
 
 
 def _repo_root() -> Path:
@@ -338,7 +350,7 @@ class AgnoGroqAgent:
             )
 
         # Load prompt template once
-        self._system_prompt = _load_system_prompt()
+        self._prompt_version, self._system_prompt = _load_system_prompt()
 
         # Store repo for evidence validation
         self._runbook_repo = runbook_repo
@@ -554,6 +566,11 @@ class AgnoGroqAgent:
         Use this to pass to ``follow_up()`` for multi-turn conversations.
         """
         return self._last_session_id
+
+    @property
+    def prompt_version(self) -> str:
+        """Version of the system prompt this agent runs with."""
+        return self._prompt_version
 
     @property
     def last_token_usage(self) -> int | None:

@@ -28,6 +28,7 @@ from deployd.adapters.outgoing.ai.agno_agent import (
     _make_check_dependencies_tool,
     _make_get_runbook_detail_tool,
     _make_search_runbooks_tool,
+    _parse_prompt,
 )
 from deployd.adapters.outgoing.registry.json_component_repository import (
     JSONComponentRepository,
@@ -527,3 +528,25 @@ def test_search_output_never_cuts_a_runbook_block(repo: JSONRunbookRepository) -
 
     _assert_balanced(output, "runbook")
     assert len(output) <= agno_agent._TOOL_OUTPUT_MAX_CHARS
+
+
+# ── Prompt versioning ─────────────────────────────────────────────────────────
+
+
+def test_prompt_version_header_is_parsed_and_stripped() -> None:
+    version, text = _parse_prompt("# prompt-version: 1.2.0\nYou are DeployD.\n")
+
+    assert version == "1.2.0"
+    assert text == "You are DeployD.\n"
+
+
+def test_prompt_without_version_header_is_rejected() -> None:
+    with pytest.raises(ValueError, match="prompt-version"):
+        _parse_prompt("You are DeployD.\n")
+
+
+@pytest.mark.usefixtures("groq_key")
+def test_agent_exposes_the_repository_prompt_version() -> None:
+    version = AgnoGroqAgent().prompt_version
+
+    assert Path("prompts/agno_diagnosis.txt").read_text().startswith(f"# prompt-version: {version}")
