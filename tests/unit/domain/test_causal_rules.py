@@ -5,12 +5,12 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from deployd.domain.causal.causal_rule import (
+    rule_config_drift,
     rule_db_latency_anomaly,
     rule_downstream_timeout,
     rule_healthcheck_failure_cascade,
     rule_http_500_cluster,
     rule_resource_exhaustion,
-    rule_config_drift,
 )
 from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.causal.topology import Topology
@@ -157,6 +157,7 @@ def test_rule05_unrelated_config_drift_leaves_the_exhaustion_as_a_root() -> None
 
 # ── RULE-01: DB Latency Anomaly ───────────────────────────────────────────────
 
+
 def test_rule01_positive() -> None:
     event = _ev("postgres-primary", CoreEventType.STATE_CHANGE, 0, latency_ms=600)
     [match] = rule_db_latency_anomaly(event, [], CONFIG, TOPOLOGY)
@@ -182,6 +183,7 @@ def test_rule01_boundary_threshold() -> None:
 
 # ── RULE-06: Config Drift ─────────────────────────────────────────────────────
 
+
 def test_rule06_positive_component_name() -> None:
     event = _ev("config-server", CoreEventType.STATE_CHANGE, 0, "Updated")
     [match] = rule_config_drift(event, [], CONFIG, TOPOLOGY)
@@ -200,6 +202,7 @@ def test_rule06_negative() -> None:
 
 
 # ── CorrelationConfig & Metric Extraction ─────────────────────────────────────
+
 
 def test_config_get_metric_resolves_alias() -> None:
     assert CONFIG.get_metric({"cpu_percent": 95}, "memory_percent") == 95
