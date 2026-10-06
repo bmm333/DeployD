@@ -1,6 +1,6 @@
 services:
   chroma:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:1.5.9  # same version as the chromadb client in requirements.lock
     volumes:
       - chroma_data:/chroma/chroma
     expose:
