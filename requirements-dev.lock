@@ -194,7 +194,8 @@ idna==3.19
     #   requests
     #   yarl
 importlib-metadata==9.0.1
-    # via build
+    # via
+    #   build
 importlib-resources==7.1.0
     # via
     #   chromadb
@@ -256,7 +257,7 @@ mpmath==1.3.0
 msgpack==1.2.1
     # via
     #   cachecontrol
-multidict==6.7.1
+multidict==6.9.1
     # via
     #   aiohttp
     #   yarl
@@ -289,7 +290,8 @@ numpy==2.2.6
     #   streamlit
     #   transformers
 oauthlib==4.0.0
-    # via requests-oauthlib
+    # via
+    #   requests-oauthlib
 onnxruntime==1.23.2
     # via
     #   chromadb
@@ -637,7 +639,8 @@ urllib3==2.8.0
     #   kubernetes
     #   requests
 uv==0.12.23
-    # via deployd (pyproject.toml)
+    # via
+    #   deployd (pyproject.toml)
 uvicorn==0.52.4
     # via
     #   deployd (pyproject.toml)
@@ -669,4 +672,5 @@ yarl==1.24.5
     # via
     #   aiohttp
 zipp==4.1.1
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
