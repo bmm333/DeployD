@@ -63,3 +63,24 @@ def test_reset_during_investigation(monkeypatch, tmp_path):
     assert state["session"] is None
     assert state["chat_history"] == []
     assert state["investigating"] is False
+
+
+def test_retrieval_stack_is_built_once_under_concurrency(monkeypatch):
+    built = []
+
+    class SlowChroma:
+        def __init__(self, persist_directory):
+            built.append(persist_directory)
+            threading.Event().wait(0.05)  # widen the race window
+
+        def index_runbook(self, *args):
+            pass
+
+    monkeypatch.setattr(api, "ChromaRunbookClient", SlowChroma)
+    monkeypatch.setattr(api, "_retrieval", None)
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        stacks = list(pool.map(lambda _: api._get_retrieval(), range(8)))
+
+    assert len(built) == 1
+    assert all(stack is stacks[0] for stack in stacks)

@@ -130,29 +130,32 @@ class _RetrievalStack:
 
 _retrieval: _RetrievalStack | None = None
 _agent: AgnoGroqAgent | None = None
+# Re-entrant: _get_agent() builds the retrieval stack while holding it.
+_init_lock = threading.RLock()
 
 
 def _get_retrieval() -> _RetrievalStack:
     global _retrieval  # noqa: PLW0603
-    if _retrieval is None:
-        repo = JSONRunbookRepository(_DATA_DIR / "runbooks")
-        runbooks = repo.list_all()
-        chroma = ChromaRunbookClient(persist_directory=str(_DATA_DIR / "chroma"))
-        for rb in runbooks:  # upsert: idempotent, keeps the index in sync with the JSON
-            chroma.index_runbook(rb.runbook_id, rb.summary, {"tags": ",".join(rb.tags)})
-        bm25 = BM25RunbookIndex()
-        bm25.build([(rb.runbook_id, rb.summary) for rb in runbooks])
-        store = GraphStore()
-        for rb in runbooks:
-            store.add(
-                RunbookStructure(
-                    runbook_id=rb.runbook_id,
-                    causal_chain=tuple(rb.causal_chain),
-                    affected_components=frozenset(rb.affected_components),
+    with _init_lock:
+        if _retrieval is None:
+            repo = JSONRunbookRepository(_DATA_DIR / "runbooks")
+            runbooks = repo.list_all()
+            chroma = ChromaRunbookClient(persist_directory=str(_DATA_DIR / "chroma"))
+            for rb in runbooks:  # upsert: idempotent, keeps the index in sync with the JSON
+                chroma.index_runbook(rb.runbook_id, rb.summary, {"tags": ",".join(rb.tags)})
+            bm25 = BM25RunbookIndex()
+            bm25.build([(rb.runbook_id, rb.summary) for rb in runbooks])
+            store = GraphStore()
+            for rb in runbooks:
+                store.add(
+                    RunbookStructure(
+                        runbook_id=rb.runbook_id,
+                        causal_chain=tuple(rb.causal_chain),
+                        affected_components=frozenset(rb.affected_components),
+                    )
                 )
-            )
-        retriever = HybridRetriever(chroma=chroma, bm25=bm25, graph_index=GraphIndex(store))
-        _retrieval = _RetrievalStack(retriever=retriever, chroma=chroma, repo=repo)
+            retriever = HybridRetriever(chroma=chroma, bm25=bm25, graph_index=GraphIndex(store))
+            _retrieval = _RetrievalStack(retriever=retriever, chroma=chroma, repo=repo)
     return _retrieval
 
 
@@ -161,15 +164,16 @@ def _get_agent() -> AgnoGroqAgent | None:
     global _agent  # noqa: PLW0603
     if not os.getenv("GROQ_API_KEY", "").strip():
         return None
-    if _agent is None:
-        stack = _get_retrieval()
-        registry = JSONComponentRepository(
-            components_file=_DATA_DIR / "components.json",
-            constraints_file=_DATA_DIR / "compatibility_constraints.json",
-        )
-        _agent = AgnoGroqAgent(
-            chroma_client=stack.chroma, runbook_repo=stack.repo, component_registry=registry
-        )
+    with _init_lock:
+        if _agent is None:
+            stack = _get_retrieval()
+            registry = JSONComponentRepository(
+                components_file=_DATA_DIR / "components.json",
+                constraints_file=_DATA_DIR / "compatibility_constraints.json",
+            )
+            _agent = AgnoGroqAgent(
+                chroma_client=stack.chroma, runbook_repo=stack.repo, component_registry=registry
+            )
     return _agent
 
 
