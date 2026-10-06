@@ -9,6 +9,7 @@ dist/
 build/
 .eggs/
 .venv/
+.temp_venv/
 venv/
 env/
 ENV/
