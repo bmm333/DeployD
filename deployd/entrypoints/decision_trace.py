@@ -50,6 +50,7 @@ def build_decision_trace(
     llm_called: bool,
     tokens_used: int | None,
     llm_error: str | None = None,
+    prompt_version: str | None = None,
 ) -> dict[str, Any]:
     """Assemble the decision trace exposed by ``GET /api/v1/state``.
 
@@ -75,6 +76,7 @@ def build_decision_trace(
         "llm_called": llm_called,
         "tokens_used": tokens_used,
         "llm_error": llm_error,
+        "prompt_version": prompt_version if llm_called else None,
         "reason_llm_skipped": reason_llm_skipped(
             tier, ranked[0].score if ranked else None, threshold, agent_available
         ),

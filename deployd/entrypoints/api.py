@@ -412,6 +412,7 @@ def _run_investigation(target_incident_id: str) -> None:
                 llm_called=llm_called,
                 tokens_used=agent.last_token_usage if llm_called and agent else None,
                 llm_error=llm_error,
+                prompt_version=agent.prompt_version if agent else None,
             )
 
             diagnosis = result.structured_diagnosis if result else None

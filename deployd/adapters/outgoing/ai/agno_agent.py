@@ -29,6 +29,7 @@ sufficient for the project demo: ~3k tokens per diagnosis, ~2k per follow-up.
 
 from __future__ import annotations
 
+import html
 import logging
 import os
 import re
@@ -73,11 +74,16 @@ class _SessionContext:
 
 # Prompt Loading cached
 
-_PROMPT_CACHE: str | None = None
+_PROMPT_VERSION_HEADER = re.compile(r"# prompt-version: (\d+\.\d+\.\d+)\n")
+_PROMPT_CACHE: tuple[str, str] | None = None
 
 
-def _load_system_prompt() -> str:
-    """Load and cache the system prompt from ``prompts/agno_diagnosis.txt``."""
+def _load_system_prompt() -> tuple[str, str]:
+    """Load and cache ``(version, text)`` of ``prompts/agno_diagnosis.txt``.
+
+    The file must start with ``# prompt-version: X.Y.Z``; the header is stripped
+    from the text sent to the model.
+    """
     global _PROMPT_CACHE  # noqa: PLW0603
     if _PROMPT_CACHE is not None:
         return _PROMPT_CACHE
@@ -88,8 +94,15 @@ def _load_system_prompt() -> str:
             f"System prompt not found at {prompt_path}. "
             "Create prompts/agno_diagnosis.txt before initializing the agent."
         )
-    _PROMPT_CACHE = prompt_path.read_text(encoding="utf-8")
+    _PROMPT_CACHE = _parse_prompt(prompt_path.read_text(encoding="utf-8"))
     return _PROMPT_CACHE
+
+
+def _parse_prompt(raw: str) -> tuple[str, str]:
+    header = _PROMPT_VERSION_HEADER.match(raw)
+    if header is None:
+        raise ValueError("System prompt must start with '# prompt-version: X.Y.Z'")
+    return header.group(1), raw[header.end() :]
 
 
 def _repo_root() -> Path:
@@ -109,6 +122,18 @@ _TOOL_QUERY_MIN_CHARS = 3
 _TOOL_QUERY_MAX_CHARS = 500
 _RUNBOOK_ID_PATTERN = re.compile(r"RB-[A-Z0-9-]{1,80}")
 _COMPONENT_NAME_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{0,63}")
+
+
+def _untrusted(text: str) -> str:
+    """Escape untrusted text so it cannot open or close the prompt's delimiter tags."""
+    return html.escape(text, quote=False)
+
+
+def _runbook_block(runbook_id: str, body: str, max_chars: int = _TOOL_OUTPUT_MAX_CHARS) -> str:
+    """Wrap runbook text (untrusted historical data) in a delimited, size-capped block."""
+    opening = f'<runbook id="{html.escape(runbook_id)}">\n'
+    closing = "\n</runbook>"
+    return opening + _untrusted(body)[: max_chars - len(opening) - len(closing)] + closing
 
 
 def _make_search_runbooks_tool(
@@ -150,25 +175,31 @@ def _make_search_runbooks_tool(
         if not hits:
             return "No matching runbooks found for this query."
 
-        # Output construction with size limit
-        lines: list[str] = []
+        blocks: list[str] = []
+        used = 0
         for hit in hits[:3]:
             detail = runbook_repo.get_by_id(hit.runbook_id)
-            if detail:
-                # Register this ID so evidence validator accepts it.
-                retrieved_ids.add(detail.runbook_id)
-                lines.append(f"[{detail.runbook_id}] (semantic_score: {hit.semantic_score:.2f})")
-                lines.append(f"  Summary: {detail.summary[:200]}")
-                lines.append(f"  Root cause: {detail.root_cause[:150]}")
-                if detail.causal_chain:
-                    lines.append(f"  Causal chain: {' -> '.join(detail.causal_chain)}")
-                lines.append(f"  Fix: {detail.fix[:150]}")
-                if detail.affected_components:
-                    lines.append(f"  Affected: {', '.join(detail.affected_components)}")
-                lines.append("")
+            if not detail:
+                continue
+            lines = [
+                f"semantic_score: {hit.semantic_score:.2f}",
+                f"Summary: {detail.summary[:200]}",
+                f"Root cause: {detail.root_cause[:150]}",
+            ]
+            if detail.causal_chain:
+                lines.append(f"Causal chain: {' -> '.join(detail.causal_chain)}")
+            lines.append(f"Fix: {detail.fix[:150]}")
+            if detail.affected_components:
+                lines.append(f"Affected: {', '.join(detail.affected_components)}")
+            block = _runbook_block(detail.runbook_id, "\n".join(lines))
+            if used + len(block) > _TOOL_OUTPUT_MAX_CHARS:
+                break
+            # Only IDs actually shown to the model become citable evidence.
+            retrieved_ids.add(detail.runbook_id)
+            blocks.append(block)
+            used += len(block) + 1
 
-        output = "\n".join(lines)
-        return output[:_TOOL_OUTPUT_MAX_CHARS] if lines else "No detailed info available."
+        return "\n".join(blocks) if blocks else "No detailed info available."
 
     return search_runbooks
 
@@ -259,7 +290,7 @@ def _make_get_runbook_detail_tool(
         if not detail:
             return f"Runbook '{runbook_id}' not found in the historical database."
 
-        output = (
+        body = (
             f"Runbook: {detail.runbook_id}\n"
             f"Incident: {detail.incident_id}\n"
             f"Summary: {detail.summary}\n"
@@ -269,7 +300,7 @@ def _make_get_runbook_detail_tool(
             f"Commands: {'; '.join(detail.fix_commands) if detail.fix_commands else 'None'}\n"
             f"Affected Components: {', '.join(detail.affected_components)}"
         )
-        return output[:_TOOL_OUTPUT_MAX_CHARS]
+        return _runbook_block(detail.runbook_id, body)
 
     return get_runbook_detail
 
@@ -319,7 +350,7 @@ class AgnoGroqAgent:
             )
 
         # Load prompt template once
-        self._system_prompt = _load_system_prompt()
+        self._prompt_version, self._system_prompt = _load_system_prompt()
 
         # Store repo for evidence validation
         self._runbook_repo = runbook_repo
@@ -501,7 +532,7 @@ class AgnoGroqAgent:
             "The following was provided by the on-call engineer.  It has "
             "NOT been verified against the IncidentGraph or FSM.  Treat "
             "it as a hypothesis to investigate, not as confirmed evidence.\n\n"
-            f"Engineer: {message}"
+            f"<engineer_input>\n{_untrusted(message)}\n</engineer_input>"
         )
 
         # Lazily create follow-up agent with full context
@@ -535,6 +566,11 @@ class AgnoGroqAgent:
         Use this to pass to ``follow_up()`` for multi-turn conversations.
         """
         return self._last_session_id
+
+    @property
+    def prompt_version(self) -> str:
+        """Version of the system prompt this agent runs with."""
+        return self._prompt_version
 
     @property
     def last_token_usage(self) -> int | None:
@@ -576,7 +612,9 @@ class AgnoGroqAgent:
         if ctx.followup_history:
             turns = []
             for eng_msg, agent_resp in ctx.followup_history:
-                turns.append(f"Engineer (unverified): {eng_msg}")
+                turns.append(
+                    f"Engineer (unverified): <engineer_input>{_untrusted(eng_msg)}</engineer_input>"
+                )
                 turns.append(f"Your response: {agent_resp}")
             context_block += "\n\n### Conversation History\n" + "\n\n".join(turns)
 
@@ -679,10 +717,12 @@ def _build_user_message(
     candidates_text = _format_candidates(candidates)
 
     return (
-        f"Investigate the following incident on component '{component}'.\n\n"
-        f"## System Evidence (verified)\n\n"
+        f"Investigate the following incident on component '{_untrusted(component)}'.\n\n"
+        f"## System Evidence (verified)\n"
+        f"<system_evidence>\n"
         f"### Observed Causal Chains\n{chain_text}\n\n"
-        f"### Retrieved Historical Runbooks\n{candidates_text}\n\n"
+        f"### Retrieved Historical Runbooks\n{candidates_text}\n"
+        f"</system_evidence>\n\n"
         "Analyze the evidence above and provide your diagnosis."
     )
 
@@ -704,11 +744,11 @@ def _format_chains(causal_chains: list[list[GraphNode]]) -> str:
         for j, node in enumerate(chain):
             evt = node.event
             ts = evt.timestamp.strftime("%H:%M:%S")
-            comp = evt.related_component or "unknown"
+            comp = _untrusted(evt.related_component or "unknown")
             block_lines.append(
                 f"  [{j + 1}] {evt.event_type.value} [{evt.severity.value}]\n"
                 f"      component={comp}, time={ts}\n"
-                f"      {evt.description[:200]}"
+                f"      {_untrusted(evt.description[:200])}"
             )
             # Show the edge to the next node
             if j < len(chain) - 1:
