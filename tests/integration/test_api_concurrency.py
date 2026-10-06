@@ -1,5 +1,4 @@
 import threading
-from pathlib import Path
 from unittest.mock import Mock
 
 from deployd.entrypoints import api
@@ -25,7 +24,10 @@ def test_reset_during_investigation(monkeypatch, tmp_path):
     # 2. Stub retrieval and agent
     mock_retrieval = Mock()
     mock_retriever = Mock()
-    mock_retriever.retrieve_scored.return_value = (Mock(candidates=[], confidence_threshold=0.0), {})
+    mock_retriever.retrieve_scored.return_value = (
+        Mock(candidates=[], confidence_threshold=0.0),
+        {},
+    )
     mock_retrieval.retriever = mock_retriever
     monkeypatch.setattr(api, "_get_retrieval", lambda: mock_retrieval)
     monkeypatch.setattr(api, "_get_agent", lambda: None)
@@ -71,7 +73,7 @@ def test_reset_during_investigation(monkeypatch, tmp_path):
             "event_type": "CPU_SAMPLE",
             "metadata": {"cpu_percent": 99},
             "description": "High CPU usage 3",
-        }
+        },
     ]
 
     for ev in events[:-1]:
@@ -104,4 +106,3 @@ def test_reset_during_investigation(monkeypatch, tmp_path):
     assert state["session"] is None
     assert len(state["chat_history"]) == 0
     assert state["investigating"] is False
-
