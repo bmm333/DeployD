@@ -109,3 +109,8 @@ def test_reason_llm_skipped(
         assert reason is None
     else:
         assert reason is not None and reason.startswith(expected)
+
+
+def test_prompt_version_is_reported_only_when_the_llm_was_called() -> None:
+    assert _trace(prompt_version="1.2.0")["prompt_version"] == "1.2.0"
+    assert _trace(prompt_version="1.2.0", llm_called=False)["prompt_version"] is None

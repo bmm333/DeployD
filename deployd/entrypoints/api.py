@@ -9,9 +9,11 @@ the chat answers deterministically and never calls the LLM.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import os
+import threading
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import timedelta
@@ -91,6 +93,8 @@ _list_incidents = ListIncidentsUseCase(_incident_repo)
 _get_incident = GetIncidentUseCase(_incident_repo)
 
 # In-memory pipeline
+_state_lock = threading.Lock()
+_chat_lock = threading.Lock()
 _graph = IncidentGraph()
 _window = SlidingWindow(window_seconds=300)
 
@@ -126,29 +130,32 @@ class _RetrievalStack:
 
 _retrieval: _RetrievalStack | None = None
 _agent: AgnoGroqAgent | None = None
+# Re-entrant: _get_agent() builds the retrieval stack while holding it.
+_init_lock = threading.RLock()
 
 
 def _get_retrieval() -> _RetrievalStack:
     global _retrieval  # noqa: PLW0603
-    if _retrieval is None:
-        repo = JSONRunbookRepository(_DATA_DIR / "runbooks")
-        runbooks = repo.list_all()
-        chroma = ChromaRunbookClient(persist_directory=str(_DATA_DIR / "chroma"))
-        for rb in runbooks:  # upsert: idempotent, keeps the index in sync with the JSON
-            chroma.index_runbook(rb.runbook_id, rb.summary, {"tags": ",".join(rb.tags)})
-        bm25 = BM25RunbookIndex()
-        bm25.build([(rb.runbook_id, rb.summary) for rb in runbooks])
-        store = GraphStore()
-        for rb in runbooks:
-            store.add(
-                RunbookStructure(
-                    runbook_id=rb.runbook_id,
-                    causal_chain=tuple(rb.causal_chain),
-                    affected_components=frozenset(rb.affected_components),
+    with _init_lock:
+        if _retrieval is None:
+            repo = JSONRunbookRepository(_DATA_DIR / "runbooks")
+            runbooks = repo.list_all()
+            chroma = ChromaRunbookClient(persist_directory=str(_DATA_DIR / "chroma"))
+            for rb in runbooks:  # upsert: idempotent, keeps the index in sync with the JSON
+                chroma.index_runbook(rb.runbook_id, rb.summary, {"tags": ",".join(rb.tags)})
+            bm25 = BM25RunbookIndex()
+            bm25.build([(rb.runbook_id, rb.summary) for rb in runbooks])
+            store = GraphStore()
+            for rb in runbooks:
+                store.add(
+                    RunbookStructure(
+                        runbook_id=rb.runbook_id,
+                        causal_chain=tuple(rb.causal_chain),
+                        affected_components=frozenset(rb.affected_components),
+                    )
                 )
-            )
-        retriever = HybridRetriever(chroma=chroma, bm25=bm25, graph_index=GraphIndex(store))
-        _retrieval = _RetrievalStack(retriever=retriever, chroma=chroma, repo=repo)
+            retriever = HybridRetriever(chroma=chroma, bm25=bm25, graph_index=GraphIndex(store))
+            _retrieval = _RetrievalStack(retriever=retriever, chroma=chroma, repo=repo)
     return _retrieval
 
 
@@ -157,15 +164,16 @@ def _get_agent() -> AgnoGroqAgent | None:
     global _agent  # noqa: PLW0603
     if not os.getenv("GROQ_API_KEY", "").strip():
         return None
-    if _agent is None:
-        stack = _get_retrieval()
-        registry = JSONComponentRepository(
-            components_file=_DATA_DIR / "components.json",
-            constraints_file=_DATA_DIR / "compatibility_constraints.json",
-        )
-        _agent = AgnoGroqAgent(
-            chroma_client=stack.chroma, runbook_repo=stack.repo, component_registry=registry
-        )
+    with _init_lock:
+        if _agent is None:
+            stack = _get_retrieval()
+            registry = JSONComponentRepository(
+                components_file=_DATA_DIR / "components.json",
+                constraints_file=_DATA_DIR / "compatibility_constraints.json",
+            )
+            _agent = AgnoGroqAgent(
+                chroma_client=stack.chroma, runbook_repo=stack.repo, component_registry=registry
+            )
     return _agent
 
 
@@ -280,29 +288,28 @@ app.add_middleware(
 
 
 @app.post("/api/v1/events", status_code=200)  # type: ignore[misc]
-async def receive_event(
-    raw: RawTelemetryEvent, background_tasks: BackgroundTasks
-) -> dict[str, Any]:
+def receive_event(raw: RawTelemetryEvent, background_tasks: BackgroundTasks) -> dict[str, Any]:
     global _auto_diagnosed_incident_id  # noqa: PLW0603
     try:
         core_event = _adapter.translate(raw)
-        _correlate.ingest(core_event)
-        incident = _lifecycle.ensure_open(core_event)
-        _lifecycle.update_severity(core_event.severity)
+        with _state_lock:
+            _correlate.ingest(core_event)
+            incident = _lifecycle.ensure_open(core_event)
+            _lifecycle.update_severity(core_event.severity)
 
-        current_global_severity = compute_incident_severity(_graph)
-        if current_global_severity == "Critical" and _auto_diagnosed_incident_id != str(
-            incident.id
-        ):
-            _auto_diagnosed_incident_id = str(incident.id)
-            background_tasks.add_task(_run_investigation)
+            current_global_severity = compute_incident_severity(_graph)
+            if current_global_severity == "Critical" and _auto_diagnosed_incident_id != str(
+                incident.id
+            ):
+                _auto_diagnosed_incident_id = str(incident.id)
+                background_tasks.add_task(_run_investigation, str(incident.id))
 
-        return {
-            "status": "ok",
-            "event_id": str(core_event.event_id),
-            "provisional_severity": core_event.severity.value,
-            "incident_id": str(incident.id),
-        }
+            return {
+                "status": "ok",
+                "event_id": str(core_event.event_id),
+                "provisional_severity": core_event.severity.value,
+                "incident_id": str(incident.id),
+            }
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -311,45 +318,55 @@ async def receive_event(
 
 
 @app.get("/api/v1/state")  # type: ignore[misc]
-async def get_state() -> dict[str, Any]:
-    current = _incident_repo.get_current()
-    return {
-        "tracker_status": compute_incident_severity(_graph),
-        "incident_id": str(current.id) if current else None,
-        "graphs": _graph_snapshot(),
-        "chat_history": _chat_history,
-        "decision_trace": _decision_trace,
-        "session": _session,
-        "investigating": _investigating,
-    }
+def get_state() -> dict[str, Any]:
+    with _state_lock:
+        current = _incident_repo.get_current()
+        return {
+            "tracker_status": compute_incident_severity(_graph),
+            "incident_id": str(current.id) if current else None,
+            "graphs": _graph_snapshot(),
+            "chat_history": list(_chat_history),
+            "decision_trace": _decision_trace,
+            "session": _session,
+            "investigating": _investigating,
+        }
 
 
 # Investigation (three-tier gate)
 
 
-def _run_investigation() -> None:
+def _run_investigation(target_incident_id: str) -> None:
     """Run the three-tier gate on the live graph; the LLM is reached only in Tier 3."""
     global _decision_trace, _session, _investigating  # noqa: PLW0603
-    chain = _longest_chain()
-    if not chain:
-        return
+    with _state_lock:
+        chain = _longest_chain()
+        if not chain:
+            return
 
-    _investigating = True
+        _investigating = True
     try:
-        component = chain[0].event.related_component or "unknown-component"
-        chain_types = tuple(n.event.event_type.value for n in chain)
-        components = frozenset(
-            n.event.related_component for n in chain if n.event.related_component
-        )
-        query = f"{component}: " + "; ".join(
-            n.event.description or n.event.event_type.value for n in chain
-        )
-        _post(
-            "system",
-            "event",
-            f"Investigation triggered on **{component}**: the incident reached CRITICAL "
-            f"with a {len(chain) - 1}-hop causal chain. Running the three-tier gate…",
-        )
+        with _state_lock:
+            current = _incident_repo.get_current()
+            if not current or str(current.id) != target_incident_id:
+                return
+
+            component = chain[0].event.related_component or "unknown-component"
+            chain_types = tuple(n.event.event_type.value for n in chain)
+            components = frozenset(
+                n.event.related_component for n in chain if n.event.related_component
+            )
+            query = f"{component}: " + "; ".join(
+                n.event.description or n.event.event_type.value for n in chain
+            )
+            _post(
+                "system",
+                "event",
+                f"Investigation triggered on **{component}**: the incident reached CRITICAL "
+                f"with a {len(chain) - 1}-hop causal chain. Running the three-tier gate…",
+            )
+            fsm_state_val = _fsm_state(component)
+            rules_fired_val = _chain_rules(chain)
+            graph_snapshot = copy.deepcopy(_graph)
 
         stack = _get_retrieval()
         retrieval, breakdown = stack.retriever.retrieve_scored(
@@ -358,8 +375,8 @@ def _run_investigation() -> None:
         agent = _get_agent()
         request = InvestigationRequest(
             component=component,
-            graph=_graph,
-            fsm_state=_fsm_state(component),
+            graph=graph_snapshot,
+            fsm_state=fsm_state_val,
             retrieval_result=retrieval,
         )
 
@@ -376,64 +393,72 @@ def _run_investigation() -> None:
             llm_error = str(exc) if agent is not None else None
 
         llm_called = tier is DiagnosisTier.FULL and agent is not None
-        _decision_trace = build_decision_trace(
-            tier=tier,
-            component=component,
-            query=query,
-            chain=chain_types,
-            rules_fired=_chain_rules(chain),
-            candidates=retrieval.candidates,
-            breakdown={rid: asdict(scores) for rid, scores in breakdown.items()},
-            threshold=retrieval.confidence_threshold,
-            agent_available=agent is not None,
-            llm_called=llm_called,
-            tokens_used=agent.last_token_usage if llm_called and agent else None,
-            llm_error=llm_error,
-        )
 
-        diagnosis = result.structured_diagnosis if result else None
-        if diagnosis is not None and agent is not None and agent.last_session_id:
-            _session = {
-                "id": agent.last_session_id,
-                "component": component,
-                "turn": 0,
-                "max_turns": MAX_FOLLOW_UP_TURNS,
-            }
-            _post(
-                "agent",
-                "diagnosis",
-                diagnosis.root_cause,
-                confidence=diagnosis.confidence,
-                reasoning=diagnosis.reasoning,
-                recommendation=diagnosis.recommendation,
-                evidence=",".join(diagnosis.evidence_references),
-                tokens=str(_decision_trace["tokens_used"] or ""),
+        with _state_lock:
+            current = _incident_repo.get_current()
+            if not current or str(current.id) != target_incident_id:
+                return
+
+            _decision_trace = build_decision_trace(
+                tier=tier,
+                component=component,
+                query=query,
+                chain=chain_types,
+                rules_fired=rules_fired_val,
+                candidates=retrieval.candidates,
+                breakdown={rid: asdict(scores) for rid, scores in breakdown.items()},
+                threshold=retrieval.confidence_threshold,
+                agent_available=agent is not None,
+                llm_called=llm_called,
+                tokens_used=agent.last_token_usage if llm_called and agent else None,
+                llm_error=llm_error,
+                prompt_version=agent.prompt_version if agent else None,
             )
-        else:
-            reason = (
-                _provider_hint(llm_error)
-                if llm_error
-                else _decision_trace["reason_llm_skipped"] or ""
-            )
-            summary = (
-                result.remediation.summary
-                if result
-                else (
-                    "The gate allowed a grounded diagnosis, but the agent could not produce a "
-                    "validated answer. Showing the deterministic evidence instead."
+
+            diagnosis = result.structured_diagnosis if result else None
+            if diagnosis is not None and agent is not None and agent.last_session_id:
+                _session = {
+                    "id": agent.last_session_id,
+                    "component": component,
+                    "turn": 0,
+                    "max_turns": MAX_FOLLOW_UP_TURNS,
+                }
+                _post(
+                    "agent",
+                    "diagnosis",
+                    diagnosis.root_cause,
+                    confidence=diagnosis.confidence,
+                    reasoning=diagnosis.reasoning,
+                    recommendation=diagnosis.recommendation,
+                    evidence=",".join(diagnosis.evidence_references),
+                    tokens=str(_decision_trace["tokens_used"] or ""),
                 )
-            )
-            _post(
-                "agent",
-                "deterministic",
-                summary,
-                tier=tier.value,
-                chain=_chain_text(chain),
-                reason=reason,
-            )
-        _persist_chat()
+            else:
+                reason = (
+                    _provider_hint(llm_error)
+                    if llm_error
+                    else _decision_trace["reason_llm_skipped"] or ""
+                )
+                summary = (
+                    result.remediation.summary
+                    if result
+                    else (
+                        "The gate allowed a grounded diagnosis, but the agent could not produce a "
+                        "validated answer. Showing the deterministic evidence instead."
+                    )
+                )
+                _post(
+                    "agent",
+                    "deterministic",
+                    summary,
+                    tier=tier.value,
+                    chain=_chain_text(chain),
+                    reason=reason,
+                )
+            _persist_chat()
     finally:
-        _investigating = False
+        with _state_lock:
+            _investigating = False
 
 
 # Chat (multi-turn, grounded session only)
@@ -450,88 +475,115 @@ def chat(request: _ChatRequest) -> dict[str, str]:
     prompt = request.prompt.strip()
     if not prompt:
         raise HTTPException(status_code=422, detail="Empty prompt")
-    _post("user", "user", prompt)
 
-    if _investigating:
-        _post("system", "gate", "An investigation is running — ask again in a moment.")
-    elif _decision_trace is None:
-        _post(
-            "system",
-            "gate",
-            "No investigation yet. DeployD opens one automatically when the incident "
-            "reaches CRITICAL. Until then there is no evidence to ground an answer, "
-            "so the LLM is not called.",
-        )
-    elif _session is None and _decision_trace["llm_error"]:
-        _post(
-            "system",
-            "error",
-            "The gate allowed the agent for this investigation, but the grounded diagnosis "
-            f"failed, so there is no agent session to continue. "
-            f"{_provider_hint(_decision_trace['llm_error'])}",
-        )
-    elif _session is None:
-        _post(
-            "system",
-            "gate",
-            f"This investigation is **{_decision_trace['tier']}** "
-            f"({_decision_trace['reason_llm_skipped']}). "
-            "Follow-up with the agent is only available for grounded (FULL) "
-            "investigations, so the LLM is not called.",
-        )
-    else:
-        _answer_follow_up(prompt, _session)
+    with _chat_lock:
+        with _state_lock:
+            _post("user", "user", prompt)
 
-    _persist_chat()
+            if _investigating:
+                _post("system", "gate", "An investigation is running — ask again in a moment.")
+                _persist_chat()
+                return {"status": "ok"}
+            elif _decision_trace is None:
+                _post(
+                    "system",
+                    "gate",
+                    "No investigation yet. DeployD opens one automatically when the incident "
+                    "reaches CRITICAL. Until then there is no evidence to ground an answer, "
+                    "so the LLM is not called.",
+                )
+                _persist_chat()
+                return {"status": "ok"}
+            elif _session is None and _decision_trace["llm_error"]:
+                _post(
+                    "system",
+                    "error",
+                    "The gate allowed the agent for this investigation, but the grounded diagnosis "
+                    f"failed, so there is no agent session to continue. "
+                    f"{_provider_hint(_decision_trace['llm_error'])}",
+                )
+                _persist_chat()
+                return {"status": "ok"}
+            elif _session is None:
+                _post(
+                    "system",
+                    "gate",
+                    f"This investigation is **{_decision_trace['tier']}** "
+                    f"({_decision_trace['reason_llm_skipped']}). "
+                    "Follow-up with the agent is only available for grounded (FULL) "
+                    "investigations, so the LLM is not called.",
+                )
+                _persist_chat()
+                return {"status": "ok"}
+
+            session_snapshot = _session.copy()
+            current_incident = _incident_repo.get_current()
+            incident_id = str(current_incident.id) if current_incident else None
+
+        _answer_follow_up(prompt, session_snapshot, incident_id)
+
     return {"status": "ok"}
 
 
-def _answer_follow_up(prompt: str, session: dict[str, Any]) -> None:
+def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: str | None) -> None:
     agent = _get_agent()
     if agent is None:
-        _post("system", "gate", "The agent is no longer configured (GROQ_API_KEY missing).")
+        with _state_lock:
+            _post("system", "gate", "The agent is no longer configured (GROQ_API_KEY missing).")
+            _persist_chat()
         return
     try:
         answer = agent.follow_up(session["id"], prompt)
     except _AGENT_ERRORS as exc:
         log.exception("Follow-up failed")
-        _post("system", "error", f"{_provider_hint(str(exc))}\n\n`{str(exc)[:240]}`")
+        with _state_lock:
+            _post("system", "error", f"{_provider_hint(str(exc))}\n\n`{str(exc)[:240]}`")
+            _persist_chat()
         return
-    session["turn"] = min(session["turn"] + 1, session["max_turns"])
-    _post(
-        "agent",
-        "followup",
-        answer.root_cause,
-        turn=str(session["turn"]),
-        tokens=str(agent.last_token_usage or ""),
-    )
+
+    with _state_lock:
+        current_incident = _incident_repo.get_current()
+        if not current_incident or str(current_incident.id) != target_incident_id:
+            return
+
+        if _session and _session["id"] == session["id"]:
+            _session["turn"] = min(_session["turn"] + 1, _session["max_turns"])
+            _post(
+                "agent",
+                "followup",
+                answer.root_cause,
+                turn=str(_session["turn"]),
+                tokens=str(agent.last_token_usage or ""),
+            )
+            _persist_chat()
 
 
 # ── Reset ─────────────────────────────────────────────────────────────────────
 
 
 @app.post("/api/v1/reset")  # type: ignore[misc]
-async def reset_state() -> dict[str, Any]:
+def reset_state() -> dict[str, Any]:
     global _graph, _window, _correlate, _chat_history  # noqa: PLW0603
     global _decision_trace, _session, _auto_diagnosed_incident_id  # noqa: PLW0603
 
-    closed = _lifecycle.close_current(
-        graph_snapshot=_graph_snapshot(),
-        chat_history=list(_chat_history),
-        root_cause_summary=next(
-            (m["content"][:300] for m in _chat_history if m["role"] == "agent"), None
-        ),
-    )
+    with _state_lock:
+        closed = _lifecycle.close_current(
+            graph_snapshot=_graph_snapshot(),
+            chat_history=list(_chat_history),
+            root_cause_summary=next(
+                (m["content"][:300] for m in _chat_history if m["role"] == "agent"), None
+            ),
+        )
 
-    _graph = IncidentGraph()
-    _window = SlidingWindow(window_seconds=300)
-    _correlate = CorrelateEventsUseCase(
-        graph=_graph, event_window=_window, config=_config, topology=_topology
-    )
-    _chat_history = []
-    _decision_trace = None
-    _session = None
-    _auto_diagnosed_incident_id = None
+        _graph = IncidentGraph()
+        _window = SlidingWindow(window_seconds=300)
+        _correlate = CorrelateEventsUseCase(
+            graph=_graph, event_window=_window, config=_config, topology=_topology
+        )
+        _chat_history = []
+        _decision_trace = None
+        _session = None
+        _auto_diagnosed_incident_id = None
 
     return {
         "status": "reset",
