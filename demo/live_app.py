@@ -547,7 +547,9 @@ def _render_trace(trace: dict[str, Any] | None, investigating: bool, status: str
     rows.append(_trace_row("Tier", _tier_badge(trace["tier"])))
     if trace["llm_called"] and not trace.get("llm_error"):
         tokens = trace.get("tokens_used")
-        rows.append(_trace_row("LLM called", f"{ok} {tokens or '?'} tokens"))
+        prompt = trace.get("prompt_version")
+        version = f" · prompt v{_esc(prompt)}" if prompt else ""
+        rows.append(_trace_row("LLM called", f"{ok} {tokens or '?'} tokens{version}"))
     else:
         error = trace.get("llm_error") or ""
         reason = (

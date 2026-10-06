@@ -3,10 +3,13 @@ FROM python:3.10-slim AS builder
 
 WORKDIR /build
 
-COPY pyproject.toml .
+COPY pyproject.toml requirements.lock ./
 COPY deployd/ ./deployd/
 
-RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu --prefix=/install .
+# Exact, tested versions from the lock (CPU torch), then the project itself without re-resolving.
+RUN pip install --no-cache-dir --prefix=/install \
+        --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.lock \
+    && pip install --no-cache-dir --prefix=/install --no-deps .
 
 # Stage 2: runtime
 FROM python:3.10-slim AS runtime
