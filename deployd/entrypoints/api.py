@@ -288,9 +288,7 @@ app.add_middleware(
 
 
 @app.post("/api/v1/events", status_code=200)  # type: ignore[misc]
-async def receive_event(
-    raw: RawTelemetryEvent, background_tasks: BackgroundTasks
-) -> dict[str, Any]:
+def receive_event(raw: RawTelemetryEvent, background_tasks: BackgroundTasks) -> dict[str, Any]:
     global _auto_diagnosed_incident_id  # noqa: PLW0603
     try:
         core_event = _adapter.translate(raw)
@@ -320,7 +318,7 @@ async def receive_event(
 
 
 @app.get("/api/v1/state")  # type: ignore[misc]
-async def get_state() -> dict[str, Any]:
+def get_state() -> dict[str, Any]:
     with _state_lock:
         current = _incident_repo.get_current()
         return {
@@ -563,7 +561,7 @@ def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: 
 
 
 @app.post("/api/v1/reset")  # type: ignore[misc]
-async def reset_state() -> dict[str, Any]:
+def reset_state() -> dict[str, Any]:
     global _graph, _window, _correlate, _chat_history  # noqa: PLW0603
     global _decision_trace, _session, _auto_diagnosed_incident_id  # noqa: PLW0603
 
