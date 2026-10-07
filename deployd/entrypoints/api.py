@@ -552,6 +552,8 @@ def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: 
                 "agent",
                 "followup",
                 answer.root_cause,
+                confidence=answer.confidence,
+                evidence=",".join(answer.evidence_references),
                 turn=str(_session["turn"]),
                 tokens=str(agent.last_token_usage or ""),
             )
