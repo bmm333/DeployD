@@ -155,6 +155,21 @@ def test_structured_agent_uses_parser_model_only_with_tools(repo: JSONRunbookRep
     assert tooled.output_schema is AgentDiagnosis
 
 
+@pytest.mark.usefixtures("groq_key")
+def test_run_limits_are_enforced_by_the_agent_not_the_prompt(
+    repo: JSONRunbookRepository,
+) -> None:
+    agent = AgnoGroqAgent(chroma_client=_FakeChroma([]), runbook_repo=repo)  # type: ignore[arg-type]  # fake
+    ctx = agno_agent._SessionContext("auth-service", "evidence", "diagnosis")
+    built = [agent._create_structured_agent(), agent._create_followup_agent(ctx)]
+
+    for run in built:
+        assert run.tool_call_limit == agno_agent.TOOL_CALL_LIMIT
+        assert run.model.temperature == agno_agent.TEMPERATURE
+        assert run.model.max_tokens == agno_agent.MAX_OUTPUT_TOKENS
+    assert built[0].parser_model.temperature == agno_agent.TEMPERATURE
+
+
 # ── diagnose(): evidence validator and fail-closed behaviour ──────────────────
 
 

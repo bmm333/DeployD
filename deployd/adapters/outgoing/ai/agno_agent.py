@@ -310,6 +310,13 @@ def _make_get_runbook_detail_tool(
 MAX_FOLLOW_UP_TURNS = 5
 _MAX_FOLLOW_UP_TURNS = MAX_FOLLOW_UP_TURNS
 
+# Run limits enforced by Agno/Groq rather than requested in the prompt: a run
+# can never loop on tools, and a low temperature keeps diagnoses reproducible.
+# max_tokens covers gpt-oss reasoning plus the answer (~1k in practice).
+TOOL_CALL_LIMIT = 4
+TEMPERATURE = 0.1
+MAX_OUTPUT_TOKENS = 2048
+
 
 class AgnoGroqAgent:
     """Multi-turn investigative agent for AIOps incident diagnosis.
@@ -586,11 +593,12 @@ class AgnoGroqAgent:
         parser pass (same model, no tools) maps its answer onto AgentDiagnosis.
         """
         return Agent(
-            model=Groq(id=self.MODEL_ID),
+            model=self._model(),
             tools=self._tools or None,
+            tool_call_limit=TOOL_CALL_LIMIT,
             instructions=self._system_prompt,
             output_schema=AgentDiagnosis,
-            parser_model=Groq(id=self.MODEL_ID) if self._tools else None,
+            parser_model=self._model() if self._tools else None,
             structured_outputs=True,
             markdown=False,
         )
@@ -619,11 +627,15 @@ class AgnoGroqAgent:
             context_block += "\n\n### Conversation History\n" + "\n\n".join(turns)
 
         return Agent(
-            model=Groq(id=self.MODEL_ID),
+            model=self._model(),
             tools=self._tools or None,
+            tool_call_limit=TOOL_CALL_LIMIT,
             instructions=self._system_prompt + context_block,
             markdown=False,
         )
+
+    def _model(self) -> Groq:
+        return Groq(id=self.MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_OUTPUT_TOKENS)
 
     def _validate_evidence(
         self,
