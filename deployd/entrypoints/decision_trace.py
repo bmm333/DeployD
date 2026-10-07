@@ -48,7 +48,7 @@ def build_decision_trace(
     threshold: float,
     agent_available: bool,
     llm_called: bool,
-    tokens_used: int | None,
+    tokens_used: dict[str, int] | None,
     llm_error: str | None = None,
     prompt_version: str | None = None,
 ) -> dict[str, Any]:
@@ -93,7 +93,7 @@ def _candidate(
         "runbook_id": candidate.runbook_id,
         "score": round(float(candidate.score), 3),
         "threshold": threshold,
-        "above_threshold": bool(candidate.score >= threshold),
+        "above_threshold": candidate.score >= threshold,
         "score_breakdown": {s: round(float(scores.get(s, 0.0)), 3) for s in _SIGNALS},
     }
 
