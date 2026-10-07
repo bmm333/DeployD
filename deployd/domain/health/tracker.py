@@ -71,4 +71,3 @@ class ComponentHealthTracker:
                 self._last_investigation_time[component] = event_time
 
         return trigger, current_state, list(events_queue)
-
