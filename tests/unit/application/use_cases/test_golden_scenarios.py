@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
-from deployd.adapters.incoming.http_adapter import HttpEventAdapter
+from deployd.adapters.incoming.http_event_adapter import HttpEventAdapter, RawTelemetryEvent
 from deployd.adapters.outgoing.registry.json_topology import load_topology
 from deployd.application.use_cases.correlate_events import (
     CorrelateEventsUseCase,
@@ -32,9 +32,12 @@ def test_golden_scenario(filename: str):
 
     raw_events = json.loads(filepath.read_text())
 
-    # Sostituzione del parser custom con HttpEventAdapter ufficiale
+    # Modifica qui: valida con RawTelemetryEvent e traduci con translate()
     adapter = HttpEventAdapter()
-    events = [adapter.parse(raw) for raw in raw_events]
+    events = []
+    for raw in raw_events:
+        raw_telemetry = RawTelemetryEvent(**raw)
+        events.append(adapter.translate(raw_telemetry))
 
     topology = load_topology(COMPONENTS_FILE)
     config = CorrelationConfig(
