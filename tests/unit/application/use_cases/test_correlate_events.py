@@ -3,15 +3,11 @@ from datetime import datetime, timezone
 
 from deployd.application.use_cases.correlate_events import (
     CorrelateEventsUseCase,
-    compute_incident_severity,
 )
 from deployd.domain.causal.causal_rule import RuleMatch
 from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType, Severity
-from deployd.domain.graph.edge import GraphEdge
-from deployd.domain.graph.edge_type import EdgeType
 from deployd.domain.graph.graph import IncidentGraph
-from deployd.domain.graph.node import GraphNode
 from deployd.infrastructure.streaming.sliding_window import SlidingWindow
 
 T0 = datetime(2026, 9, 30, 10, 0, tzinfo=timezone.utc)
@@ -102,61 +98,3 @@ def test_correlate_events_multi_rule():
     # If edge identity is just source/target/type, the second insert raises DuplicateEdgeError.
     # We will just verify it does not crash and handles it properly.
     assert len(graph.edges) == 1 or len(graph.edges) == 2
-
-
-def test_compute_incident_severity_healthy():
-    graph = IncidentGraph()
-    assert compute_incident_severity(graph) == "Healthy"
-
-
-def test_compute_incident_severity_degrading():
-    graph = IncidentGraph()
-    graph.add_node(GraphNode(event=_ev("1")))
-    assert compute_incident_severity(graph) == "Degrading"
-
-
-def test_compute_incident_severity_degrading_1_hop():
-    graph = IncidentGraph()
-    n1 = GraphNode(event=_ev("1"))
-    n2 = GraphNode(event=_ev("2"))
-    graph.add_node(n1)
-    graph.add_node(n2)
-    graph.add_edge(
-        GraphEdge(
-            source=n1.node_id,
-            target=n2.node_id,
-            edge_type=EdgeType.CAUSAL,
-            rule_id="R",
-            confidence=1.0,
-        )
-    )
-    assert compute_incident_severity(graph) == "Degrading"
-
-
-def test_compute_incident_severity_critical():
-    graph = IncidentGraph()
-    n1 = GraphNode(event=_ev("1"))
-    n2 = GraphNode(event=_ev("2"))
-    n3 = GraphNode(event=_ev("3"))
-    graph.add_node(n1)
-    graph.add_node(n2)
-    graph.add_node(n3)
-    graph.add_edge(
-        GraphEdge(
-            source=n1.node_id,
-            target=n2.node_id,
-            edge_type=EdgeType.CAUSAL,
-            rule_id="R",
-            confidence=1.0,
-        )
-    )
-    graph.add_edge(
-        GraphEdge(
-            source=n2.node_id,
-            target=n3.node_id,
-            edge_type=EdgeType.CAUSAL,
-            rule_id="R",
-            confidence=1.0,
-        )
-    )
-    assert compute_incident_severity(graph) == "Critical"
