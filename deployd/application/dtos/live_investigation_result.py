@@ -1,8 +1,9 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 from deployd.application.dtos.diagnosis import AgentDiagnosis, DiagnosisTier
-from deployd.application.dtos.retrieval import RetrievalResult
+
 
 @dataclass(frozen=True)
 class LiveInvestigationResult:
@@ -18,4 +19,3 @@ class LiveInvestigationResult:
     llm_error: str | None
     agent_available: bool
     summary: str
-

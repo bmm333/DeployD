@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict
 from datetime import timedelta
 
 from deployd.application.dtos.diagnosis import DiagnosisTier
@@ -18,6 +17,7 @@ from deployd.domain.health.process_health import ProcessHealthFSM
 from deployd.domain.health.process_state import ProcessHealthStatus
 
 log = logging.getLogger(__name__)
+
 
 class LiveInvestigation:
     """Use case: run an investigation from the live incident graph."""
@@ -93,6 +93,7 @@ class LiveInvestigation:
         )
 
         import dataclasses
+
         return LiveInvestigationResult(
             component=component,
             query=query,
@@ -100,7 +101,10 @@ class LiveInvestigation:
             chain=chain_types,
             rules_fired=rules_fired_val,
             candidates=retrieval.candidates,
-            breakdown={rid: dataclasses.asdict(scores) if dataclasses.is_dataclass(scores) else scores for rid, scores in breakdown.items()},  # type: ignore[arg-type]
+            breakdown={
+                rid: dataclasses.asdict(scores) if dataclasses.is_dataclass(scores) else scores
+                for rid, scores in breakdown.items()
+            },
             diagnosis=diagnosis,
             llm_usage=llm_usage,
             llm_error=llm_error,

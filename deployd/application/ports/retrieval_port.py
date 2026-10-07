@@ -6,6 +6,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from deployd.application.dtos.retrieval import RetrievalResult
 
+
 @runtime_checkable
 class RetrievalPort(Protocol):
     """Port for retrieving runbook candidates."""
