@@ -36,7 +36,7 @@ import re
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from agno.agent import Agent
 from agno.models.groq import Groq
@@ -52,7 +52,7 @@ from deployd.adapters.outgoing.ai.tool_models import (
     ToolError,
 )
 from deployd.application.dtos.diagnosis import AgentDiagnosis
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -81,6 +81,21 @@ class _SessionContext:
     followup_agent: Agent | None = None
     turn_count: int = 0
     followup_history: list[tuple[str, str]] = field(default_factory=list)
+
+
+class _FollowUpAnswer(BaseModel):
+    """Structured output of a follow-up turn, mapped onto ``AgentDiagnosis`` for the port."""
+
+    answer: str = Field(
+        description="Direct answer to the engineer, about the investigated component only"
+    )
+    confidence: Literal["High", "Medium", "Low"] = Field(
+        description="Certainty of this answer given the system evidence"
+    )
+    evidence_references: list[str] = Field(
+        default_factory=list,
+        description="Runbook or compatibility evidence IDs this answer relies on; empty if none",
+    )
 
 
 # Prompt Loading cached
@@ -463,9 +478,9 @@ class AgnoGroqAgent:
         if not isinstance(response.content, AgentDiagnosis):
             msg = f"Expected AgentDiagnosis, got {type(response.content).__name__}"
             raise TypeError(msg)
-        diagnosis: AgentDiagnosis = response.content
         # Step 2: Evidence validation (deterministic)
-        diagnosis = self._validate_evidence(diagnosis, allowed_ids)
+        allowed_ids |= self._tool_retrieved_ids
+        diagnosis = _validate_evidence(response.content, allowed_ids)
 
         # Store session context for follow-ups
         formatted = _format_diagnosis(diagnosis)
@@ -492,10 +507,11 @@ class AgnoGroqAgent:
         the agent prompt.  The agent retains the initial diagnosis and all
         prior follow-up turns as conversation context.
 
-        The follow-up response is wrapped in an ``AgentDiagnosis`` for
-        Protocol consistency: ``root_cause`` carries the updated narrative,
-        ``confidence`` reflects the agent's revised certainty, and
-        ``evidence_references`` is empty (follow-ups do not add new evidence).
+        The model answers with a structured ``_FollowUpAnswer`` (answer,
+        confidence, cited evidence), wrapped in an ``AgentDiagnosis`` for
+        Protocol consistency: ``root_cause`` carries the answer.  Its citations
+        go through the same validator as the diagnosis, against this session's
+        evidence (retrieved candidates plus IDs shown by tools in this session).
 
         **Scope constraint**: the underlying prompt restricts discussion to
         the component named in the original ``diagnose()`` call — the
@@ -568,25 +584,28 @@ class AgnoGroqAgent:
         if ctx.followup_agent is None:
             ctx.followup_agent = self._create_followup_agent(ctx)
 
-        try:
-            response = ctx.followup_agent.run(framed_message)
-            self._last_token_usage = _total_tokens(response)
-            _raise_on_failed_run(response)
-            narrative: str = (
-                response.content if response.content else "Agent returned an empty response."
-            )
-            ctx.followup_history.append((message, narrative))
-            logger.info("Follow-up complete: session=%s, turn=%d", session_id, ctx.turn_count)
-            return AgentDiagnosis(
-                root_cause=narrative,
-                confidence="Medium",
+        self._tool_retrieved_ids.clear()
+        response = ctx.followup_agent.run(framed_message)
+        self._last_token_usage = _total_tokens(response)
+        _raise_on_failed_run(response)
+        if not isinstance(response.content, _FollowUpAnswer):
+            msg = f"Expected a structured follow-up answer, got {type(response.content).__name__}"
+            raise TypeError(msg)
+        reply = response.content
+
+        ctx.allowed_evidence_ids |= self._tool_retrieved_ids
+        ctx.followup_history.append((message, reply.answer))
+        logger.info("Follow-up complete: session=%s, turn=%d", session_id, ctx.turn_count)
+        return _validate_evidence(
+            AgentDiagnosis(
+                root_cause=reply.answer,
+                confidence=reply.confidence,
                 reasoning=f"Follow-up turn {ctx.turn_count} for component '{ctx.component}'.",
-                recommendation="Review updated analysis and confirm next steps with the team.",
-                evidence_references=[],
-            )
-        except Exception as exc:
-            logger.exception("Follow-up failed: session=%s", session_id)
-            raise RuntimeError(f"Follow-up failed: {exc}") from exc
+                recommendation="Review the answer and confirm next steps with the team.",
+                evidence_references=reply.evidence_references,
+            ),
+            ctx.allowed_evidence_ids,
+        )
 
     # Properties
     @property
@@ -608,18 +627,21 @@ class AgnoGroqAgent:
 
     # Internal
     def _create_structured_agent(self) -> Agent:
+        return self._create_agent(self._system_prompt, AgentDiagnosis)
+
+    def _create_agent(self, instructions: str, output_schema: type[BaseModel]) -> Agent:
         """Agent with ``output_schema`` for validated structured output.
 
         Groq rejects JSON mode combined with tool calling.  With tools, the
         reasoning run therefore goes without a response format and a separate
-        parser pass (same model, no tools) maps its answer onto AgentDiagnosis.
+        parser pass (same model, no tools) maps its answer onto the schema.
         """
         return Agent(
             model=self._model(),
             tools=self._tools or None,
             tool_call_limit=TOOL_CALL_LIMIT,
-            instructions=self._system_prompt,
-            output_schema=AgentDiagnosis,
+            instructions=instructions,
+            output_schema=output_schema,
             parser_model=self._model() if self._tools else None,
             structured_outputs=True,
             markdown=False,
@@ -648,65 +670,41 @@ class AgnoGroqAgent:
                 turns.append(f"Your response: {agent_resp}")
             context_block += "\n\n### Conversation History\n" + "\n\n".join(turns)
 
-        return Agent(
-            model=self._model(),
-            tools=self._tools or None,
-            tool_call_limit=TOOL_CALL_LIMIT,
-            instructions=self._system_prompt + context_block,
-            markdown=False,
-        )
+        return self._create_agent(self._system_prompt + context_block, _FollowUpAnswer)
 
     def _model(self) -> Groq:
         return Groq(id=self.MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_OUTPUT_TOKENS)
 
-    def _validate_evidence(
-        self,
-        diagnosis: AgentDiagnosis,
-        allowed_ids: set[str],
-    ) -> AgentDiagnosis:
-        """Deterministic evidence validator.
 
-        Validates that every cited ``evidence_references`` was actually part
-        of the investigation's evidence set::
+def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> AgentDiagnosis:
+    """Deterministic evidence validator.
 
-            evidence_references in allowed_ids
+    Validates that every cited ``evidence_references`` was actually part
+    of the investigation's evidence set::
 
-        ``allowed_ids`` contains the runbook IDs that were retrieved by the
-        orchestrator's pipeline (candidates) plus any IDs discovered by the
-        agent's tool calls.  A reference that exists in the repository but
-        was NOT part of this investigation is stripped — the model cannot
-        cherry-pick arbitrary runbooks from the database.
+        evidence_references in allowed_ids
 
-        This is stronger than a simple existence check because it prevents
-        *unsupported reasoning* (citing a valid but irrelevant runbook),
-        not just *citation hallucination* (citing a non-existent runbook).
-        """
-        if not diagnosis.evidence_references:
-            return diagnosis
+    ``allowed_ids`` contains the runbook IDs that were retrieved by the
+    orchestrator's pipeline (candidates) plus any IDs discovered by the
+    agent's tool calls.  A reference that exists in the repository but
+    was NOT part of this investigation is stripped — the model cannot
+    cherry-pick arbitrary runbooks from the database.
 
-        # If tool deps were injected, tool calls may have discovered new IDs.
-        # _tool_retrieved_ids is populated by the search tool at call time.
-        effective_allowed = allowed_ids | self._tool_retrieved_ids
-
-        valid: list[str] = []
-        unsupported: list[str] = []
-
-        for ref in diagnosis.evidence_references:
-            if ref in effective_allowed:
-                valid.append(ref)
-            else:
-                unsupported.append(ref)
-
-        if unsupported:
-            logger.warning(
-                "Evidence validator stripped %d unsupported reference(s): %s "
-                "(not in investigation evidence set)",
-                len(unsupported),
-                unsupported,
-            )
-            return diagnosis.model_copy(update={"evidence_references": valid})
-
+    This is stronger than a simple existence check because it prevents
+    *unsupported reasoning* (citing a valid but irrelevant runbook),
+    not just *citation hallucination* (citing a non-existent runbook).
+    """
+    valid = [ref for ref in diagnosis.evidence_references if ref in allowed_ids]
+    unsupported = [ref for ref in diagnosis.evidence_references if ref not in allowed_ids]
+    if not unsupported:
         return diagnosis
+    logger.warning(
+        "Evidence validator stripped %d unsupported reference(s): %s "
+        "(not in investigation evidence set)",
+        len(unsupported),
+        unsupported,
+    )
+    return diagnosis.model_copy(update={"evidence_references": valid})
 
 
 # Formatting Helpers
