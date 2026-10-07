@@ -9,8 +9,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from deployd.adapters.outgoing.vector_store.hybrid_retriever import HybridRetriever
     from deployd.application.dtos.retrieval import RetrievalResult
+    from deployd.application.ports.retrieval_port import RetrievalPort
 
 
 class RetrieveCandidates:
@@ -19,10 +19,10 @@ class RetrieveCandidates:
     Parameters
     ----------
     retriever:
-        Concrete HybridRetriever (injected; never imported here directly).
+        Concrete RetrievalPort (injected; never imported here directly).
     """
 
-    def __init__(self, retriever: HybridRetriever) -> None:
+    def __init__(self, retriever: RetrievalPort) -> None:
         self._retriever = retriever
 
     def execute(self, query: str, top_k: int = 5) -> RetrievalResult:

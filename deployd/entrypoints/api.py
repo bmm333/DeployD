@@ -34,6 +34,7 @@ from deployd.adapters.outgoing.vector_store.graph_index import GraphIndex
 from deployd.adapters.outgoing.vector_store.graph_store import GraphStore, RunbookStructure
 from deployd.adapters.outgoing.vector_store.hybrid_retriever import HybridRetriever
 from deployd.adapters.outgoing.vector_store.runbook_repository import JSONRunbookRepository
+from deployd.application.ports.retrieval_port import RetrievalPort
 from deployd.application.dtos.diagnosis import DiagnosisTier
 from deployd.application.dtos.investigation_request import InvestigationRequest
 from deployd.application.orchestrators.investigation_orchestrator import (
@@ -48,12 +49,10 @@ from deployd.application.use_cases.incident_lifecycle import (
     IncidentLifecycleUseCase,
     ListIncidentsUseCase,
 )
-from deployd.domain.causal.causal_engine import CausalEngine
+from deployd.application.use_cases.live_investigation import LiveInvestigation
 from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.graph.graph import IncidentGraph
-from deployd.domain.graph.node import GraphNode
-from deployd.domain.health.process_health import ProcessHealthFSM
-from deployd.domain.health.process_state import ProcessHealthStatus
+from deployd.domain.health.tracker import ComponentHealthTracker
 from deployd.entrypoints.decision_trace import build_decision_trace
 from deployd.infrastructure.persistence.sqlite_incident_repository import (
     SQLiteIncidentRepository,
@@ -106,6 +105,11 @@ _correlate = CorrelateEventsUseCase(
     graph=_graph, event_window=_window, config=_config, topology=_topology
 )
 _adapter = HttpEventAdapter()
+_health_tracker = ComponentHealthTracker(
+    fsm_recovery_window_s=int(_FSM_RECOVERY_WINDOW.total_seconds()),
+    fsm_max_restarts=_FSM_MAX_RESTARTS,
+    fsm_restart_window_s=int(_FSM_RESTART_WINDOW.total_seconds()),
+)
 
 # Investigation state
 # Chat messages are flat str→str dicts so they persist as Incident.chat_history.
@@ -123,7 +127,7 @@ _auto_diagnosed_incident_id: str | None = None
 
 @dataclass
 class _RetrievalStack:
-    retriever: HybridRetriever
+    retriever: RetrievalPort
     chroma: ChromaRunbookClient
     repo: JSONRunbookRepository
 
@@ -206,43 +210,7 @@ def _graph_snapshot() -> dict[str, Any]:
     }
 
 
-def _longest_chain() -> list[GraphNode]:
-    engine = CausalEngine(_graph)
-    chains = [c for root in _graph.get_root_nodes() for c in engine.causal_chain(root.node_id)]
-    return max(chains, key=len, default=[])
 
-
-def _chain_rules(chain: list[GraphNode]) -> list[str]:
-    """Rule IDs of the edges along a chain, in order."""
-    rules: list[str] = []
-    for src, dst in zip(chain, chain[1:], strict=False):
-        edge = next(
-            (e for e in _graph.outgoing_edges(src.node_id) if e.target == dst.node_id), None
-        )
-        if edge is not None:
-            rules.append(edge.rule_id or edge.edge_type.value)
-    return rules
-
-
-def _chain_text(chain: list[GraphNode]) -> str:
-    return " → ".join(
-        f"{n.event.event_type.value} ({n.event.related_component or '?'})" for n in chain
-    )
-
-
-def _fsm_state(component: str) -> ProcessHealthStatus:
-    fsm = ProcessHealthFSM(
-        recovery_window=_FSM_RECOVERY_WINDOW,
-        max_restart_count=_FSM_MAX_RESTARTS,
-        restart_time_window=_FSM_RESTART_WINDOW,
-    )
-    events = sorted(
-        (n.event for n in _graph.nodes if n.event.related_component == component),
-        key=lambda e: e.timestamp,
-    )
-    for event in events:
-        fsm.process_event(event)
-    return fsm.state
 
 
 def _provider_hint(detail: str) -> str:
@@ -297,8 +265,10 @@ def receive_event(raw: RawTelemetryEvent, background_tasks: BackgroundTasks) -> 
             incident = _lifecycle.ensure_open(core_event)
             _lifecycle.update_severity(core_event.severity)
 
+            trigger, _, _ = _health_tracker.process_event(core_event)
             current_global_severity = compute_incident_severity(_graph)
-            if current_global_severity == "Critical" and _auto_diagnosed_incident_id != str(
+
+            if (current_global_severity == "Critical" or trigger) and _auto_diagnosed_incident_id != str(
                 incident.id
             ):
                 _auto_diagnosed_incident_id = str(incident.id)
@@ -338,121 +308,95 @@ def get_state() -> dict[str, Any]:
 def _run_investigation(target_incident_id: str) -> None:
     """Run the three-tier gate on the live graph; the LLM is reached only in Tier 3."""
     global _decision_trace, _session, _investigating  # noqa: PLW0603
+    
     with _state_lock:
-        chain = _longest_chain()
-        if not chain:
-            return
-
         _investigating = True
+        graph_snapshot = copy.deepcopy(_graph)
+
     try:
         with _state_lock:
             current = _incident_repo.get_current()
             if not current or str(current.id) != target_incident_id:
                 return
 
-            component = chain[0].event.related_component or "unknown-component"
-            chain_types = tuple(n.event.event_type.value for n in chain)
-            components = frozenset(
-                n.event.related_component for n in chain if n.event.related_component
-            )
-            query = f"{component}: " + "; ".join(
-                n.event.description or n.event.event_type.value for n in chain
-            )
+        stack = _get_retrieval()
+        agent = _get_agent()
+        orchestrator = InvestigationOrchestrator(agent=agent)
+        use_case = LiveInvestigation(
+            retriever=stack.retriever,
+            orchestrator=orchestrator,
+            fsm_recovery_window_s=int(_FSM_RECOVERY_WINDOW.total_seconds()),
+            fsm_max_restarts=_FSM_MAX_RESTARTS,
+            fsm_restart_window_s=int(_FSM_RESTART_WINDOW.total_seconds()),
+        )
+
+        result = use_case.execute(graph_snapshot)
+        if not result:
+            return
+            
+        with _state_lock:
             _post(
                 "system",
                 "event",
-                f"Investigation triggered on **{component}**: the incident reached CRITICAL "
-                f"with a {len(chain) - 1}-hop causal chain. Running the three-tier gate…",
+                f"Investigation triggered on **{result.component}**: causal chain detected. "
+                f"Running the three-tier gate…",
             )
-            fsm_state_val = _fsm_state(component)
-            rules_fired_val = _chain_rules(chain)
-            graph_snapshot = copy.deepcopy(_graph)
-
-        stack = _get_retrieval()
-        retrieval, breakdown = stack.retriever.retrieve_scored(
-            query, causal_chain=chain_types, components=components
-        )
-        agent = _get_agent()
-        request = InvestigationRequest(
-            component=component,
-            graph=graph_snapshot,
-            fsm_state=fsm_state_val,
-            retrieval_result=retrieval,
-        )
-
-        result = None
-        llm_error: str | None = None
-        try:
-            result = InvestigationOrchestrator(agent=agent).run(request)
-            tier = result.tier
-        except _AGENT_ERRORS as exc:
-            # Only Tier 3 can raise: gate passed, but the agent is missing or failed.
-            # Fail closed — show the deterministic chain, never an unvalidated answer.
-            log.exception("Tier-3 agent run failed")
-            tier = DiagnosisTier.FULL
-            llm_error = str(exc) if agent is not None else None
-
-        llm_called = tier is DiagnosisTier.FULL and agent is not None
-
-        with _state_lock:
+            
             current = _incident_repo.get_current()
             if not current or str(current.id) != target_incident_id:
                 return
 
+            llm_called = result.tier is DiagnosisTier.FULL and agent is not None
+            
+            threshold = 0.5
+            if hasattr(stack.retriever, "confidence_threshold"):
+                threshold = stack.retriever.confidence_threshold
+            
             _decision_trace = build_decision_trace(
-                tier=tier,
-                component=component,
-                query=query,
-                chain=chain_types,
-                rules_fired=rules_fired_val,
-                candidates=retrieval.candidates,
-                breakdown={rid: asdict(scores) for rid, scores in breakdown.items()},
-                threshold=retrieval.confidence_threshold,
-                agent_available=agent is not None,
+                tier=result.tier,
+                component=result.component,
+                query=result.query,
+                chain=result.chain,
+                rules_fired=result.rules_fired,
+                candidates=result.candidates,
+                breakdown=result.breakdown,
+                threshold=threshold,
+                agent_available=result.agent_available,
                 llm_called=llm_called,
-                tokens_used=agent.last_token_usage if llm_called and agent else None,
-                llm_error=llm_error,
+                tokens_used=result.llm_usage,
+                llm_error=result.llm_error,
                 prompt_version=agent.prompt_version if agent else None,
             )
 
-            diagnosis = result.structured_diagnosis if result else None
-            if diagnosis is not None and agent is not None and agent.last_session_id:
+            if result.diagnosis is not None and agent is not None and agent.last_session_id:
                 _session = {
                     "id": agent.last_session_id,
-                    "component": component,
+                    "component": result.component,
                     "turn": 0,
                     "max_turns": MAX_FOLLOW_UP_TURNS,
                 }
                 _post(
                     "agent",
                     "diagnosis",
-                    diagnosis.root_cause,
-                    confidence=diagnosis.confidence,
-                    reasoning=diagnosis.reasoning,
-                    recommendation=diagnosis.recommendation,
-                    evidence=",".join(diagnosis.evidence_references),
+                    result.diagnosis.root_cause,
+                    confidence=result.diagnosis.confidence,
+                    reasoning=result.diagnosis.reasoning,
+                    recommendation=result.diagnosis.recommendation,
+                    evidence=",".join(result.diagnosis.evidence_references),
                     tokens=str(_decision_trace["tokens_used"] or ""),
                 )
             else:
                 reason = (
-                    _provider_hint(llm_error)
-                    if llm_error
+                    _provider_hint(result.llm_error)
+                    if result.llm_error
                     else _decision_trace["reason_llm_skipped"] or ""
-                )
-                summary = (
-                    result.remediation.summary
-                    if result
-                    else (
-                        "The gate allowed a grounded diagnosis, but the agent could not produce a "
-                        "validated answer. Showing the deterministic evidence instead."
-                    )
                 )
                 _post(
                     "agent",
                     "deterministic",
-                    summary,
-                    tier=tier.value,
-                    chain=_chain_text(chain),
+                    result.summary,
+                    tier=result.tier.value,
+                    chain=" → ".join(result.chain),
                     reason=reason,
                 )
             _persist_chat()
