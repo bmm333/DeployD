@@ -41,7 +41,18 @@ from typing import TYPE_CHECKING
 from agno.agent import Agent
 from agno.models.groq import Groq
 from agno.run.base import RunStatus
+from deployd.adapters.outgoing.ai.tool_models import (
+    DependencyCheckInput,
+    DependencyCheckResult,
+    RunbookDetail,
+    RunbookDetailInput,
+    RunbookSearchInput,
+    RunbookSearchResult,
+    RunbookSummary,
+    ToolError,
+)
 from deployd.application.dtos.diagnosis import AgentDiagnosis
+from pydantic import BaseModel, ValidationError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -114,14 +125,10 @@ def _repo_root() -> Path:
     raise RuntimeError("Could not locate repo root (no pyproject.toml in ancestors)")
 
 
-# Tools validate input before execution and truncate outputs to
-# prevent context-window blowup.
+# Tools validate their arguments with Pydantic, answer with a Pydantic result
+# serialised as JSON, and never return more than _TOOL_OUTPUT_MAX_CHARS.
 
 _TOOL_OUTPUT_MAX_CHARS = 1500
-_TOOL_QUERY_MIN_CHARS = 3
-_TOOL_QUERY_MAX_CHARS = 500
-_RUNBOOK_ID_PATTERN = re.compile(r"RB-[A-Z0-9-]{1,80}")
-_COMPONENT_NAME_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{0,63}")
 
 
 def _untrusted(text: str) -> str:
@@ -129,11 +136,23 @@ def _untrusted(text: str) -> str:
     return html.escape(text, quote=False)
 
 
-def _runbook_block(runbook_id: str, body: str, max_chars: int = _TOOL_OUTPUT_MAX_CHARS) -> str:
-    """Wrap runbook text (untrusted historical data) in a delimited, size-capped block."""
-    opening = f'<runbook id="{html.escape(runbook_id)}">\n'
-    closing = "\n</runbook>"
-    return opening + _untrusted(body)[: max_chars - len(opening) - len(closing)] + closing
+def _tool_error(message: str) -> str:
+    return ToolError(error=message).model_dump_json()
+
+
+def _invalid_args(exc: ValidationError) -> str:
+    first = exc.errors()[0]
+    field_name = ".".join(str(part) for part in first["loc"])
+    return _tool_error(f"invalid {field_name}: {first['msg']}")
+
+
+_TOO_LARGE = _tool_error("result exceeds the tool output limit")
+
+
+def _capped(result: BaseModel) -> str | None:
+    """The result as JSON, or ``None`` when over the limit (JSON cannot be cut without breaking)."""
+    output = result.model_dump_json()
+    return output if len(output) <= _TOOL_OUTPUT_MAX_CHARS else None
 
 
 def _make_search_runbooks_tool(
@@ -161,45 +180,40 @@ def _make_search_runbooks_tool(
             query: Natural language description of the incident or symptoms.
 
         Returns:
-            Formatted list of matching runbooks with summaries, causal chains,
-            and fixes.
+            JSON {"runbooks": [...]} with summary, root cause, causal chain and
+            fix of each match, or {"error": ...}.
         """
-        query = query.strip()
-        if len(query) < _TOOL_QUERY_MIN_CHARS:
-            return "Error: query must be at least 3 characters."
-        query = query[:_TOOL_QUERY_MAX_CHARS]
+        try:
+            args = RunbookSearchInput(query=query)
+        except ValidationError as exc:
+            return _invalid_args(exc)
 
-        logger.info("Tool call: search_runbooks(query=%r)", query[:80])
+        logger.info("Tool call: search_runbooks(query=%r)", args.query[:80])
 
-        hits = chroma.search(query, top_k=3)
-        if not hits:
-            return "No matching runbooks found for this query."
-
-        blocks: list[str] = []
-        used = 0
-        for hit in hits[:3]:
+        result = RunbookSearchResult(runbooks=[])
+        output = result.model_dump_json()
+        for hit in chroma.search(args.query, top_k=3):
             detail = runbook_repo.get_by_id(hit.runbook_id)
             if not detail:
                 continue
-            lines = [
-                f"semantic_score: {hit.semantic_score:.2f}",
-                f"Summary: {detail.summary[:200]}",
-                f"Root cause: {detail.root_cause[:150]}",
-            ]
-            if detail.causal_chain:
-                lines.append(f"Causal chain: {' -> '.join(detail.causal_chain)}")
-            lines.append(f"Fix: {detail.fix[:150]}")
-            if detail.affected_components:
-                lines.append(f"Affected: {', '.join(detail.affected_components)}")
-            block = _runbook_block(detail.runbook_id, "\n".join(lines))
-            if used + len(block) > _TOOL_OUTPUT_MAX_CHARS:
+            match = RunbookSummary(
+                runbook_id=detail.runbook_id,
+                semantic_score=round(float(hit.semantic_score), 2),
+                summary=detail.summary[:200],
+                root_cause=detail.root_cause[:150],
+                causal_chain=list(detail.causal_chain),
+                fix=detail.fix[:150],
+                affected_components=list(detail.affected_components),
+            )
+            extended = RunbookSearchResult(runbooks=[*result.runbooks, match])
+            extended_output = _capped(extended)
+            if extended_output is None:
                 break
             # Only IDs actually shown to the model become citable evidence.
             retrieved_ids.add(detail.runbook_id)
-            blocks.append(block)
-            used += len(block) + 1
+            result, output = extended, extended_output
 
-        return "\n".join(blocks) if blocks else "No detailed info available."
+        return output
 
     return search_runbooks
 
@@ -221,39 +235,38 @@ def _make_check_dependencies_tool(
             component: The name of the component (e.g., 'payment-service').
 
         Returns:
-            A formatted compatibility report with an evidence ID.
+            JSON compatibility report (evidence_id, status, installed_versions,
+            violations), or {"error": ...}.
         """
-        component = component.strip().lower()
-        if not _COMPONENT_NAME_PATTERN.fullmatch(component):
-            return "Error: invalid component name. Expected e.g. 'payment-service'."
+        try:
+            args = DependencyCheckInput(component=component)
+        except ValidationError as exc:
+            return _invalid_args(exc)
 
-        logger.info("Tool call: check_component_dependencies(component=%r)", component)
+        logger.info("Tool call: check_component_dependencies(component=%r)", args.component)
 
-        if registry.get_component_state(component) is None:
-            return f"Component '{component}' is not in the registry; no compatibility evidence."
+        if registry.get_component_state(args.component) is None:
+            return _tool_error(
+                f"component '{args.component}' is not in the registry; no compatibility evidence"
+            )
 
-        report = registry.check_compatibility(component)
-
-        # Register the evidence ID so the validator accepts it.
+        report = registry.check_compatibility(args.component)
+        output = _capped(
+            DependencyCheckResult.model_validate(
+                {
+                    "evidence_id": report.evidence_id,
+                    "component": report.component_name,
+                    "status": report.status.value.upper(),
+                    "installed_versions": report.installed_versions,
+                    "violations": report.violations,
+                }
+            )
+        )
+        if output is None:
+            return _TOO_LARGE
+        # Register the evidence ID only once the model can actually see it.
         retrieved_ids.add(report.evidence_id)
-
-        lines = [
-            f"Compatibility Evidence: {report.evidence_id}",
-            f"Component: {report.component_name}",
-            f"Status: {report.status.value.upper()}",
-            "",
-            "Installed Versions:",
-        ]
-
-        for pkg, ver in report.installed_versions.items():
-            lines.append(f"  {pkg}: {ver}")
-
-        if report.violations:
-            lines.append("\nViolations Found:")
-            for v in report.violations:
-                lines.append(f"  - {v}")
-
-        return "\n".join(lines)[:_TOOL_OUTPUT_MAX_CHARS]
+        return output
 
     return check_component_dependencies
 
@@ -278,29 +291,31 @@ def _make_get_runbook_detail_tool(
             runbook_id: The runbook identifier (e.g. 'RB-PAYMENT-DB-TIMEOUT').
 
         Returns:
-            Full runbook details including fix commands and causal chain.
+            JSON runbook with root cause, causal chain, fix and fix_commands,
+            or {"error": ...}.
         """
-        runbook_id = runbook_id.strip().upper()
-        if not _RUNBOOK_ID_PATTERN.fullmatch(runbook_id):
-            return "Error: invalid runbook_id format. Expected e.g. 'RB-PAYMENT-DB-TIMEOUT'."
+        try:
+            args = RunbookDetailInput(runbook_id=runbook_id)
+        except ValidationError as exc:
+            return _invalid_args(exc)
 
-        logger.info("Tool call: get_runbook_detail(runbook_id=%r)", runbook_id)
+        logger.info("Tool call: get_runbook_detail(runbook_id=%r)", args.runbook_id)
 
-        detail = runbook_repo.get_by_id(runbook_id)
+        detail = runbook_repo.get_by_id(args.runbook_id)
         if not detail:
-            return f"Runbook '{runbook_id}' not found in the historical database."
+            return _tool_error(f"runbook '{args.runbook_id}' not found in the historical database")
 
-        body = (
-            f"Runbook: {detail.runbook_id}\n"
-            f"Incident: {detail.incident_id}\n"
-            f"Summary: {detail.summary}\n"
-            f"Root Cause: {detail.root_cause}\n"
-            f"Causal Chain: {' -> '.join(detail.causal_chain) if detail.causal_chain else 'N/A'}\n"
-            f"Fix: {detail.fix}\n"
-            f"Commands: {'; '.join(detail.fix_commands) if detail.fix_commands else 'None'}\n"
-            f"Affected Components: {', '.join(detail.affected_components)}"
+        result = RunbookDetail(
+            runbook_id=detail.runbook_id,
+            incident_id=detail.incident_id,
+            summary=detail.summary[:300],
+            root_cause=detail.root_cause[:300],
+            causal_chain=list(detail.causal_chain),
+            fix=detail.fix[:300],
+            fix_commands=[command[:200] for command in detail.fix_commands[:5]],
+            affected_components=list(detail.affected_components),
         )
-        return _runbook_block(detail.runbook_id, body)
+        return _capped(result) or _TOO_LARGE
 
     return get_runbook_detail
 
@@ -330,6 +345,13 @@ class AgnoGroqAgent:
     Diagnosis pipeline::
 
         LLM (with tools)->AgentDiagnosis (Pydantic response_model)->Evidence validator (deterministic — strips hallucinated IDs) -> Formatted string for AgentPort
+
+    Tool safety boundary: every tool is **read-only**.  ``search_runbooks``,
+    ``get_runbook_detail`` and ``check_component_dependencies`` only read the
+    runbook store and the component registry; none writes state, calls an
+    external system or executes a command.  Arguments and results are Pydantic
+    models (``tool_models.py``), results are capped JSON, and Agno refuses tool
+    calls beyond ``TOOL_CALL_LIMIT`` per run.
 
     Parameters
     ----------
