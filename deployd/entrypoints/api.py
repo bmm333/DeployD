@@ -15,7 +15,7 @@ import logging
 import os
 import threading
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -34,12 +34,11 @@ from deployd.adapters.outgoing.vector_store.graph_index import GraphIndex
 from deployd.adapters.outgoing.vector_store.graph_store import GraphStore, RunbookStructure
 from deployd.adapters.outgoing.vector_store.hybrid_retriever import HybridRetriever
 from deployd.adapters.outgoing.vector_store.runbook_repository import JSONRunbookRepository
-from deployd.application.ports.retrieval_port import RetrievalPort
 from deployd.application.dtos.diagnosis import DiagnosisTier
-from deployd.application.dtos.investigation_request import InvestigationRequest
 from deployd.application.orchestrators.investigation_orchestrator import (
     InvestigationOrchestrator,
 )
+from deployd.application.ports.retrieval_port import RetrievalPort
 from deployd.application.use_cases.correlate_events import (
     CorrelateEventsUseCase,
     compute_incident_severity,
@@ -210,9 +209,6 @@ def _graph_snapshot() -> dict[str, Any]:
     }
 
 
-
-
-
 def _provider_hint(detail: str) -> str:
     if "rate_limit" in detail or "Request too large" in detail:
         return "The LLM provider rate limit was hit — wait a minute and try again."
@@ -268,9 +264,9 @@ def receive_event(raw: RawTelemetryEvent, background_tasks: BackgroundTasks) -> 
             trigger, _, _ = _health_tracker.process_event(core_event)
             current_global_severity = compute_incident_severity(_graph)
 
-            if (current_global_severity == "Critical" or trigger) and _auto_diagnosed_incident_id != str(
-                incident.id
-            ):
+            if (
+                current_global_severity == "Critical" or trigger
+            ) and _auto_diagnosed_incident_id != str(incident.id):
                 _auto_diagnosed_incident_id = str(incident.id)
                 background_tasks.add_task(_run_investigation, str(incident.id))
 
@@ -308,7 +304,7 @@ def get_state() -> dict[str, Any]:
 def _run_investigation(target_incident_id: str) -> None:
     """Run the three-tier gate on the live graph; the LLM is reached only in Tier 3."""
     global _decision_trace, _session, _investigating  # noqa: PLW0603
-    
+
     with _state_lock:
         _investigating = True
         graph_snapshot = copy.deepcopy(_graph)
@@ -333,7 +329,7 @@ def _run_investigation(target_incident_id: str) -> None:
         result = use_case.execute(graph_snapshot)
         if not result:
             return
-            
+
         with _state_lock:
             _post(
                 "system",
@@ -341,17 +337,17 @@ def _run_investigation(target_incident_id: str) -> None:
                 f"Investigation triggered on **{result.component}**: causal chain detected. "
                 f"Running the three-tier gate…",
             )
-            
+
             current = _incident_repo.get_current()
             if not current or str(current.id) != target_incident_id:
                 return
 
             llm_called = result.tier is DiagnosisTier.FULL and agent is not None
-            
+
             threshold = 0.5
             if hasattr(stack.retriever, "confidence_threshold"):
                 threshold = stack.retriever.confidence_threshold
-            
+
             _decision_trace = build_decision_trace(
                 tier=result.tier,
                 component=result.component,
