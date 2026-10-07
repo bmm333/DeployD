@@ -331,6 +331,11 @@ def _run_investigation(target_incident_id: str) -> None:
             return
 
         with _state_lock:
+            # 1. Verify the incident hasn't been reset/closed while we were unlocked
+            current = _incident_repo.get_current()
+            if not current or str(current.id) != target_incident_id:
+                return
+
             _post(
                 "system",
                 "event",
