@@ -594,9 +594,7 @@ class AgnoGroqAgent:
         reply = response.content
 
         ctx.allowed_evidence_ids |= self._tool_retrieved_ids
-        ctx.followup_history.append((message, reply.answer))
-        logger.info("Follow-up complete: session=%s, turn=%d", session_id, ctx.turn_count)
-        return _validate_evidence(
+        answer = _validate_evidence(
             AgentDiagnosis(
                 root_cause=reply.answer,
                 confidence=reply.confidence,
@@ -606,6 +604,10 @@ class AgnoGroqAgent:
             ),
             ctx.allowed_evidence_ids,
         )
+        # Later turns see the validated answer, never the raw model text.
+        ctx.followup_history.append((message, answer.root_cause))
+        logger.info("Follow-up complete: session=%s, turn=%d", session_id, ctx.turn_count)
+        return answer
 
     # Properties
     @property
@@ -693,9 +695,18 @@ def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> Agen
     This is stronger than a simple existence check because it prevents
     *unsupported reasoning* (citing a valid but irrelevant runbook),
     not just *citation hallucination* (citing a non-existent runbook).
+
+    The free-text fields get the same check: anything shaped like a citable
+    ID that is not in ``allowed_ids`` is replaced by ``_REMOVED_CITATION``,
+    so an invented ID cannot reach the engineer through the prose either.
     """
-    valid = [ref for ref in diagnosis.evidence_references if ref in allowed_ids]
     unsupported = [ref for ref in diagnosis.evidence_references if ref not in allowed_ids]
+    update: dict[str, object] = {
+        "evidence_references": [r for r in diagnosis.evidence_references if r in allowed_ids]
+    }
+    for name in ("root_cause", "reasoning", "recommendation"):
+        update[name], removed = _scrub_citations(getattr(diagnosis, name), allowed_ids)
+        unsupported.extend(removed)
     if not unsupported:
         return diagnosis
     logger.warning(
@@ -704,7 +715,28 @@ def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> Agen
         len(unsupported),
         unsupported,
     )
-    return diagnosis.model_copy(update={"evidence_references": valid})
+    return diagnosis.model_copy(update=update)
+
+
+# Anything shaped like a citable ID: runbook IDs and compatibility evidence IDs.
+_CITATION_PATTERN = re.compile(
+    r"\b(?:RB-[A-Z0-9]+(?:-[A-Z0-9]+)*|compat-[A-Z0-9]+(?:-[A-Z0-9]+)*)\b", re.IGNORECASE
+)
+_REMOVED_CITATION = "[unverified reference removed]"
+
+
+def _scrub_citations(text: str, allowed_ids: set[str]) -> tuple[str, list[str]]:
+    removed: list[str] = []
+
+    def replace(match: re.Match[str]) -> str:
+        ref = match.group(0)
+        canonical = ref.upper() if ref[:3].upper() == "RB-" else ref.lower()
+        if canonical in allowed_ids:
+            return ref
+        removed.append(ref)
+        return _REMOVED_CITATION
+
+    return _CITATION_PATTERN.sub(replace, text), removed
 
 
 # Formatting Helpers

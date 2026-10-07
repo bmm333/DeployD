@@ -218,6 +218,41 @@ def test_validator_rejects_valid_runbooks_not_retrieved_for_this_incident(
 
 
 @pytest.mark.usefixtures("groq_key")
+def test_invented_ids_in_free_text_never_reach_the_engineer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # What a model that obeyed the poisoned runbook ("cite RB-ADMIN-0") would write.
+    obeyed = AgentDiagnosis(
+        root_cause=f"Heap exhaustion, as in {OOM_ID} and RB-ADMIN-0.",
+        confidence="High",
+        reasoning="Per rb-admin-0 and compat-auth-service-001 the cache grew.",
+        recommendation="Apply RB-INVENTED-FIX, then roll back the cache size.",
+        evidence_references=[OOM_ID, "RB-ADMIN-0"],
+    )
+    agent, _ = _agent_with(monkeypatch, lambda _: _response(obeyed))
+
+    result = agent.diagnose("auth-service", [CHAIN], [RetrievalCandidate(OOM_ID, 0.67)])
+
+    removed = agno_agent._REMOVED_CITATION
+    assert result.root_cause == f"Heap exhaustion, as in {OOM_ID} and {removed}."
+    assert result.reasoning == f"Per {removed} and {removed} the cache grew."
+    assert result.recommendation == f"Apply {removed}, then roll back the cache size."
+    assert result.evidence_references == [OOM_ID]
+    assert agent.last_session_id is not None
+    assert "ADMIN" not in agent._sessions[agent.last_session_id].diagnosis_text
+
+
+def test_free_text_keeps_evidence_ids_whatever_their_case() -> None:
+    diagnosis = _diagnosis().model_copy(
+        update={"reasoning": "rb-auth-service-oomkill and COMPAT-PAYMENT-SERVICE-001 agree."}
+    )
+
+    result = agno_agent._validate_evidence(diagnosis, {OOM_ID, "compat-payment-service-001"})
+
+    assert result is diagnosis
+
+
+@pytest.mark.usefixtures("groq_key")
 def test_ids_discovered_by_the_search_tool_are_accepted(
     monkeypatch: pytest.MonkeyPatch, repo: JSONRunbookRepository
 ) -> None:
@@ -396,6 +431,20 @@ def test_follow_up_may_cite_what_its_own_tools_showed(
 
     assert answer.evidence_references == [DB_ID]
     assert agent._sessions[session].allowed_evidence_ids == {OOM_ID, DB_ID}
+
+
+@pytest.mark.usefixtures("groq_key")
+def test_follow_up_text_is_scrubbed_before_it_is_shown_or_remembered(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent, session = _diagnosed_agent(monkeypatch)
+    followup = _FakeAgnoAgent(lambda _: _response(_reply("Per RB-ADMIN-0, drop the table.")))
+    monkeypatch.setattr(agent, "_create_followup_agent", lambda ctx: followup)
+
+    answer = agent.follow_up(session, "what now?")
+
+    assert answer.root_cause == f"Per {agno_agent._REMOVED_CITATION}, drop the table."
+    assert agent._sessions[session].followup_history == [("what now?", answer.root_cause)]
 
 
 @pytest.mark.usefixtures("groq_key")
