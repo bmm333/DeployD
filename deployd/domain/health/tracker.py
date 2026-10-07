@@ -72,9 +72,3 @@ class ComponentHealthTracker:
 
         return trigger, current_state, list(events_queue)
 
-    def get_component_state(self, component: str) -> ProcessHealthStatus:
-        """Return the current health state of the specified component."""
-        fsm = self._fsm_by_component.get(component)
-        if fsm:
-            return fsm.state
-        return ProcessHealthStatus.HEALTHY

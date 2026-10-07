@@ -48,7 +48,7 @@ def build_decision_trace(
     threshold: float,
     agent_available: bool,
     llm_called: bool,
-    tokens_used: dict[str, int] | None,
+    tokens_used: int | None,
     llm_error: str | None = None,
     prompt_version: str | None = None,
 ) -> dict[str, Any]:

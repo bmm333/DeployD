@@ -15,7 +15,7 @@ class LiveInvestigationResult:
     candidates: Sequence[Any]
     breakdown: dict[str, dict[str, float]]
     diagnosis: AgentDiagnosis | None
-    llm_usage: dict[str, int] | None
+    llm_usage: int | None
     llm_error: str | None
     agent_available: bool
     summary: str

@@ -76,9 +76,9 @@ class LiveInvestigation:
             result = self._orchestrator.run(request)
             tier = result.tier
             diagnosis = result.structured_diagnosis
-            if agent_available and self._orchestrator._agent:
-                llm_usage = getattr(self._orchestrator._agent, "last_token_usage", None)
-        except Exception as exc:
+            if tier is DiagnosisTier.FULL:
+                llm_usage = self._orchestrator.last_token_usage
+        except (RuntimeError, ValueError, TypeError) as exc:
             log.exception("Tier-3 agent run failed")
             tier = DiagnosisTier.FULL
             llm_error = str(exc) if agent_available else None

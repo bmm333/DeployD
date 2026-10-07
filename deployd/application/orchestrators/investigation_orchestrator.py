@@ -152,6 +152,11 @@ class InvestigationOrchestrator:
     # --------------------------------------------------------------------------
     # Phase 1: Three-tier orchestrator (DID-12)
     # --------------------------------------------------------------------------
+    @property
+    def last_token_usage(self) -> int | None:
+        if self._agent is None:
+            return None
+        return getattr(self._agent, "last_token_usage", None)
 
     def run(self, request: InvestigationRequest) -> TierDiagnosisResult:
         """
