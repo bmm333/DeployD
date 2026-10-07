@@ -249,7 +249,20 @@ def test_free_text_keeps_evidence_ids_whatever_their_case() -> None:
 
     result = agno_agent._validate_evidence(diagnosis, {OOM_ID, "compat-payment-service-001"})
 
-    assert result is diagnosis
+    assert result == diagnosis
+
+
+def test_typographic_hyphens_neither_hide_nor_reject_an_id() -> None:
+    # gpt-oss writes U+2011 (non-breaking hyphen) inside identifiers.
+    nb = "\u2011"
+    diagnosis = _diagnosis(OOM_ID.replace("-", nb), OOM_ID).model_copy(
+        update={"root_cause": f"As in RB{nb}ADMIN{nb}0."}
+    )
+
+    result = agno_agent._validate_evidence(diagnosis, {OOM_ID})
+
+    assert result.root_cause == f"As in {agno_agent._REMOVED_CITATION}."
+    assert result.evidence_references == [OOM_ID]
 
 
 @pytest.mark.usefixtures("groq_key")

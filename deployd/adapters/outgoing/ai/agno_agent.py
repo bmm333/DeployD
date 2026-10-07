@@ -700,38 +700,46 @@ def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> Agen
     ID that is not in ``allowed_ids`` is replaced by ``_REMOVED_CITATION``,
     so an invented ID cannot reach the engineer through the prose either.
     """
-    unsupported = [ref for ref in diagnosis.evidence_references if ref not in allowed_ids]
+    known = {_canonical_id(ref): ref for ref in allowed_ids}
+    cited = [known.get(_canonical_id(ref)) for ref in diagnosis.evidence_references]
+    unsupported = [
+        ref for ref, match in zip(diagnosis.evidence_references, cited, strict=True) if not match
+    ]
     update: dict[str, object] = {
-        "evidence_references": [r for r in diagnosis.evidence_references if r in allowed_ids]
+        "evidence_references": list(dict.fromkeys(match for match in cited if match))
     }
     for name in ("root_cause", "reasoning", "recommendation"):
-        update[name], removed = _scrub_citations(getattr(diagnosis, name), allowed_ids)
+        update[name], removed = _scrub_citations(getattr(diagnosis, name), known)
         unsupported.extend(removed)
-    if not unsupported:
-        return diagnosis
-    logger.warning(
-        "Evidence validator stripped %d unsupported reference(s): %s "
-        "(not in investigation evidence set)",
-        len(unsupported),
-        unsupported,
-    )
+    if unsupported:
+        logger.warning(
+            "Evidence validator stripped %d unsupported reference(s): %s "
+            "(not in investigation evidence set)",
+            len(unsupported),
+            unsupported,
+        )
     return diagnosis.model_copy(update=update)
 
 
+# Models often write typographic hyphens (gpt-oss uses U+2011) inside IDs.
+_HYPHENS = "-\u2010\u2011\u2012\u2013\u2014\u2015\u2212"
 # Anything shaped like a citable ID: runbook IDs and compatibility evidence IDs.
-_CITATION_PATTERN = re.compile(
-    r"\b(?:RB-[A-Z0-9]+(?:-[A-Z0-9]+)*|compat-[A-Z0-9]+(?:-[A-Z0-9]+)*)\b", re.IGNORECASE
-)
+_CITATION_PATTERN = re.compile(rf"\b(?:RB|compat)(?:[{_HYPHENS}][A-Z0-9]+)+\b", re.IGNORECASE)
 _REMOVED_CITATION = "[unverified reference removed]"
 
 
-def _scrub_citations(text: str, allowed_ids: set[str]) -> tuple[str, list[str]]:
+def _canonical_id(ref: str) -> str:
+    """Compare IDs regardless of hyphen style and case: RB-* upper, everything else lower."""
+    ascii_ref = re.sub(f"[{_HYPHENS}]", "-", ref.strip())
+    return ascii_ref.upper() if ascii_ref[:3].upper() == "RB-" else ascii_ref.lower()
+
+
+def _scrub_citations(text: str, known: dict[str, str]) -> tuple[str, list[str]]:
     removed: list[str] = []
 
     def replace(match: re.Match[str]) -> str:
         ref = match.group(0)
-        canonical = ref.upper() if ref[:3].upper() == "RB-" else ref.lower()
-        if canonical in allowed_ids:
+        if _canonical_id(ref) in known:
             return ref
         removed.append(ref)
         return _REMOVED_CITATION
