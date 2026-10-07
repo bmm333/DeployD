@@ -37,6 +37,7 @@ from deployd.adapters.outgoing.vector_store.runbook_repository import JSONRunboo
 from deployd.application.dtos.diagnosis import DiagnosisTier
 from deployd.application.dtos.investigation_request import InvestigationRequest
 from deployd.application.orchestrators.investigation_orchestrator import (
+    UNVERIFIABLE_ANSWER,
     InvestigationOrchestrator,
 )
 from deployd.application.use_cases.correlate_events import (
@@ -393,6 +394,9 @@ def _run_investigation(target_incident_id: str) -> None:
             llm_error = str(exc) if agent is not None else None
 
         llm_called = tier is DiagnosisTier.FULL and agent is not None
+        diagnosis = result.structured_diagnosis if result else None
+        # The orchestrator discarded an answer with no verifiable citation (fail-closed).
+        answer_discarded = UNVERIFIABLE_ANSWER if llm_called and result and not diagnosis else None
 
         with _state_lock:
             current = _incident_repo.get_current()
@@ -413,9 +417,9 @@ def _run_investigation(target_incident_id: str) -> None:
                 tokens_used=agent.last_token_usage if llm_called and agent else None,
                 llm_error=llm_error,
                 prompt_version=agent.prompt_version if agent else None,
+                answer_discarded=answer_discarded,
             )
 
-            diagnosis = result.structured_diagnosis if result else None
             if diagnosis is not None and agent is not None and agent.last_session_id:
                 _session = {
                     "id": agent.last_session_id,
@@ -437,7 +441,7 @@ def _run_investigation(target_incident_id: str) -> None:
                 reason = (
                     _provider_hint(llm_error)
                     if llm_error
-                    else _decision_trace["reason_llm_skipped"] or ""
+                    else answer_discarded or _decision_trace["reason_llm_skipped"] or ""
                 )
                 summary = (
                     result.remediation.summary
@@ -501,6 +505,16 @@ def chat(request: _ChatRequest) -> dict[str, str]:
                     "The gate allowed the agent for this investigation, but the grounded diagnosis "
                     f"failed, so there is no agent session to continue. "
                     f"{_provider_hint(_decision_trace['llm_error'])}",
+                )
+                _persist_chat()
+                return {"status": "ok"}
+            elif _session is None and _decision_trace.get("answer_discarded"):
+                _post(
+                    "system",
+                    "gate",
+                    "The agent's answer for this investigation was discarded "
+                    f"({_decision_trace['answer_discarded']}), so there is no agent session to "
+                    "continue. The causal chain above is the verified result.",
                 )
                 _persist_chat()
                 return {"status": "ok"}

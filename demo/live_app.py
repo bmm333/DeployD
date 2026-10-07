@@ -549,7 +549,15 @@ def _render_trace(trace: dict[str, Any] | None, investigating: bool, status: str
         tokens = trace.get("tokens_used")
         prompt = trace.get("prompt_version")
         version = f" · prompt v{_esc(prompt)}" if prompt else ""
-        rows.append(_trace_row("LLM called", f"{ok} {tokens or '?'} tokens{version}"))
+        discarded = trace.get("answer_discarded")
+        rows.append(
+            _trace_row("LLM called", f"{ok} {tokens or '?'} tokens{version}")
+            + (
+                f'<div class="dp-mini">answer discarded: {_esc(discarded)}</div>'
+                if discarded
+                else ""
+            )
+        )
     else:
         error = trace.get("llm_error") or ""
         reason = (
