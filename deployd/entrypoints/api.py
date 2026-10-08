@@ -51,7 +51,6 @@ from deployd.application.use_cases.incident_lifecycle import (
 from deployd.application.use_cases.live_investigation import LiveInvestigation
 from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.graph.graph import IncidentGraph
-from deployd.domain.health.tracker import ComponentHealthTracker
 from deployd.entrypoints.decision_trace import build_decision_trace
 from deployd.infrastructure.persistence.sqlite_incident_repository import (
     SQLiteIncidentRepository,
@@ -67,7 +66,7 @@ log = logging.getLogger(__name__)
 # structured output.  The investigation fails closed on any of them.
 _AGENT_ERRORS = (AgnoError, groq.GroqError, RuntimeError, TypeError, ValueError)
 
-# FSM parameters — same defaults as BuildInvestigation.
+# FSM parameters — same defaults as ComponentHealthTracker.
 _FSM_RECOVERY_WINDOW = timedelta(seconds=300)
 _FSM_MAX_RESTARTS = 3
 _FSM_RESTART_WINDOW = timedelta(seconds=120)
@@ -104,11 +103,6 @@ _correlate = CorrelateEventsUseCase(
     graph=_graph, event_window=_window, config=_config, topology=_topology
 )
 _adapter = HttpEventAdapter()
-_health_tracker = ComponentHealthTracker(
-    fsm_recovery_window_s=int(_FSM_RECOVERY_WINDOW.total_seconds()),
-    fsm_max_restarts=_FSM_MAX_RESTARTS,
-    fsm_restart_window_s=int(_FSM_RESTART_WINDOW.total_seconds()),
-)
 
 # Investigation state
 # Chat messages are flat str→str dicts so they persist as Incident.chat_history.
@@ -261,12 +255,10 @@ def receive_event(raw: RawTelemetryEvent, background_tasks: BackgroundTasks) -> 
             incident = _lifecycle.ensure_open(core_event)
             _lifecycle.update_severity(core_event.severity)
 
-            trigger, _, _ = _health_tracker.process_event(core_event)
             current_global_severity = compute_incident_severity(_graph)
-
-            if (
-                current_global_severity == "Critical" or trigger
-            ) and _auto_diagnosed_incident_id != str(incident.id):
+            if current_global_severity == "Critical" and _auto_diagnosed_incident_id != str(
+                incident.id
+            ):
                 _auto_diagnosed_incident_id = str(incident.id)
                 background_tasks.add_task(_run_investigation, str(incident.id))
 
