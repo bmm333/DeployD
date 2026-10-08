@@ -47,14 +47,17 @@ def test_incident_lifecycle_update_severity(repo):
     uc.ensure_open(_ev("1"))
 
     uc.update_severity(Severity.CRITICAL)
+    uc.update_severity(Severity.WARNING)
 
     incident = repo.get_current()
-    assert incident.peak_severity == Severity.CRITICAL
+    assert incident.peak_severity == Severity.CRITICAL  # the peak never goes down
 
-    # updating without open incident
     incident.resolve(T0, {}, [], "summary")
-    repo.save(incident)  # Close it
-    uc.update_severity(Severity.ERROR)  # should not crash
+    repo.save(incident)
+    uc.update_severity(Severity.ERROR)  # no open incident: nothing to update
+
+    assert repo.get_current() is None
+    assert repo.get(incident.id).peak_severity == Severity.CRITICAL
 
 
 def test_incident_lifecycle_close_current(repo):
