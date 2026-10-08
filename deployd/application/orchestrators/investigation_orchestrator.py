@@ -149,14 +149,20 @@ class InvestigationOrchestrator:
         self._event_mapper = event_mapper or EventMapper()
         self._graph_mapper = graph_mapper or GraphMapper()
 
+    @property
+    def agent_available(self) -> bool:
+        """Whether Tier 3 can reach an agent at all."""
+        return self._agent is not None
+
+    @property
+    def last_token_usage(self) -> int | None:
+        """Tokens of the agent's last run, when the agent reports them."""
+        usage = getattr(self._agent, "last_token_usage", None)
+        return usage if isinstance(usage, int) else None
+
     # --------------------------------------------------------------------------
     # Phase 1: Three-tier orchestrator (DID-12)
     # --------------------------------------------------------------------------
-    @property
-    def last_token_usage(self) -> int | None:
-        if self._agent is None:
-            return None
-        return getattr(self._agent, "last_token_usage", None)
 
     def run(self, request: InvestigationRequest) -> TierDiagnosisResult:
         """

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from dataclasses import asdict, is_dataclass
 from datetime import timedelta
 
 from deployd.application.dtos.diagnosis import DiagnosisTier
@@ -18,31 +20,56 @@ from deployd.domain.health.process_state import ProcessHealthStatus
 
 log = logging.getLogger(__name__)
 
+_AGENT_FAILED_SUMMARY = (
+    "The gate allowed a grounded diagnosis, but the agent could not produce a "
+    "validated answer. Showing the deterministic evidence instead."
+)
+
 
 class LiveInvestigation:
-    """Use case: run an investigation from the live incident graph."""
+    """Use case: run the three-tier gate on a snapshot of the live incident graph.
+
+    Builds the request (longest causal chain, FSM state, hybrid retrieval) and
+    runs the orchestrator.  ``agent_errors`` are the exceptions the composition
+    root expects from the concrete agent (the application layer cannot import
+    them): they become ``llm_error`` and the result falls back to the
+    deterministic evidence (fail-closed).  Anything else is a bug and propagates.
+    """
 
     def __init__(
         self,
         retriever: RetrievalPort,
         orchestrator: InvestigationOrchestrator,
+        agent_errors: tuple[type[Exception], ...] = (RuntimeError, TypeError, ValueError),
         fsm_recovery_window_s: int = 300,
         fsm_max_restarts: int = 3,
         fsm_restart_window_s: int = 120,
     ) -> None:
         self._retriever = retriever
         self._orchestrator = orchestrator
+        self._agent_errors = agent_errors
         self._fsm_recovery_window_s = fsm_recovery_window_s
         self._fsm_max_restarts = fsm_max_restarts
         self._fsm_restart_window_s = fsm_restart_window_s
 
-    def execute(self, graph: IncidentGraph) -> LiveInvestigationResult | None:
-        """Run the investigation and return the result, or None if no chain exists."""
+    def execute(
+        self,
+        graph: IncidentGraph,
+        on_start: Callable[[str, int], None] | None = None,
+    ) -> LiveInvestigationResult | None:
+        """Run the investigation, or return ``None`` when the graph has no causal chain.
+
+        ``on_start(component, hops)`` is called once the chain is known, before
+        retrieval and the (possibly slow) agent run.
+        """
         chain = self._longest_chain(graph)
         if not chain:
             return None
 
         component = chain[0].event.related_component or "unknown-component"
+        if on_start is not None:
+            on_start(component, len(chain) - 1)
+
         chain_types = tuple(n.event.event_type.value for n in chain)
         components = frozenset(
             n.event.related_component for n in chain if n.event.related_component
@@ -51,65 +78,46 @@ class LiveInvestigation:
             n.event.description or n.event.event_type.value for n in chain
         )
 
-        fsm_state_val = self._fsm_state(graph, component)
-        rules_fired_val = tuple(self._chain_rules(graph, chain))
-
         retrieval, breakdown = self._retriever.retrieve_scored(
             query, causal_chain=chain_types, components=components
         )
-
         request = InvestigationRequest(
             component=component,
             graph=graph,
-            fsm_state=fsm_state_val,
+            fsm_state=self._fsm_state(graph, component),
             retrieval_result=retrieval,
         )
 
-        agent_available = self._orchestrator._agent is not None
-        llm_error = None
-        tier = DiagnosisTier.INCONCLUSIVE
-        diagnosis = None
-        llm_usage = None
+        agent_available = self._orchestrator.agent_available
         result = None
-
+        llm_error = None
         try:
             result = self._orchestrator.run(request)
             tier = result.tier
-            diagnosis = result.structured_diagnosis
-            if tier is DiagnosisTier.FULL:
-                llm_usage = self._orchestrator.last_token_usage
-        except (RuntimeError, ValueError, TypeError) as exc:
+        except self._agent_errors as exc:
+            # Only Tier 3 can raise: the gate passed but the agent failed.
             log.exception("Tier-3 agent run failed")
             tier = DiagnosisTier.FULL
             llm_error = str(exc) if agent_available else None
-
-        summary = (
-            result.remediation.summary
-            if result
-            else (
-                "The gate allowed a grounded diagnosis, but the agent could not produce a "
-                "validated answer. Showing the deterministic evidence instead."
-            )
-        )
-
-        import dataclasses
 
         return LiveInvestigationResult(
             component=component,
             query=query,
             tier=tier,
             chain=chain_types,
-            rules_fired=rules_fired_val,
+            chain_components=tuple(n.event.related_component or "?" for n in chain),
+            rules_fired=tuple(self._chain_rules(graph, chain)),
             candidates=retrieval.candidates,
+            threshold=retrieval.confidence_threshold,
             breakdown={
-                rid: dataclasses.asdict(scores) if dataclasses.is_dataclass(scores) else scores
+                rid: asdict(scores) if is_dataclass(scores) else scores
                 for rid, scores in breakdown.items()
             },
-            diagnosis=diagnosis,
-            llm_usage=llm_usage,
+            diagnosis=result.structured_diagnosis if result else None,
+            llm_usage=(self._orchestrator.last_token_usage if tier is DiagnosisTier.FULL else None),
             llm_error=llm_error,
             agent_available=agent_available,
-            summary=summary,
+            summary=result.remediation.summary if result else _AGENT_FAILED_SUMMARY,
         )
 
     def _longest_chain(self, graph: IncidentGraph) -> list[GraphNode]:

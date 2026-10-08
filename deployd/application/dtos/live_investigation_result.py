@@ -11,8 +11,10 @@ class LiveInvestigationResult:
     query: str
     tier: DiagnosisTier
     chain: tuple[str, ...]
+    chain_components: tuple[str, ...]
     rules_fired: tuple[str, ...]
     candidates: Sequence[Any]
+    threshold: float
     breakdown: dict[str, dict[str, float]]
     diagnosis: AgentDiagnosis | None
     llm_usage: int | None

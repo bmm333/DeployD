@@ -309,42 +309,37 @@ def _run_investigation(target_incident_id: str) -> None:
 
         stack = _get_retrieval()
         agent = _get_agent()
-        orchestrator = InvestigationOrchestrator(agent=agent)
         use_case = LiveInvestigation(
             retriever=stack.retriever,
-            orchestrator=orchestrator,
+            orchestrator=InvestigationOrchestrator(agent=agent),
+            agent_errors=_AGENT_ERRORS,
             fsm_recovery_window_s=int(_FSM_RECOVERY_WINDOW.total_seconds()),
             fsm_max_restarts=_FSM_MAX_RESTARTS,
             fsm_restart_window_s=int(_FSM_RESTART_WINDOW.total_seconds()),
         )
 
-        result = use_case.execute(graph_snapshot)
+        def announce(component: str, hops: int) -> None:
+            with _state_lock:
+                current = _incident_repo.get_current()
+                if current and str(current.id) == target_incident_id:
+                    _post(
+                        "system",
+                        "event",
+                        f"Investigation triggered on **{component}**: the incident reached "
+                        f"CRITICAL with a {hops}-hop causal chain. Running the three-tier gate…",
+                    )
+
+        result = use_case.execute(graph_snapshot, on_start=announce)
         if not result:
             return
 
         with _state_lock:
-            # 1. Verify the incident hasn't been reset/closed while we were unlocked
-            current = _incident_repo.get_current()
-            if not current or str(current.id) != target_incident_id:
-                return
-
-            _post(
-                "system",
-                "event",
-                f"Investigation triggered on **{result.component}**: causal chain detected. "
-                f"Running the three-tier gate…",
-            )
-
+            # The incident may have been reset while the gate ran unlocked.
             current = _incident_repo.get_current()
             if not current or str(current.id) != target_incident_id:
                 return
 
             llm_called = result.tier is DiagnosisTier.FULL and agent is not None
-
-            threshold = 0.5
-            if hasattr(stack.retriever, "confidence_threshold"):
-                threshold = stack.retriever.confidence_threshold
-
             _decision_trace = build_decision_trace(
                 tier=result.tier,
                 component=result.component,
@@ -353,7 +348,7 @@ def _run_investigation(target_incident_id: str) -> None:
                 rules_fired=result.rules_fired,
                 candidates=result.candidates,
                 breakdown=result.breakdown,
-                threshold=threshold,
+                threshold=result.threshold,
                 agent_available=result.agent_available,
                 llm_called=llm_called,
                 tokens_used=result.llm_usage,
@@ -389,7 +384,12 @@ def _run_investigation(target_incident_id: str) -> None:
                     "deterministic",
                     result.summary,
                     tier=result.tier.value,
-                    chain=" → ".join(result.chain),
+                    chain=" → ".join(
+                        f"{event_type} ({component})"
+                        for event_type, component in zip(
+                            result.chain, result.chain_components, strict=True
+                        )
+                    ),
                     reason=reason,
                 )
             _persist_chat()
