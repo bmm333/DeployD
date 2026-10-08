@@ -33,11 +33,9 @@ Thumbs.db
 .agents
 .claude/
 AGENTS.md
-.temp_venv/*
 
 # Runtime data (rebuilt by seed_runbooks.py / created by the API)
 data/chroma/
 data/deployd.db
 *.log
 *.sqlite3
-.temp_venv
