@@ -26,6 +26,7 @@ from deployd.adapters.outgoing.ai.agno_agent import (
     _format_chains,
     _format_diagnosis,
     _make_check_dependencies_tool,
+    _make_fsm_health_tool,
     _make_get_runbook_detail_tool,
     _make_search_runbooks_tool,
     _parse_prompt,
@@ -33,6 +34,7 @@ from deployd.adapters.outgoing.ai.agno_agent import (
 from deployd.adapters.outgoing.ai.tool_models import (
     QUERY_MAX_CHARS,
     DependencyCheckResult,
+    FsmHealthResult,
     RunbookDetail,
     RunbookSearchResult,
     ToolError,
@@ -148,22 +150,23 @@ def test_missing_api_key_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.usefixtures("groq_key")
-def test_tools_are_registered_only_for_injected_dependencies(
-    repo: JSONRunbookRepository,
-) -> None:
-    assert AgnoGroqAgent()._tools == []
+def test_tools_follow_the_injected_dependencies(repo: JSONRunbookRepository) -> None:
+    assert [t.__name__ for t in AgnoGroqAgent()._tools] == ["get_fsm_health"]
     with_repo = AgnoGroqAgent(chroma_client=_FakeChroma([]), runbook_repo=repo)  # type: ignore[arg-type]  # fake
-    assert [t.__name__ for t in with_repo._tools] == ["search_runbooks", "get_runbook_detail"]
+    assert [t.__name__ for t in with_repo._tools] == [
+        "search_runbooks",
+        "get_runbook_detail",
+        "get_fsm_health",
+    ]
 
 
 @pytest.mark.usefixtures("groq_key")
-def test_structured_agent_uses_parser_model_only_with_tools(repo: JSONRunbookRepository) -> None:
+def test_structured_agent_uses_parser_model_only_with_tools() -> None:
     # Groq rejects JSON mode + tool calling; with tools a separate parser pass is required.
-    plain = AgnoGroqAgent()._create_structured_agent()
-    tooled = AgnoGroqAgent(
-        chroma_client=_FakeChroma([]),  # type: ignore[arg-type]  # fake
-        runbook_repo=repo,
-    )._create_structured_agent()
+    agent = AgnoGroqAgent()
+    tooled = agent._create_structured_agent()
+    agent._tools.clear()
+    plain = agent._create_structured_agent()
 
     assert plain.parser_model is None
     assert tooled.parser_model is not None
@@ -619,6 +622,78 @@ def test_dependency_tool_rejects_malformed_names(
 
     assert _error(output).startswith("invalid component")
     assert evidence == set()
+
+
+# ── get_fsm_health tool ───────────────────────────────────────────────────────
+
+
+def _event(
+    event_type: CoreEventType, severity: Severity, second: int, component: str = "auth-service"
+) -> CoreEvent:
+    return CoreEvent(
+        event_type=event_type,
+        severity=severity,
+        timestamp=datetime(2026, 9, 30, 10, 0, second, tzinfo=timezone.utc),
+        related_component=component,
+        description=f"{event_type.value} on {component}",
+    )
+
+
+def test_fsm_tool_replays_the_component_events_in_time_order() -> None:
+    events = [
+        _event(CoreEventType.PROCESS_CRASH, Severity.CRITICAL, 40),
+        _event(CoreEventType.RESOURCE_EXHAUSTION, Severity.WARNING, 10),
+        _event(CoreEventType.DEPENDENCY_FAILURE, Severity.ERROR, 20, "api-gateway"),
+    ]
+
+    health = FsmHealthResult.model_validate_json(_make_fsm_health_tool(events)(" Auth-Service "))
+
+    assert health.state == "CRASHING"
+    assert health.events_replayed == 2
+    assert [(t.from_state, t.to_state) for t in health.transitions] == [
+        ("HEALTHY", "DEGRADED"),
+        ("DEGRADED", "CRASHING"),
+    ]
+
+
+def test_fsm_tool_has_no_evidence_for_components_outside_the_incident() -> None:
+    tool = _make_fsm_health_tool([_event(CoreEventType.PROCESS_CRASH, Severity.CRITICAL, 0)])
+
+    assert _error(tool("payment-service")) == (
+        "component 'payment-service' has no events in this investigation; no health evidence"
+    )
+
+
+@pytest.mark.parametrize("component", ["", "../etc/passwd", "x" * 65, 42])
+def test_fsm_tool_rejects_malformed_names(component: Any) -> None:
+    assert _error(_make_fsm_health_tool([])(component)).startswith("invalid component")
+
+
+@pytest.mark.usefixtures("groq_key")
+def test_fsm_tool_follows_the_session_being_discussed(monkeypatch: pytest.MonkeyPatch) -> None:
+    outputs: list[str] = []
+
+    def ask_about_gateway(reply: Any) -> Callable[[str], Any]:
+        def respond(_: str) -> Any:
+            outputs.append(agent._tools[-1]("api-gateway"))  # model calls get_fsm_health
+            return _response(reply)
+
+        return respond
+
+    agent, _ = _agent_with(monkeypatch, ask_about_gateway(_diagnosis(OOM_ID)))
+    agent.diagnose("auth-service", [CHAIN], [RetrievalCandidate(OOM_ID, 0.67)])
+    first = agent.last_session_id
+    assert first is not None
+    postgres_only = [_node(CoreEventType.STATE_CHANGE, 0, "postgres-primary")]
+    agent.diagnose("postgres-primary", [postgres_only], [RetrievalCandidate(OOM_ID, 0.67)])
+    followup = _FakeAgnoAgent(ask_about_gateway(_reply("The gateway is healthy.")))
+    monkeypatch.setattr(agent, "_create_followup_agent", lambda ctx: followup)
+
+    agent.follow_up(first, "is the gateway healthy?")
+
+    assert FsmHealthResult.model_validate_json(outputs[0]).events_replayed == 1
+    assert _error(outputs[1]).startswith("component 'api-gateway' has no events")
+    assert FsmHealthResult.model_validate_json(outputs[2]).events_replayed == 1
 
 
 # ── Prompt formatting helpers ─────────────────────────────────────────────────

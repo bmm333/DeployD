@@ -35,6 +35,7 @@ import os
 import re
 import uuid
 from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -42,8 +43,9 @@ from agno.agent import Agent
 from agno.models.groq import Groq
 from agno.run.base import RunStatus
 from deployd.adapters.outgoing.ai.tool_models import (
-    DependencyCheckInput,
+    ComponentInput,
     DependencyCheckResult,
+    FsmHealthResult,
     RunbookDetail,
     RunbookDetailInput,
     RunbookSearchInput,
@@ -52,6 +54,7 @@ from deployd.adapters.outgoing.ai.tool_models import (
     ToolError,
 )
 from deployd.application.dtos.diagnosis import AgentDiagnosis
+from deployd.domain.health.process_health import ProcessHealthFSM
 from pydantic import BaseModel, Field, ValidationError
 
 if TYPE_CHECKING:
@@ -65,6 +68,7 @@ if TYPE_CHECKING:
     )
     from deployd.application.dtos.retrieval import RetrievalCandidate
     from deployd.domain.components.component_registry import ComponentRegistry
+    from deployd.domain.entities.core_event import CoreEvent
     from deployd.domain.graph.node import GraphNode
 
 logger = logging.getLogger(__name__)
@@ -81,6 +85,7 @@ class _SessionContext:
     followup_agent: Agent | None = None
     turn_count: int = 0
     followup_history: list[tuple[str, str]] = field(default_factory=list)
+    events: list[CoreEvent] = field(default_factory=list)  # what get_fsm_health replays
 
 
 class _FollowUpAnswer(BaseModel):
@@ -254,7 +259,7 @@ def _make_check_dependencies_tool(
             violations), or {"error": ...}.
         """
         try:
-            args = DependencyCheckInput(component=component)
+            args = ComponentInput(component=component)
         except ValidationError as exc:
             return _invalid_args(exc)
 
@@ -284,6 +289,80 @@ def _make_check_dependencies_tool(
         return output
 
     return check_component_dependencies
+
+
+def _default_fsm() -> ProcessHealthFSM:
+    """Same windows as the live API and ComponentHealthTracker defaults."""
+    return ProcessHealthFSM(
+        recovery_window=timedelta(seconds=300),
+        max_restart_count=3,
+        restart_time_window=timedelta(seconds=120),
+    )
+
+
+def _make_fsm_health_tool(
+    events: list[CoreEvent],
+    new_fsm: Callable[[], ProcessHealthFSM] = _default_fsm,
+) -> Callable[..., str]:
+    """Create a ``get_fsm_health`` tool over *events*, the current investigation's events.
+
+    The list is shared with the agent, which refills it before every run, so
+    the tool only ever sees the evidence of the investigation being discussed.
+    """
+
+    def get_fsm_health(component: str) -> str:
+        """Get the process-health state of a component involved in this incident.
+
+        Replays the incident's events for that component through DeployD's
+        deterministic health state machine (HEALTHY, DEGRADED, CRASHING,
+        RESTARTING, CRASH_LOOP). Components outside this incident have no events.
+
+        Args:
+            component: The name of the component (e.g., 'auth-service').
+
+        Returns:
+            JSON with the state, events replayed, restart attempts and the
+            transitions, or {"error": ...}.
+        """
+        try:
+            args = ComponentInput(component=component)
+        except ValidationError as exc:
+            return _invalid_args(exc)
+
+        logger.info("Tool call: get_fsm_health(component=%r)", args.component)
+
+        own = sorted(
+            (e for e in events if e.related_component == args.component),
+            key=lambda e: e.timestamp,
+        )
+        if not own:
+            return _tool_error(
+                f"component '{args.component}' has no events in this investigation; "
+                "no health evidence"
+            )
+
+        fsm = new_fsm()
+        for event in own:
+            fsm.process_event(event)
+        result = FsmHealthResult.model_validate(
+            {
+                "component": args.component,
+                "state": fsm.state.value,
+                "events_replayed": len(own),
+                "restart_attempts": fsm.restart_attempt_count,
+                "transitions": [
+                    {
+                        "at": t.timestamp.strftime("%H:%M:%S"),
+                        "from_state": t.from_state.value,
+                        "to_state": t.to_state.value,
+                    }
+                    for t in fsm.transition_history[-10:]
+                ],
+            }
+        )
+        return _capped(result) or _TOO_LARGE
+
+    return get_fsm_health
 
 
 def _make_get_runbook_detail_tool(
@@ -363,18 +442,20 @@ class AgnoGroqAgent:
 
     Tool safety boundary: every tool is **read-only**.  ``search_runbooks``,
     ``get_runbook_detail`` and ``check_component_dependencies`` only read the
-    runbook store and the component registry; none writes state, calls an
-    external system or executes a command.  Arguments and results are Pydantic
+    runbook store and the component registry; ``get_fsm_health`` replays the
+    investigation's own events through a fresh ProcessHealthFSM.  None writes
+    state, calls an external system or executes a command.  Arguments and results are Pydantic
     models (``tool_models.py``), results are capped JSON, and Agno refuses tool
     calls beyond ``TOOL_CALL_LIMIT`` per run.
 
     Parameters
     ----------
     chroma_client: Optional.  ChromaDB client for semantic runbook search (tool dep).
-    runbook_repo: Optional.  JSON runbook repository for full runbook data (tool dep + evidence validation).
-    When tool dependencies are **not** provided the agent operates in
-    summarisation-only mode (no tool calling, no evidence validation).
-    This preserves backward compatibility with the current orchestrator.
+    runbook_repo: Optional.  JSON runbook repository for full runbook data (tool dep).
+    component_registry: Optional.  Registry behind ``check_component_dependencies``.
+    Each tool is registered only when its dependency is injected, except
+    ``get_fsm_health``, which only needs the evidence passed to ``diagnose()``.
+    Evidence validation always runs.
     """
 
     MODEL_ID = "openai/gpt-oss-120b"
@@ -416,6 +497,9 @@ class AgnoGroqAgent:
             self._tools.append(
                 _make_check_dependencies_tool(component_registry, self._tool_retrieved_ids)
             )
+        # Needs no external dependency: it replays the evidence the agent is given.
+        self._investigation_events: list[CoreEvent] = []
+        self._tools.append(_make_fsm_health_tool(self._investigation_events))
 
         # Multi-turn session storag
         # In-memory dict for the PoC.  Production: use Redis / DB.
@@ -458,6 +542,7 @@ class AgnoGroqAgent:
 
         # Reset tool-discovered IDs for this investigation session.
         self._tool_retrieved_ids.clear()
+        self._investigation_events[:] = _chain_events(causal_chains)
 
         logger.info(
             "Diagnosis started: component=%s, chains=%d, candidates=%d, session=%s",
@@ -489,6 +574,7 @@ class AgnoGroqAgent:
             initial_evidence=user_message,
             diagnosis_text=formatted,
             allowed_evidence_ids=allowed_ids,
+            events=list(self._investigation_events),
         )
         self._last_session_id = session_id
 
@@ -585,6 +671,7 @@ class AgnoGroqAgent:
             ctx.followup_agent = self._create_followup_agent(ctx)
 
         self._tool_retrieved_ids.clear()
+        self._investigation_events[:] = ctx.events
         response = ctx.followup_agent.run(framed_message)
         self._last_token_usage = _total_tokens(response)
         _raise_on_failed_run(response)
@@ -797,6 +884,15 @@ def _build_user_message(
         f"</system_evidence>\n\n"
         "Analyze the evidence above and provide your diagnosis."
     )
+
+
+def _chain_events(causal_chains: list[list[GraphNode]]) -> list[CoreEvent]:
+    """Distinct events of the investigation, in chain order."""
+    events: dict[uuid.UUID, CoreEvent] = {}
+    for chain in causal_chains:
+        for node in chain:
+            events.setdefault(node.event.event_id, node.event)
+    return list(events.values())
 
 
 def _format_chains(causal_chains: list[list[GraphNode]]) -> str:

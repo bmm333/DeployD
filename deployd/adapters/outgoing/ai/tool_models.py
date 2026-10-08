@@ -38,7 +38,9 @@ class RunbookDetailInput(_Schema):
         return value.strip().upper() if isinstance(value, str) else value
 
 
-class DependencyCheckInput(_Schema):
+class ComponentInput(_Schema):
+    """Argument of the component tools (dependency check, FSM health)."""
+
     component: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
 
     @field_validator("component", mode="before")
@@ -78,6 +80,20 @@ class DependencyCheckResult(_Schema):
     status: Literal["COMPATIBLE", "INCOMPATIBLE", "UNKNOWN"]
     installed_versions: dict[str, str]
     violations: list[str]
+
+
+class HealthTransition(_Schema):
+    at: str
+    from_state: str
+    to_state: str
+
+
+class FsmHealthResult(_Schema):
+    component: str
+    state: Literal["HEALTHY", "DEGRADED", "CRASHING", "RESTARTING", "CRASH_LOOP"]
+    events_replayed: int
+    restart_attempts: int
+    transitions: list[HealthTransition]
 
 
 class ToolError(_Schema):

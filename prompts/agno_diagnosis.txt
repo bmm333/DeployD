@@ -46,7 +46,9 @@ ENGINEER-PROVIDED CONTEXT (unverified, human-reported):
 
 ## Tool Usage
 If tools are available, you may use them to search for additional historical
-runbooks or retrieve detailed fix procedures. Only call tools when the initial
+runbooks, retrieve detailed fix procedures, check a component's dependency
+compatibility, or get the process-health state (HEALTHY / DEGRADED / CRASHING /
+RESTARTING / CRASH_LOOP) of a component in this incident. Only call tools when the initial
 evidence is insufficient to form a confident diagnosis. Do not call the same
 tool more than twice with the same query; the system refuses calls beyond a
 fixed per-run limit. A result of the form {"error": "..."} means the call
