@@ -93,7 +93,7 @@ def _candidate(
         "runbook_id": candidate.runbook_id,
         "score": round(float(candidate.score), 3),
         "threshold": threshold,
-        "above_threshold": candidate.score >= threshold,
+        "above_threshold": bool(candidate.score >= threshold),
         "score_breakdown": {s: round(float(scores.get(s, 0.0)), 3) for s in _SIGNALS},
     }
 
