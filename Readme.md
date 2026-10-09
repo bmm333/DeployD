@@ -88,7 +88,7 @@ python3.10 -m venv .venv
 | Live UI locally | `.venv/bin/streamlit run demo/live_app.py` |
 | Offline scenario demo (no API, stub agent) | `.venv/bin/streamlit run demo/app.py` |
 | Seed the runbook vector store | `.venv/bin/python scripts/seed_runbooks.py` |
-| Retrieval evaluation (recall@3, gate-open rate) | `.venv/bin/python scripts/eval_retrival.py` |
+| Reproducible evaluation (retrieval, gate, LLM status, ops) | `.venv/bin/python -m experiments.run_all` |
 
 To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with the command written at the top of `requirements.lock` / `requirements-dev.lock` (add `--extra dev` for the dev lock).
 
@@ -104,6 +104,11 @@ To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with
 - Events are simulated; there are no real collectors yet.
 - Topology and component versions are declared in `data/components.json`, not discovered.
 - The runbook corpus is small (10 incidents), and Groq free-tier limits apply.
+- Evaluation artifacts are generated under `experiments/results/`. The LLM
+  section is explicitly skipped when `GROQ_API_KEY` is absent; retrieval, gate
+  and ops do not require an API key. Structural evaluation replays raw events
+  through the live adapter and correlator and does not use label causal chains
+  or component sets as input signals.
 
 ## Contributions
 

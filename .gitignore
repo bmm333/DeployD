@@ -39,3 +39,4 @@ data/chroma/
 data/deployd.db
 *.log
 *.sqlite3
+.temp_venv
