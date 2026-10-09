@@ -508,6 +508,7 @@ class AgnoGroqAgent:
         self._sessions: dict[str, _SessionContext] = {}
         self._last_session_id: str | None = None
         self._last_token_usage: int | None = None
+        self._last_removed_citations: list[str] = []
 
         logger.info(
             "AgnoGroqAgent initialised: model=%s, tools=%d",
@@ -555,6 +556,7 @@ class AgnoGroqAgent:
         )
 
         # Step 1: Run agent with structured output
+        self._last_removed_citations = []
         agent = self._create_structured_agent()
         response = agent.run(user_message)
         self._last_token_usage = _total_tokens(response)
@@ -567,7 +569,7 @@ class AgnoGroqAgent:
             raise TypeError(msg)
         # Step 2: Evidence validation (deterministic)
         allowed_ids |= self._tool_retrieved_ids
-        diagnosis = _validate_evidence(response.content, allowed_ids)
+        diagnosis, self._last_removed_citations = _validate_evidence(response.content, allowed_ids)
 
         # Store session context for follow-ups
         formatted = _format_diagnosis(diagnosis)
@@ -673,6 +675,7 @@ class AgnoGroqAgent:
             ctx.followup_agent = self._create_followup_agent(ctx)
 
         self._tool_retrieved_ids.clear()
+        self._last_removed_citations = []
         self._investigation_events[:] = ctx.events
         response = ctx.followup_agent.run(framed_message)
         self._last_token_usage = _total_tokens(response)
@@ -683,7 +686,7 @@ class AgnoGroqAgent:
         reply = response.content
 
         ctx.allowed_evidence_ids |= self._tool_retrieved_ids
-        answer = _validate_evidence(
+        answer, self._last_removed_citations = _validate_evidence(
             AgentDiagnosis(
                 root_cause=reply.answer,
                 confidence=reply.confidence,
@@ -705,6 +708,11 @@ class AgnoGroqAgent:
         Use this to pass to ``follow_up()`` for multi-turn conversations.
         """
         return self._last_session_id
+
+    @property
+    def last_removed_citations(self) -> list[str]:
+        """References the validator removed from the most recent answer (invented by the model)."""
+        return list(self._last_removed_citations)
 
     @property
     def model_id(self) -> str:
@@ -772,7 +780,9 @@ class AgnoGroqAgent:
         return Groq(id=self._model_id, temperature=TEMPERATURE, max_tokens=MAX_OUTPUT_TOKENS)
 
 
-def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> AgentDiagnosis:
+def _validate_evidence(
+    diagnosis: AgentDiagnosis, allowed_ids: set[str]
+) -> tuple[AgentDiagnosis, list[str]]:
     """Deterministic evidence validator.
 
     Validates that every cited ``evidence_references`` was actually part
@@ -793,6 +803,8 @@ def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> Agen
     The free-text fields get the same check: anything shaped like a citable
     ID that is not in ``allowed_ids`` is replaced by ``_REMOVED_CITATION``,
     so an invented ID cannot reach the engineer through the prose either.
+
+    Returns the validated diagnosis and the references it removed.
     """
     known = {_canonical_id(ref): ref for ref in allowed_ids}
     cited = [known.get(_canonical_id(ref)) for ref in diagnosis.evidence_references]
@@ -812,7 +824,7 @@ def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> Agen
             len(unsupported),
             unsupported,
         )
-    return diagnosis.model_copy(update=update)
+    return diagnosis.model_copy(update=update), unsupported
 
 
 # Models often write typographic hyphens (gpt-oss uses U+2011) inside IDs.

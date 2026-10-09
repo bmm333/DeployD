@@ -548,15 +548,19 @@ def _render_trace(trace: dict[str, Any] | None, investigating: bool, status: str
     if trace["llm_called"] and not trace.get("llm_error"):
         tokens = trace.get("tokens_used")
         prompt = trace.get("prompt_version")
-        version = f" · prompt v{_esc(prompt)}" if prompt else ""
-        discarded = trace.get("answer_discarded")
+        model = trace.get("model")
+        version = (f" · {_esc(model)}" if model else "") + (
+            f" · prompt v{_esc(prompt)}" if prompt else ""
+        )
+        notes = []
+        if trace.get("citations_removed"):
+            removed = ", ".join(trace["citations_removed"])
+            notes.append(f"validator removed invented citations: {removed}")
+        if trace.get("answer_discarded"):
+            notes.append(f"answer discarded: {trace['answer_discarded']}")
         rows.append(
             _trace_row("LLM called", f"{ok} {tokens or '?'} tokens{version}")
-            + (
-                f'<div class="dp-mini">answer discarded: {_esc(discarded)}</div>'
-                if discarded
-                else ""
-            )
+            + "".join(f'<div class="dp-mini">{_esc(n)}</div>' for n in notes)
         )
     else:
         error = trace.get("llm_error") or ""

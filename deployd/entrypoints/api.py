@@ -357,6 +357,8 @@ def _run_investigation(target_incident_id: str) -> None:
                 tokens_used=result.llm_usage,
                 llm_error=result.llm_error,
                 prompt_version=agent.prompt_version if agent else None,
+                model=agent.model_id if agent else None,
+                citations_removed=agent.last_removed_citations if agent else (),
                 answer_discarded=result.answer_discarded,
             )
 

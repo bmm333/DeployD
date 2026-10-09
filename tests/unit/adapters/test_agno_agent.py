@@ -250,6 +250,13 @@ def test_invented_ids_in_free_text_never_reach_the_engineer(
     assert result.reasoning == f"Per {removed} and {removed} the cache grew."
     assert result.recommendation == f"Apply {removed}, then roll back the cache size."
     assert result.evidence_references == [OOM_ID]
+    assert agent.last_removed_citations == [
+        "RB-ADMIN-0",
+        "RB-ADMIN-0",
+        "rb-admin-0",
+        "compat-auth-service-001",
+        "RB-INVENTED-FIX",
+    ]
     assert agent.last_session_id is not None
     assert "ADMIN" not in agent._sessions[agent.last_session_id].diagnosis_text
 
@@ -259,9 +266,12 @@ def test_free_text_keeps_evidence_ids_whatever_their_case() -> None:
         update={"reasoning": "rb-auth-service-oomkill and COMPAT-PAYMENT-SERVICE-001 agree."}
     )
 
-    result = agno_agent._validate_evidence(diagnosis, {OOM_ID, "compat-payment-service-001"})
+    result, removed = agno_agent._validate_evidence(
+        diagnosis, {OOM_ID, "compat-payment-service-001"}
+    )
 
     assert result == diagnosis
+    assert removed == []
 
 
 def test_typographic_hyphens_neither_hide_nor_reject_an_id() -> None:
@@ -271,8 +281,9 @@ def test_typographic_hyphens_neither_hide_nor_reject_an_id() -> None:
         update={"root_cause": f"As in RB{nb}ADMIN{nb}0."}
     )
 
-    result = agno_agent._validate_evidence(diagnosis, {OOM_ID})
+    result, removed = agno_agent._validate_evidence(diagnosis, {OOM_ID})
 
+    assert removed == [f"RB{nb}ADMIN{nb}0"]
     assert result.root_cause == f"As in {agno_agent._REMOVED_CITATION}."
     assert result.evidence_references == [OOM_ID]
 
