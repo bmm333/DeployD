@@ -169,7 +169,10 @@ def _get_agent() -> AgnoGroqAgent | None:
                 constraints_file=_DATA_DIR / "compatibility_constraints.json",
             )
             _agent = AgnoGroqAgent(
-                chroma_client=stack.chroma, runbook_repo=stack.repo, component_registry=registry
+                chroma_client=stack.chroma,
+                runbook_repo=stack.repo,
+                component_registry=registry,
+                model_id=os.getenv("DEPLOYD_GROQ_MODEL", "").strip() or AgnoGroqAgent.MODEL_ID,
             )
     return _agent
 

@@ -174,6 +174,15 @@ def test_structured_agent_uses_parser_model_only_with_tools() -> None:
 
 
 @pytest.mark.usefixtures("groq_key")
+def test_the_model_is_configurable() -> None:
+    agent = AgnoGroqAgent(model_id="openai/gpt-oss-20b")
+
+    assert agent.model_id == "openai/gpt-oss-20b"
+    assert agent._create_structured_agent().model.id == "openai/gpt-oss-20b"
+    assert AgnoGroqAgent().model_id == AgnoGroqAgent.MODEL_ID
+
+
+@pytest.mark.usefixtures("groq_key")
 def test_run_limits_are_enforced_by_the_agent_not_the_prompt(
     repo: JSONRunbookRepository,
 ) -> None:

@@ -29,6 +29,7 @@ services:
       - CHROMA_HOST=chroma
       - CHROMA_PORT=8000
       - GROQ_API_KEY=${GROQ_API_KEY}
+      - DEPLOYD_GROQ_MODEL=${DEPLOYD_GROQ_MODEL:-}
     restart: unless-stopped
 
   streamlit:

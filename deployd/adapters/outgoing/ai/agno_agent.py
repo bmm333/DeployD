@@ -458,7 +458,7 @@ class AgnoGroqAgent:
     Evidence validation always runs.
     """
 
-    MODEL_ID = "openai/gpt-oss-120b"
+    MODEL_ID = "openai/gpt-oss-120b"  # default; see ADR-011 for the selection study
 
     def __init__(
         self,
@@ -466,6 +466,7 @@ class AgnoGroqAgent:
         chroma_client: ChromaRunbookClient | None = None,
         runbook_repo: JSONRunbookRepository | None = None,
         component_registry: ComponentRegistry | None = None,
+        model_id: str = MODEL_ID,
     ) -> None:
         # Fail-fast: validate API key at construction time
         if not os.environ.get("GROQ_API_KEY"):
@@ -474,6 +475,7 @@ class AgnoGroqAgent:
                 "Get a free key at https://console.groq.com"
             )
 
+        self._model_id = model_id
         # Load prompt template once
         self._prompt_version, self._system_prompt = _load_system_prompt()
 
@@ -509,7 +511,7 @@ class AgnoGroqAgent:
 
         logger.info(
             "AgnoGroqAgent initialised: model=%s, tools=%d",
-            self.MODEL_ID,
+            self._model_id,
             len(self._tools),
         )
 
@@ -705,6 +707,11 @@ class AgnoGroqAgent:
         return self._last_session_id
 
     @property
+    def model_id(self) -> str:
+        """Groq model this agent calls."""
+        return self._model_id
+
+    @property
     def prompt_version(self) -> str:
         """Version of the system prompt this agent runs with."""
         return self._prompt_version
@@ -762,7 +769,7 @@ class AgnoGroqAgent:
         return self._create_agent(self._system_prompt + context_block, _FollowUpAnswer)
 
     def _model(self) -> Groq:
-        return Groq(id=self.MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_OUTPUT_TOKENS)
+        return Groq(id=self._model_id, temperature=TEMPERATURE, max_tokens=MAX_OUTPUT_TOKENS)
 
 
 def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> AgentDiagnosis:
