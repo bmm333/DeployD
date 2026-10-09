@@ -114,3 +114,13 @@ def test_reason_llm_skipped(
 def test_prompt_version_is_reported_only_when_the_llm_was_called() -> None:
     assert _trace(prompt_version="1.2.0")["prompt_version"] == "1.2.0"
     assert _trace(prompt_version="1.2.0", llm_called=False)["prompt_version"] is None
+
+
+def test_a_discarded_answer_is_reported_with_its_reason() -> None:
+    assert _trace()["answer_discarded"] is None
+
+    trace = _trace(answer_discarded="the agent produced no verifiable citation")
+
+    assert trace["answer_discarded"] == "the agent produced no verifiable citation"
+    assert trace["llm_called"] is True
+    assert trace["reason_llm_skipped"] is None

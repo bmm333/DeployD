@@ -24,6 +24,7 @@ from deployd.application.dtos.diagnosis import AgentDiagnosis, DiagnosisTier
 from deployd.application.dtos.investigation_request import InvestigationRequest
 from deployd.application.dtos.retrieval import RetrievalCandidate, RetrievalResult
 from deployd.application.orchestrators.investigation_orchestrator import (
+    UNVERIFIABLE_ANSWER,
     AgentPort,
     InvestigationOrchestrator,
 )
@@ -284,6 +285,47 @@ class TestTier3Full:
     def test_fsm_state_is_preserved(self, result):
         diagnosis, _ = result
         assert diagnosis.fsm_state == ProcessHealthStatus.CRASH_LOOP
+
+
+class TestTier3UnverifiableAnswer:
+    """
+    Tier 3 where nothing the agent cites survived evidence validation.
+
+    The answer is discarded (fail-closed): the gate decision stays FULL, but
+    only the causal chain is surfaced and a human must review it.
+    """
+
+    @pytest.fixture
+    def result(self):
+        agent = _stub_agent()
+        agent.diagnose.return_value = AgentDiagnosis(  # type: ignore[attr-defined]
+            root_cause="confident but unsupported",
+            confidence="High",
+            reasoning="no citation survived",
+            recommendation="restart everything",
+            evidence_references=[],
+        )
+        graph, _, _ = _two_node_causal_graph()
+        request = InvestigationRequest(
+            component="payment-service",
+            graph=graph,
+            fsm_state=ProcessHealthStatus.CRASH_LOOP,
+            retrieval_result=_strong_match_retrieval(),
+        )
+        return InvestigationOrchestrator(agent).run(request)
+
+    def test_gate_decision_stays_full(self, result):
+        assert result.tier == DiagnosisTier.FULL
+
+    def test_answer_is_not_surfaced(self, result):
+        assert result.structured_diagnosis is None
+        assert "unsupported" not in result.remediation.summary
+        assert result.remediation.evidence_references == []
+
+    def test_chain_is_shown_for_human_review(self, result):
+        assert UNVERIFIABLE_ANSWER in result.remediation.summary
+        assert result.causal_chains
+        assert result.remediation.requires_human_approval is True
 
 
 # ── Boundary: score == threshold ───────────────────────────────────────────────

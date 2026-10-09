@@ -549,7 +549,15 @@ def _render_trace(trace: dict[str, Any] | None, investigating: bool, status: str
         tokens = trace.get("tokens_used")
         prompt = trace.get("prompt_version")
         version = f" · prompt v{_esc(prompt)}" if prompt else ""
-        rows.append(_trace_row("LLM called", f"{ok} {tokens or '?'} tokens{version}"))
+        discarded = trace.get("answer_discarded")
+        rows.append(
+            _trace_row("LLM called", f"{ok} {tokens or '?'} tokens{version}")
+            + (
+                f'<div class="dp-mini">answer discarded: {_esc(discarded)}</div>'
+                if discarded
+                else ""
+            )
+        )
     else:
         error = trace.get("llm_error") or ""
         reason = (
@@ -601,19 +609,21 @@ def _render_message(msg: dict[str, str], animate: bool) -> None:
         return
 
     with st.chat_message("assistant", avatar=_AVATAR_AGENT):
-        if kind == "diagnosis":
-            conf = msg.get("confidence", "")
+        conf = msg.get("confidence", "")
+        if conf:
             color = _CONFIDENCE_COLORS.get(conf.lower(), "#64748b")
             chips = "".join(
                 f'<span class="dp-chip">{_esc(e)}</span>'
                 for e in msg.get("evidence", "").split(",")
                 if e
             )
+            tier = _tier_badge("FULL") if kind == "diagnosis" else ""
             st.markdown(
-                f"{_tier_badge('FULL')}{_badge(f'{conf} confidence', color)}"
+                f"{tier}{_badge(f'{conf} confidence', color)}"
                 + (f'<div style="margin-top:.3rem">Grounded in {chips}</div>' if chips else ""),
                 unsafe_allow_html=True,
             )
+        if kind == "diagnosis":
             st.markdown("**Root cause**")
         if animate:
             st.write_stream(_typewriter(content))

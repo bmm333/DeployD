@@ -35,13 +35,27 @@ import os
 import re
 import uuid
 from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from agno.agent import Agent
 from agno.models.groq import Groq
 from agno.run.base import RunStatus
+from deployd.adapters.outgoing.ai.tool_models import (
+    ComponentInput,
+    DependencyCheckResult,
+    FsmHealthResult,
+    RunbookDetail,
+    RunbookDetailInput,
+    RunbookSearchInput,
+    RunbookSearchResult,
+    RunbookSummary,
+    ToolError,
+)
 from deployd.application.dtos.diagnosis import AgentDiagnosis
+from deployd.domain.health.process_health import ProcessHealthFSM
+from pydantic import BaseModel, Field, ValidationError
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -54,6 +68,7 @@ if TYPE_CHECKING:
     )
     from deployd.application.dtos.retrieval import RetrievalCandidate
     from deployd.domain.components.component_registry import ComponentRegistry
+    from deployd.domain.entities.core_event import CoreEvent
     from deployd.domain.graph.node import GraphNode
 
 logger = logging.getLogger(__name__)
@@ -70,6 +85,22 @@ class _SessionContext:
     followup_agent: Agent | None = None
     turn_count: int = 0
     followup_history: list[tuple[str, str]] = field(default_factory=list)
+    events: list[CoreEvent] = field(default_factory=list)  # what get_fsm_health replays
+
+
+class _FollowUpAnswer(BaseModel):
+    """Structured output of a follow-up turn, mapped onto ``AgentDiagnosis`` for the port."""
+
+    answer: str = Field(
+        description="Direct answer to the engineer, about the investigated component only"
+    )
+    confidence: Literal["High", "Medium", "Low"] = Field(
+        description="Certainty of this answer given the system evidence"
+    )
+    evidence_references: list[str] = Field(
+        default_factory=list,
+        description="Runbook or compatibility evidence IDs this answer relies on; empty if none",
+    )
 
 
 # Prompt Loading cached
@@ -114,14 +145,10 @@ def _repo_root() -> Path:
     raise RuntimeError("Could not locate repo root (no pyproject.toml in ancestors)")
 
 
-# Tools validate input before execution and truncate outputs to
-# prevent context-window blowup.
+# Tools validate their arguments with Pydantic, answer with a Pydantic result
+# serialised as JSON, and never return more than _TOOL_OUTPUT_MAX_CHARS.
 
 _TOOL_OUTPUT_MAX_CHARS = 1500
-_TOOL_QUERY_MIN_CHARS = 3
-_TOOL_QUERY_MAX_CHARS = 500
-_RUNBOOK_ID_PATTERN = re.compile(r"RB-[A-Z0-9-]{1,80}")
-_COMPONENT_NAME_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{0,63}")
 
 
 def _untrusted(text: str) -> str:
@@ -129,11 +156,23 @@ def _untrusted(text: str) -> str:
     return html.escape(text, quote=False)
 
 
-def _runbook_block(runbook_id: str, body: str, max_chars: int = _TOOL_OUTPUT_MAX_CHARS) -> str:
-    """Wrap runbook text (untrusted historical data) in a delimited, size-capped block."""
-    opening = f'<runbook id="{html.escape(runbook_id)}">\n'
-    closing = "\n</runbook>"
-    return opening + _untrusted(body)[: max_chars - len(opening) - len(closing)] + closing
+def _tool_error(message: str) -> str:
+    return ToolError(error=message).model_dump_json()
+
+
+def _invalid_args(exc: ValidationError) -> str:
+    first = exc.errors()[0]
+    field_name = ".".join(str(part) for part in first["loc"])
+    return _tool_error(f"invalid {field_name}: {first['msg']}")
+
+
+_TOO_LARGE = _tool_error("result exceeds the tool output limit")
+
+
+def _capped(result: BaseModel) -> str | None:
+    """The result as JSON, or ``None`` when over the limit (JSON cannot be cut without breaking)."""
+    output = result.model_dump_json()
+    return output if len(output) <= _TOOL_OUTPUT_MAX_CHARS else None
 
 
 def _make_search_runbooks_tool(
@@ -161,45 +200,40 @@ def _make_search_runbooks_tool(
             query: Natural language description of the incident or symptoms.
 
         Returns:
-            Formatted list of matching runbooks with summaries, causal chains,
-            and fixes.
+            JSON {"runbooks": [...]} with summary, root cause, causal chain and
+            fix of each match, or {"error": ...}.
         """
-        query = query.strip()
-        if len(query) < _TOOL_QUERY_MIN_CHARS:
-            return "Error: query must be at least 3 characters."
-        query = query[:_TOOL_QUERY_MAX_CHARS]
+        try:
+            args = RunbookSearchInput(query=query)
+        except ValidationError as exc:
+            return _invalid_args(exc)
 
-        logger.info("Tool call: search_runbooks(query=%r)", query[:80])
+        logger.info("Tool call: search_runbooks(query=%r)", args.query[:80])
 
-        hits = chroma.search(query, top_k=3)
-        if not hits:
-            return "No matching runbooks found for this query."
-
-        blocks: list[str] = []
-        used = 0
-        for hit in hits[:3]:
+        result = RunbookSearchResult(runbooks=[])
+        output = result.model_dump_json()
+        for hit in chroma.search(args.query, top_k=3):
             detail = runbook_repo.get_by_id(hit.runbook_id)
             if not detail:
                 continue
-            lines = [
-                f"semantic_score: {hit.semantic_score:.2f}",
-                f"Summary: {detail.summary[:200]}",
-                f"Root cause: {detail.root_cause[:150]}",
-            ]
-            if detail.causal_chain:
-                lines.append(f"Causal chain: {' -> '.join(detail.causal_chain)}")
-            lines.append(f"Fix: {detail.fix[:150]}")
-            if detail.affected_components:
-                lines.append(f"Affected: {', '.join(detail.affected_components)}")
-            block = _runbook_block(detail.runbook_id, "\n".join(lines))
-            if used + len(block) > _TOOL_OUTPUT_MAX_CHARS:
+            match = RunbookSummary(
+                runbook_id=detail.runbook_id,
+                semantic_score=round(float(hit.semantic_score), 2),
+                summary=detail.summary[:200],
+                root_cause=detail.root_cause[:150],
+                causal_chain=list(detail.causal_chain),
+                fix=detail.fix[:150],
+                affected_components=list(detail.affected_components),
+            )
+            extended = RunbookSearchResult(runbooks=[*result.runbooks, match])
+            extended_output = _capped(extended)
+            if extended_output is None:
                 break
             # Only IDs actually shown to the model become citable evidence.
             retrieved_ids.add(detail.runbook_id)
-            blocks.append(block)
-            used += len(block) + 1
+            result, output = extended, extended_output
 
-        return "\n".join(blocks) if blocks else "No detailed info available."
+        return output
 
     return search_runbooks
 
@@ -221,41 +255,114 @@ def _make_check_dependencies_tool(
             component: The name of the component (e.g., 'payment-service').
 
         Returns:
-            A formatted compatibility report with an evidence ID.
+            JSON compatibility report (evidence_id, status, installed_versions,
+            violations), or {"error": ...}.
         """
-        component = component.strip().lower()
-        if not _COMPONENT_NAME_PATTERN.fullmatch(component):
-            return "Error: invalid component name. Expected e.g. 'payment-service'."
+        try:
+            args = ComponentInput(component=component)
+        except ValidationError as exc:
+            return _invalid_args(exc)
 
-        logger.info("Tool call: check_component_dependencies(component=%r)", component)
+        logger.info("Tool call: check_component_dependencies(component=%r)", args.component)
 
-        if registry.get_component_state(component) is None:
-            return f"Component '{component}' is not in the registry; no compatibility evidence."
+        if registry.get_component_state(args.component) is None:
+            return _tool_error(
+                f"component '{args.component}' is not in the registry; no compatibility evidence"
+            )
 
-        report = registry.check_compatibility(component)
-
-        # Register the evidence ID so the validator accepts it.
+        report = registry.check_compatibility(args.component)
+        output = _capped(
+            DependencyCheckResult.model_validate(
+                {
+                    "evidence_id": report.evidence_id,
+                    "component": report.component_name,
+                    "status": report.status.value.upper(),
+                    "installed_versions": report.installed_versions,
+                    "violations": report.violations,
+                }
+            )
+        )
+        if output is None:
+            return _TOO_LARGE
+        # Register the evidence ID only once the model can actually see it.
         retrieved_ids.add(report.evidence_id)
-
-        lines = [
-            f"Compatibility Evidence: {report.evidence_id}",
-            f"Component: {report.component_name}",
-            f"Status: {report.status.value.upper()}",
-            "",
-            "Installed Versions:",
-        ]
-
-        for pkg, ver in report.installed_versions.items():
-            lines.append(f"  {pkg}: {ver}")
-
-        if report.violations:
-            lines.append("\nViolations Found:")
-            for v in report.violations:
-                lines.append(f"  - {v}")
-
-        return "\n".join(lines)[:_TOOL_OUTPUT_MAX_CHARS]
+        return output
 
     return check_component_dependencies
+
+
+def _default_fsm() -> ProcessHealthFSM:
+    """Same windows as the live API and ComponentHealthTracker defaults."""
+    return ProcessHealthFSM(
+        recovery_window=timedelta(seconds=300),
+        max_restart_count=3,
+        restart_time_window=timedelta(seconds=120),
+    )
+
+
+def _make_fsm_health_tool(
+    events: list[CoreEvent],
+    new_fsm: Callable[[], ProcessHealthFSM] = _default_fsm,
+) -> Callable[..., str]:
+    """Create a ``get_fsm_health`` tool over *events*, the current investigation's events.
+
+    The list is shared with the agent, which refills it before every run, so
+    the tool only ever sees the evidence of the investigation being discussed.
+    """
+
+    def get_fsm_health(component: str) -> str:
+        """Get the process-health state of a component involved in this incident.
+
+        Replays the incident's events for that component through DeployD's
+        deterministic health state machine (HEALTHY, DEGRADED, CRASHING,
+        RESTARTING, CRASH_LOOP). Components outside this incident have no events.
+
+        Args:
+            component: The name of the component (e.g., 'auth-service').
+
+        Returns:
+            JSON with the state, events replayed, restart attempts and the
+            transitions, or {"error": ...}.
+        """
+        try:
+            args = ComponentInput(component=component)
+        except ValidationError as exc:
+            return _invalid_args(exc)
+
+        logger.info("Tool call: get_fsm_health(component=%r)", args.component)
+
+        own = sorted(
+            (e for e in events if e.related_component == args.component),
+            key=lambda e: e.timestamp,
+        )
+        if not own:
+            return _tool_error(
+                f"component '{args.component}' has no events in this investigation; "
+                "no health evidence"
+            )
+
+        fsm = new_fsm()
+        for event in own:
+            fsm.process_event(event)
+        result = FsmHealthResult.model_validate(
+            {
+                "component": args.component,
+                "state": fsm.state.value,
+                "events_replayed": len(own),
+                "restart_attempts": fsm.restart_attempt_count,
+                "transitions": [
+                    {
+                        "at": t.timestamp.strftime("%H:%M:%S"),
+                        "from_state": t.from_state.value,
+                        "to_state": t.to_state.value,
+                    }
+                    for t in fsm.transition_history[-10:]
+                ],
+            }
+        )
+        return _capped(result) or _TOO_LARGE
+
+    return get_fsm_health
 
 
 def _make_get_runbook_detail_tool(
@@ -278,29 +385,31 @@ def _make_get_runbook_detail_tool(
             runbook_id: The runbook identifier (e.g. 'RB-PAYMENT-DB-TIMEOUT').
 
         Returns:
-            Full runbook details including fix commands and causal chain.
+            JSON runbook with root cause, causal chain, fix and fix_commands,
+            or {"error": ...}.
         """
-        runbook_id = runbook_id.strip().upper()
-        if not _RUNBOOK_ID_PATTERN.fullmatch(runbook_id):
-            return "Error: invalid runbook_id format. Expected e.g. 'RB-PAYMENT-DB-TIMEOUT'."
+        try:
+            args = RunbookDetailInput(runbook_id=runbook_id)
+        except ValidationError as exc:
+            return _invalid_args(exc)
 
-        logger.info("Tool call: get_runbook_detail(runbook_id=%r)", runbook_id)
+        logger.info("Tool call: get_runbook_detail(runbook_id=%r)", args.runbook_id)
 
-        detail = runbook_repo.get_by_id(runbook_id)
+        detail = runbook_repo.get_by_id(args.runbook_id)
         if not detail:
-            return f"Runbook '{runbook_id}' not found in the historical database."
+            return _tool_error(f"runbook '{args.runbook_id}' not found in the historical database")
 
-        body = (
-            f"Runbook: {detail.runbook_id}\n"
-            f"Incident: {detail.incident_id}\n"
-            f"Summary: {detail.summary}\n"
-            f"Root Cause: {detail.root_cause}\n"
-            f"Causal Chain: {' -> '.join(detail.causal_chain) if detail.causal_chain else 'N/A'}\n"
-            f"Fix: {detail.fix}\n"
-            f"Commands: {'; '.join(detail.fix_commands) if detail.fix_commands else 'None'}\n"
-            f"Affected Components: {', '.join(detail.affected_components)}"
+        result = RunbookDetail(
+            runbook_id=detail.runbook_id,
+            incident_id=detail.incident_id,
+            summary=detail.summary[:300],
+            root_cause=detail.root_cause[:300],
+            causal_chain=list(detail.causal_chain),
+            fix=detail.fix[:300],
+            fix_commands=[command[:200] for command in detail.fix_commands[:5]],
+            affected_components=list(detail.affected_components),
         )
-        return _runbook_block(detail.runbook_id, body)
+        return _capped(result) or _TOO_LARGE
 
     return get_runbook_detail
 
@@ -309,6 +418,13 @@ def _make_get_runbook_detail_tool(
 
 MAX_FOLLOW_UP_TURNS = 5
 _MAX_FOLLOW_UP_TURNS = MAX_FOLLOW_UP_TURNS
+
+# Run limits enforced by Agno/Groq rather than requested in the prompt: a run
+# can never loop on tools, and a low temperature keeps diagnoses reproducible.
+# max_tokens covers gpt-oss reasoning plus the answer (~1k in practice).
+TOOL_CALL_LIMIT = 4
+TEMPERATURE = 0.1
+MAX_OUTPUT_TOKENS = 2048
 
 
 class AgnoGroqAgent:
@@ -324,13 +440,22 @@ class AgnoGroqAgent:
 
         LLM (with tools)->AgentDiagnosis (Pydantic response_model)->Evidence validator (deterministic — strips hallucinated IDs) -> Formatted string for AgentPort
 
+    Tool safety boundary: every tool is **read-only**.  ``search_runbooks``,
+    ``get_runbook_detail`` and ``check_component_dependencies`` only read the
+    runbook store and the component registry; ``get_fsm_health`` replays the
+    investigation's own events through a fresh ProcessHealthFSM.  None writes
+    state, calls an external system or executes a command.  Arguments and results are Pydantic
+    models (``tool_models.py``), results are capped JSON, and Agno refuses tool
+    calls beyond ``TOOL_CALL_LIMIT`` per run.
+
     Parameters
     ----------
     chroma_client: Optional.  ChromaDB client for semantic runbook search (tool dep).
-    runbook_repo: Optional.  JSON runbook repository for full runbook data (tool dep + evidence validation).
-    When tool dependencies are **not** provided the agent operates in
-    summarisation-only mode (no tool calling, no evidence validation).
-    This preserves backward compatibility with the current orchestrator.
+    runbook_repo: Optional.  JSON runbook repository for full runbook data (tool dep).
+    component_registry: Optional.  Registry behind ``check_component_dependencies``.
+    Each tool is registered only when its dependency is injected, except
+    ``get_fsm_health``, which only needs the evidence passed to ``diagnose()``.
+    Evidence validation always runs.
     """
 
     MODEL_ID = "openai/gpt-oss-120b"
@@ -372,6 +497,9 @@ class AgnoGroqAgent:
             self._tools.append(
                 _make_check_dependencies_tool(component_registry, self._tool_retrieved_ids)
             )
+        # Needs no external dependency: it replays the evidence the agent is given.
+        self._investigation_events: list[CoreEvent] = []
+        self._tools.append(_make_fsm_health_tool(self._investigation_events))
 
         # Multi-turn session storag
         # In-memory dict for the PoC.  Production: use Redis / DB.
@@ -414,6 +542,7 @@ class AgnoGroqAgent:
 
         # Reset tool-discovered IDs for this investigation session.
         self._tool_retrieved_ids.clear()
+        self._investigation_events[:] = _chain_events(causal_chains)
 
         logger.info(
             "Diagnosis started: component=%s, chains=%d, candidates=%d, session=%s",
@@ -434,9 +563,9 @@ class AgnoGroqAgent:
         if not isinstance(response.content, AgentDiagnosis):
             msg = f"Expected AgentDiagnosis, got {type(response.content).__name__}"
             raise TypeError(msg)
-        diagnosis: AgentDiagnosis = response.content
         # Step 2: Evidence validation (deterministic)
-        diagnosis = self._validate_evidence(diagnosis, allowed_ids)
+        allowed_ids |= self._tool_retrieved_ids
+        diagnosis = _validate_evidence(response.content, allowed_ids)
 
         # Store session context for follow-ups
         formatted = _format_diagnosis(diagnosis)
@@ -445,6 +574,7 @@ class AgnoGroqAgent:
             initial_evidence=user_message,
             diagnosis_text=formatted,
             allowed_evidence_ids=allowed_ids,
+            events=list(self._investigation_events),
         )
         self._last_session_id = session_id
 
@@ -463,10 +593,11 @@ class AgnoGroqAgent:
         the agent prompt.  The agent retains the initial diagnosis and all
         prior follow-up turns as conversation context.
 
-        The follow-up response is wrapped in an ``AgentDiagnosis`` for
-        Protocol consistency: ``root_cause`` carries the updated narrative,
-        ``confidence`` reflects the agent's revised certainty, and
-        ``evidence_references`` is empty (follow-ups do not add new evidence).
+        The model answers with a structured ``_FollowUpAnswer`` (answer,
+        confidence, cited evidence), wrapped in an ``AgentDiagnosis`` for
+        Protocol consistency: ``root_cause`` carries the answer.  Its citations
+        go through the same validator as the diagnosis, against this session's
+        evidence (retrieved candidates plus IDs shown by tools in this session).
 
         **Scope constraint**: the underlying prompt restricts discussion to
         the component named in the original ``diagnose()`` call — the
@@ -539,25 +670,31 @@ class AgnoGroqAgent:
         if ctx.followup_agent is None:
             ctx.followup_agent = self._create_followup_agent(ctx)
 
-        try:
-            response = ctx.followup_agent.run(framed_message)
-            self._last_token_usage = _total_tokens(response)
-            _raise_on_failed_run(response)
-            narrative: str = (
-                response.content if response.content else "Agent returned an empty response."
-            )
-            ctx.followup_history.append((message, narrative))
-            logger.info("Follow-up complete: session=%s, turn=%d", session_id, ctx.turn_count)
-            return AgentDiagnosis(
-                root_cause=narrative,
-                confidence="Medium",
+        self._tool_retrieved_ids.clear()
+        self._investigation_events[:] = ctx.events
+        response = ctx.followup_agent.run(framed_message)
+        self._last_token_usage = _total_tokens(response)
+        _raise_on_failed_run(response)
+        if not isinstance(response.content, _FollowUpAnswer):
+            msg = f"Expected a structured follow-up answer, got {type(response.content).__name__}"
+            raise TypeError(msg)
+        reply = response.content
+
+        ctx.allowed_evidence_ids |= self._tool_retrieved_ids
+        answer = _validate_evidence(
+            AgentDiagnosis(
+                root_cause=reply.answer,
+                confidence=reply.confidence,
                 reasoning=f"Follow-up turn {ctx.turn_count} for component '{ctx.component}'.",
-                recommendation="Review updated analysis and confirm next steps with the team.",
-                evidence_references=[],
-            )
-        except Exception as exc:
-            logger.exception("Follow-up failed: session=%s", session_id)
-            raise RuntimeError(f"Follow-up failed: {exc}") from exc
+                recommendation="Review the answer and confirm next steps with the team.",
+                evidence_references=reply.evidence_references,
+            ),
+            ctx.allowed_evidence_ids,
+        )
+        # Later turns see the validated answer, never the raw model text.
+        ctx.followup_history.append((message, answer.root_cause))
+        logger.info("Follow-up complete: session=%s, turn=%d", session_id, ctx.turn_count)
+        return answer
 
     # Properties
     @property
@@ -579,18 +716,22 @@ class AgnoGroqAgent:
 
     # Internal
     def _create_structured_agent(self) -> Agent:
+        return self._create_agent(self._system_prompt, AgentDiagnosis)
+
+    def _create_agent(self, instructions: str, output_schema: type[BaseModel]) -> Agent:
         """Agent with ``output_schema`` for validated structured output.
 
         Groq rejects JSON mode combined with tool calling.  With tools, the
         reasoning run therefore goes without a response format and a separate
-        parser pass (same model, no tools) maps its answer onto AgentDiagnosis.
+        parser pass (same model, no tools) maps its answer onto the schema.
         """
         return Agent(
-            model=Groq(id=self.MODEL_ID),
+            model=self._model(),
             tools=self._tools or None,
-            instructions=self._system_prompt,
-            output_schema=AgentDiagnosis,
-            parser_model=Groq(id=self.MODEL_ID) if self._tools else None,
+            tool_call_limit=TOOL_CALL_LIMIT,
+            instructions=instructions,
+            output_schema=output_schema,
+            parser_model=self._model() if self._tools else None,
             structured_outputs=True,
             markdown=False,
         )
@@ -618,61 +759,79 @@ class AgnoGroqAgent:
                 turns.append(f"Your response: {agent_resp}")
             context_block += "\n\n### Conversation History\n" + "\n\n".join(turns)
 
-        return Agent(
-            model=Groq(id=self.MODEL_ID),
-            tools=self._tools or None,
-            instructions=self._system_prompt + context_block,
-            markdown=False,
+        return self._create_agent(self._system_prompt + context_block, _FollowUpAnswer)
+
+    def _model(self) -> Groq:
+        return Groq(id=self.MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_OUTPUT_TOKENS)
+
+
+def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> AgentDiagnosis:
+    """Deterministic evidence validator.
+
+    Validates that every cited ``evidence_references`` was actually part
+    of the investigation's evidence set::
+
+        evidence_references in allowed_ids
+
+    ``allowed_ids`` contains the runbook IDs that were retrieved by the
+    orchestrator's pipeline (candidates) plus any IDs discovered by the
+    agent's tool calls.  A reference that exists in the repository but
+    was NOT part of this investigation is stripped — the model cannot
+    cherry-pick arbitrary runbooks from the database.
+
+    This is stronger than a simple existence check because it prevents
+    *unsupported reasoning* (citing a valid but irrelevant runbook),
+    not just *citation hallucination* (citing a non-existent runbook).
+
+    The free-text fields get the same check: anything shaped like a citable
+    ID that is not in ``allowed_ids`` is replaced by ``_REMOVED_CITATION``,
+    so an invented ID cannot reach the engineer through the prose either.
+    """
+    known = {_canonical_id(ref): ref for ref in allowed_ids}
+    cited = [known.get(_canonical_id(ref)) for ref in diagnosis.evidence_references]
+    unsupported = [
+        ref for ref, match in zip(diagnosis.evidence_references, cited, strict=True) if not match
+    ]
+    update: dict[str, object] = {
+        "evidence_references": list(dict.fromkeys(match for match in cited if match))
+    }
+    for name in ("root_cause", "reasoning", "recommendation"):
+        update[name], removed = _scrub_citations(getattr(diagnosis, name), known)
+        unsupported.extend(removed)
+    if unsupported:
+        logger.warning(
+            "Evidence validator stripped %d unsupported reference(s): %s "
+            "(not in investigation evidence set)",
+            len(unsupported),
+            unsupported,
         )
+    return diagnosis.model_copy(update=update)
 
-    def _validate_evidence(
-        self,
-        diagnosis: AgentDiagnosis,
-        allowed_ids: set[str],
-    ) -> AgentDiagnosis:
-        """Deterministic evidence validator.
 
-        Validates that every cited ``evidence_references`` was actually part
-        of the investigation's evidence set::
+# Models often write typographic hyphens (gpt-oss uses U+2011) inside IDs.
+_HYPHENS = "-\u2010\u2011\u2012\u2013\u2014\u2015\u2212"
+# Anything shaped like a citable ID: runbook IDs and compatibility evidence IDs.
+_CITATION_PATTERN = re.compile(rf"\b(?:RB|compat)(?:[{_HYPHENS}][A-Z0-9]+)+\b", re.IGNORECASE)
+_REMOVED_CITATION = "[unverified reference removed]"
 
-            evidence_references in allowed_ids
 
-        ``allowed_ids`` contains the runbook IDs that were retrieved by the
-        orchestrator's pipeline (candidates) plus any IDs discovered by the
-        agent's tool calls.  A reference that exists in the repository but
-        was NOT part of this investigation is stripped — the model cannot
-        cherry-pick arbitrary runbooks from the database.
+def _canonical_id(ref: str) -> str:
+    """Compare IDs regardless of hyphen style and case: RB-* upper, everything else lower."""
+    ascii_ref = re.sub(f"[{_HYPHENS}]", "-", ref.strip())
+    return ascii_ref.upper() if ascii_ref[:3].upper() == "RB-" else ascii_ref.lower()
 
-        This is stronger than a simple existence check because it prevents
-        *unsupported reasoning* (citing a valid but irrelevant runbook),
-        not just *citation hallucination* (citing a non-existent runbook).
-        """
-        if not diagnosis.evidence_references:
-            return diagnosis
 
-        # If tool deps were injected, tool calls may have discovered new IDs.
-        # _tool_retrieved_ids is populated by the search tool at call time.
-        effective_allowed = allowed_ids | self._tool_retrieved_ids
+def _scrub_citations(text: str, known: dict[str, str]) -> tuple[str, list[str]]:
+    removed: list[str] = []
 
-        valid: list[str] = []
-        unsupported: list[str] = []
+    def replace(match: re.Match[str]) -> str:
+        ref = match.group(0)
+        if _canonical_id(ref) in known:
+            return ref
+        removed.append(ref)
+        return _REMOVED_CITATION
 
-        for ref in diagnosis.evidence_references:
-            if ref in effective_allowed:
-                valid.append(ref)
-            else:
-                unsupported.append(ref)
-
-        if unsupported:
-            logger.warning(
-                "Evidence validator stripped %d unsupported reference(s): %s "
-                "(not in investigation evidence set)",
-                len(unsupported),
-                unsupported,
-            )
-            return diagnosis.model_copy(update={"evidence_references": valid})
-
-        return diagnosis
+    return _CITATION_PATTERN.sub(replace, text), removed
 
 
 # Formatting Helpers
@@ -725,6 +884,15 @@ def _build_user_message(
         f"</system_evidence>\n\n"
         "Analyze the evidence above and provide your diagnosis."
     )
+
+
+def _chain_events(causal_chains: list[list[GraphNode]]) -> list[CoreEvent]:
+    """Distinct events of the investigation, in chain order."""
+    events: dict[uuid.UUID, CoreEvent] = {}
+    for chain in causal_chains:
+        for node in chain:
+            events.setdefault(node.event.event_id, node.event)
+    return list(events.values())
 
 
 def _format_chains(causal_chains: list[list[GraphNode]]) -> str:

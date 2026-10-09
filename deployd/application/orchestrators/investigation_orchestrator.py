@@ -24,7 +24,9 @@ execution occurs.
                    meets or exceeds the confidence threshold.
         Action:    Delegate to AgentPort for a grounded diagnosis. The result
                    still carries requires_human_approval=True; no tool is
-                   executed without explicit engineer sign-off.
+                   executed without explicit engineer sign-off.  An answer
+                   that cites no verifiable evidence is discarded (fail-closed)
+                   and only the causal chain is shown.
 
 AgentPort is a Protocol so the orchestrator never imports Agno directly.
 The concrete Agno implementation is injected at construction time.
@@ -60,6 +62,9 @@ if TYPE_CHECKING:
 
 # Risk levels that satisfy the human-approval gate (ADR-008 §Remediation Rules)
 _HIGH_RISK_LEVELS: frozenset[RiskLevel] = frozenset({RiskLevel.HIGH, RiskLevel.CRITICAL})
+
+# Why a Tier-3 answer is discarded: none of its citations survived validation.
+UNVERIFIABLE_ANSWER = "the agent produced no verifiable citation"
 
 
 # ===========================================================================
@@ -252,6 +257,24 @@ class InvestigationOrchestrator:
             causal_chains=chains,
             candidates=candidates,
         )
+
+        if not agent_diagnosis.evidence_references:
+            # Fail closed: the engineer sees the deterministic chain, never an
+            # answer that cannot be traced back to this investigation's evidence.
+            return TierDiagnosisResult(
+                tier=DiagnosisTier.FULL,
+                fsm_state=fsm_state,
+                causal_chains=chains,
+                remediation=TierRemediation(
+                    summary=(
+                        f"The gate allowed a grounded diagnosis, but {UNVERIFIABLE_ANSWER}, "
+                        "so the answer was discarded.  Human review of the causal chain is "
+                        "required before any remediation action is taken."
+                    ),
+                    requires_human_approval=True,
+                    evidence_references=[],
+                ),
+            )
 
         return TierDiagnosisResult(
             tier=DiagnosisTier.FULL,
