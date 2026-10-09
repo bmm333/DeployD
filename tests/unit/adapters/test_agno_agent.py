@@ -79,9 +79,8 @@ class _FakeAgnoAgent:
 
 
 def _response(content: Any, status: RunStatus = RunStatus.completed, tokens: int = 100) -> Any:
-    return SimpleNamespace(
-        content=content, status=status, metrics=SimpleNamespace(total_tokens=tokens)
-    )
+    metrics = SimpleNamespace(total_tokens=tokens, input_tokens=tokens - 20, output_tokens=20)
+    return SimpleNamespace(content=content, status=status, metrics=metrics)
 
 
 def _diagnosis(*evidence: str, confidence: str = "High") -> AgentDiagnosis:
@@ -211,6 +210,7 @@ def test_diagnose_strips_hallucinated_runbook_ids(monkeypatch: pytest.MonkeyPatc
     assert result.evidence_references == [OOM_ID]
     assert result.confidence == "High"
     assert agent.last_token_usage == 812
+    assert agent.last_token_split == (792, 20)
     assert agent.last_session_id is not None
     # The prompt carries the component, the chain and the retrieved candidate.
     sent = fake.messages[0]

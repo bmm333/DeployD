@@ -508,6 +508,7 @@ class AgnoGroqAgent:
         self._sessions: dict[str, _SessionContext] = {}
         self._last_session_id: str | None = None
         self._last_token_usage: int | None = None
+        self._last_token_split: tuple[int, int] | None = None
         self._last_removed_citations: list[str] = []
 
         logger.info(
@@ -560,6 +561,7 @@ class AgnoGroqAgent:
         agent = self._create_structured_agent()
         response = agent.run(user_message)
         self._last_token_usage = _total_tokens(response)
+        self._last_token_split = _token_split(response)
         _raise_on_failed_run(response)
 
         # Agno returns content as Any when output_schema is set;
@@ -679,6 +681,7 @@ class AgnoGroqAgent:
         self._investigation_events[:] = ctx.events
         response = ctx.followup_agent.run(framed_message)
         self._last_token_usage = _total_tokens(response)
+        self._last_token_split = _token_split(response)
         _raise_on_failed_run(response)
         if not isinstance(response.content, _FollowUpAnswer):
             msg = f"Expected a structured follow-up answer, got {type(response.content).__name__}"
@@ -723,6 +726,11 @@ class AgnoGroqAgent:
     def prompt_version(self) -> str:
         """Version of the system prompt this agent runs with."""
         return self._prompt_version
+
+    @property
+    def last_token_split(self) -> tuple[int, int] | None:
+        """``(input, output)`` tokens of the most recent LLM run, if reported (cost estimates)."""
+        return self._last_token_split
 
     @property
     def last_token_usage(self) -> int | None:
@@ -861,6 +869,15 @@ def _raise_on_failed_run(response: object) -> None:
     with status ERROR instead of raising; never let that pass as an answer."""
     if getattr(response, "status", None) == RunStatus.error:
         raise RuntimeError(f"LLM provider error: {getattr(response, 'content', '')}")
+
+
+def _token_split(response: object) -> tuple[int, int] | None:
+    metrics = getattr(response, "metrics", None)
+    used_in = getattr(metrics, "input_tokens", None)
+    used_out = getattr(metrics, "output_tokens", None)
+    if isinstance(used_in, int) and isinstance(used_out, int):
+        return used_in, used_out
+    return None
 
 
 def _total_tokens(response: object) -> int | None:
