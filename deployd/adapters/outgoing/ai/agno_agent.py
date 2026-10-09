@@ -19,12 +19,9 @@ Multi-turn support distinguishes two evidence categories:
 
 Model choice
 ------------
-Groq / openai/gpt-oss-120b — fast inference matters when an engineer is
-waiting for a diagnosis during an active incident, and it supports tool calling
-plus structured output.  Llama-3.3-70b-versatile is no longer served by Groq;
-qwen/qwen3.8-27b is capped at 1000 output tokens/min on the free tier, which a
-single grounded diagnosis already exceeds.  The free tier (8000 tokens/min) is
-sufficient for the project demo: ~3k tokens per diagnosis, ~2k per follow-up.
+Groq / openai/gpt-oss-120b by default, configurable with DEPLOYD_GROQ_MODEL.
+The choice is measured, not assumed: ADR-011 compares the Groq models on the
+real pipeline (experiments/model_selection.py).
 """
 
 from __future__ import annotations
