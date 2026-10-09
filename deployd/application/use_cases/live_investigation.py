@@ -10,7 +10,10 @@ from datetime import timedelta
 from deployd.application.dtos.diagnosis import DiagnosisTier
 from deployd.application.dtos.investigation_request import InvestigationRequest
 from deployd.application.dtos.live_investigation_result import LiveInvestigationResult
-from deployd.application.orchestrators.investigation_orchestrator import InvestigationOrchestrator
+from deployd.application.orchestrators.investigation_orchestrator import (
+    UNVERIFIABLE_ANSWER,
+    InvestigationOrchestrator,
+)
 from deployd.application.ports.retrieval_port import RetrievalPort
 from deployd.domain.causal.causal_engine import CausalEngine
 from deployd.domain.graph.graph import IncidentGraph
@@ -116,6 +119,15 @@ class LiveInvestigation:
             diagnosis=result.structured_diagnosis if result else None,
             llm_usage=(self._orchestrator.last_token_usage if tier is DiagnosisTier.FULL else None),
             llm_error=llm_error,
+            # The gate passed, the agent answered, the orchestrator withheld it (fail-closed).
+            answer_discarded=(
+                UNVERIFIABLE_ANSWER
+                if result
+                and tier is DiagnosisTier.FULL
+                and agent_available
+                and result.structured_diagnosis is None
+                else None
+            ),
             agent_available=agent_available,
             summary=result.remediation.summary if result else _AGENT_FAILED_SUMMARY,
         )

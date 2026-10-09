@@ -5,7 +5,10 @@ from typing import Any
 import pytest
 from deployd.application.dtos.diagnosis import AgentDiagnosis, DiagnosisTier
 from deployd.application.dtos.retrieval import RetrievalCandidate, RetrievalResult
-from deployd.application.orchestrators.investigation_orchestrator import InvestigationOrchestrator
+from deployd.application.orchestrators.investigation_orchestrator import (
+    UNVERIFIABLE_ANSWER,
+    InvestigationOrchestrator,
+)
 from deployd.application.use_cases.live_investigation import LiveInvestigation
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType, Severity
 from deployd.domain.graph.graph import IncidentGraph
@@ -214,3 +217,23 @@ def test_unexpected_errors_are_not_reported_as_agent_failures():
 
     with pytest.raises(KeyError):
         use_case.execute(graph)
+
+
+def test_answer_without_verifiable_citation_is_reported_as_discarded():
+    graph, retriever = _full_gate_graph()
+    uncited = AgentDiagnosis(
+        root_cause="Restart everything",
+        reasoning="nothing it cited survived validation",
+        recommendation="Restart everything",
+        confidence="High",
+        evidence_references=[],
+    )
+    use_case = LiveInvestigation(retriever, InvestigationOrchestrator(agent=StubAgent(uncited)))
+
+    result = use_case.execute(graph)
+
+    assert result is not None
+    assert result.tier == DiagnosisTier.FULL
+    assert result.diagnosis is None
+    assert result.answer_discarded == UNVERIFIABLE_ANSWER
+    assert result.llm_usage == 30

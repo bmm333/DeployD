@@ -22,7 +22,10 @@ DATA = Path("data")
 SCENARIOS = sorted((DATA / "scenarios").glob("live_*.json"))
 
 
-def _replay(events: list[dict[str, Any]], shift: timedelta) -> tuple[list[tuple[str, ...]], str]:
+def _replay(
+    events: list[dict[str, Any]], shift: timedelta
+) -> tuple[list[tuple[str, ...]], str, int]:
+    """Correlated edges (as descriptions), incident severity and node count."""
     config = CorrelationConfig(**json.loads((DATA / "correlation_config.json").read_text()))
     graph = IncidentGraph()
     use_case = CorrelateEventsUseCase(
@@ -42,7 +45,7 @@ def _replay(events: list[dict[str, Any]], shift: timedelta) -> tuple[list[tuple[
     for edge in graph.edges:
         src, dst = graph.get_node(edge.source).event, graph.get_node(edge.target).event
         edges.append((src.description, dst.description, edge.rule_id or ""))
-    return sorted(edges), compute_incident_severity(graph)
+    return sorted(edges), compute_incident_severity(graph), len(graph.nodes)
 
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda p: p.stem)
@@ -55,26 +58,26 @@ def test_replay_is_independent_of_wall_clock(scenario: Path) -> None:
     assert original == a_year_later
 
 
-EXPECTED_SEVERITY = {
-    "live_oom_auth_service": "Critical",
-    "live_search_es_cascade": "Critical",
-    "live_payment_db_timeout": "Critical",
-    "live_novel_analytics_db": "Critical",
-    "live_degrading_no_trigger": "Degrading",
+EXPECTED_SHAPE = {  # severity, nodes, edges
+    "live_oom_auth_service": ("Critical", 3, 2),
+    "live_search_es_cascade": ("Critical", 3, 2),
+    "live_payment_db_timeout": ("Critical", 3, 2),
+    "live_novel_analytics_db": ("Critical", 3, 2),
+    "live_degrading_no_trigger": ("Degrading", 2, 1),
 }
 
 
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda p: p.stem)
-def test_demo_scenarios_keep_their_severity(scenario: Path) -> None:
-    _, severity = _replay(json.loads(scenario.read_text()), timedelta(0))
+def test_demo_scenarios_keep_their_shape(scenario: Path) -> None:
+    edges, severity, nodes = _replay(json.loads(scenario.read_text()), timedelta(0))
 
-    assert severity == EXPECTED_SEVERITY[scenario.stem]
+    assert (severity, nodes, len(edges)) == EXPECTED_SHAPE[scenario.stem]
 
 
 def test_recorded_oom_scenario_still_correlates() -> None:
     events = json.loads((DATA / "scenarios" / "live_oom_auth_service.json").read_text())
 
-    edges, severity = _replay(events, timedelta(0))
+    edges, severity, _ = _replay(events, timedelta(0))
 
     # config reload → memory 97% → gateway timeout; the auth-service health check is a
     # sibling symptom, not caused by the gateway (auth-service does not call it).

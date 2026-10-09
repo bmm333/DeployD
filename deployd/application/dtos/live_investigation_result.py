@@ -19,5 +19,6 @@ class LiveInvestigationResult:
     diagnosis: AgentDiagnosis | None
     llm_usage: int | None
     llm_error: str | None
+    answer_discarded: str | None
     agent_available: bool
     summary: str

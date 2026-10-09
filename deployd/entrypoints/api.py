@@ -354,6 +354,7 @@ def _run_investigation(target_incident_id: str) -> None:
                 tokens_used=result.llm_usage,
                 llm_error=result.llm_error,
                 prompt_version=agent.prompt_version if agent else None,
+                answer_discarded=result.answer_discarded,
             )
 
             if result.diagnosis is not None and agent is not None and agent.last_session_id:
@@ -377,7 +378,7 @@ def _run_investigation(target_incident_id: str) -> None:
                 reason = (
                     _provider_hint(result.llm_error)
                     if result.llm_error
-                    else _decision_trace["reason_llm_skipped"] or ""
+                    else result.answer_discarded or _decision_trace["reason_llm_skipped"] or ""
                 )
                 _post(
                     "agent",
@@ -441,6 +442,16 @@ def chat(request: _ChatRequest) -> dict[str, str]:
                 )
                 _persist_chat()
                 return {"status": "ok"}
+            elif _session is None and _decision_trace.get("answer_discarded"):
+                _post(
+                    "system",
+                    "gate",
+                    "The agent's answer for this investigation was discarded "
+                    f"({_decision_trace['answer_discarded']}), so there is no agent session to "
+                    "continue. The causal chain above is the verified result.",
+                )
+                _persist_chat()
+                return {"status": "ok"}
             elif _session is None:
                 _post(
                     "system",
@@ -489,6 +500,8 @@ def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: 
                 "agent",
                 "followup",
                 answer.root_cause,
+                confidence=answer.confidence,
+                evidence=",".join(answer.evidence_references),
                 turn=str(_session["turn"]),
                 tokens=str(agent.last_token_usage or ""),
             )
