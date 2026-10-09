@@ -51,12 +51,14 @@ def build_decision_trace(
     tokens_used: int | None,
     llm_error: str | None = None,
     prompt_version: str | None = None,
+    answer_discarded: str | None = None,
 ) -> dict[str, Any]:
     """Assemble the decision trace exposed by ``GET /api/v1/state``.
 
     ``chain`` is the ordered event types of the longest causal chain, so its
     hop count is ``len(chain) - 1``.  ``breakdown`` maps runbook IDs to their
-    per-signal scores (semantic, bm25, causal, component).
+    per-signal scores (semantic, bm25, causal, component).  ``answer_discarded``
+    says why a Tier-3 answer was withheld from the engineer (fail-closed).
     """
     ranked = sorted(candidates, key=lambda c: c.score, reverse=True)
     top = [_candidate(c, breakdown, threshold) for c in ranked[:TOP_CANDIDATES]]
@@ -77,6 +79,7 @@ def build_decision_trace(
         "tokens_used": tokens_used,
         "llm_error": llm_error,
         "prompt_version": prompt_version if llm_called else None,
+        "answer_discarded": answer_discarded,
         "reason_llm_skipped": reason_llm_skipped(
             tier, ranked[0].score if ranked else None, threshold, agent_available
         ),
