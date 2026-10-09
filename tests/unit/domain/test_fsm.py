@@ -194,6 +194,46 @@ class TestDegradedState:
         assert self.m.state == ProcessHealthStatus.DEGRADED
 
 
+# Severity contract with the adapters (DID-43): the HTTP adapter never emits
+# CRITICAL, so crashes are recognised at any severity and degradation from WARNING up.
+
+
+class TestSeverityContract:
+    @pytest.mark.parametrize("severity", [Severity.WARNING, Severity.ERROR, Severity.CRITICAL])
+    @pytest.mark.parametrize(
+        "event_type", [CoreEventType.RESOURCE_EXHAUSTION, CoreEventType.HEALTH_CHECK_FAIL]
+    )
+    def test_degradation_from_warning_up(
+        self, event_type: CoreEventType, severity: Severity
+    ) -> None:
+        m = fsm()
+        m.process_event(event(event_type, severity))
+        assert m.state == ProcessHealthStatus.DEGRADED
+
+    def test_info_resource_sample_is_noop(self) -> None:
+        m = fsm()
+        m.process_event(event(CoreEventType.RESOURCE_EXHAUSTION, Severity.INFO))
+        assert m.state == ProcessHealthStatus.HEALTHY
+
+    @pytest.mark.parametrize("severity", list(Severity))
+    def test_a_crash_is_a_crash_whatever_its_severity(self, severity: Severity) -> None:
+        m = fsm()
+        m.process_event(event(CoreEventType.PROCESS_CRASH, severity))
+        assert m.state == ProcessHealthStatus.CRASHING
+
+    def test_error_crash_while_restarting_goes_back_to_crashing(self) -> None:
+        m = fsm()
+        m.process_event(event(CoreEventType.PROCESS_CRASH, Severity.ERROR, 0))
+        m.process_event(restart_deploy(10))
+        m.process_event(event(CoreEventType.PROCESS_CRASH, Severity.ERROR, 20))
+        assert m.state == ProcessHealthStatus.CRASHING
+
+    def test_non_critical_dependency_failure_does_not_crash_this_process(self) -> None:
+        m = fsm()
+        m.process_event(event(CoreEventType.DEPENDENCY_FAILURE, Severity.ERROR))
+        assert m.state == ProcessHealthStatus.HEALTHY
+
+
 # ADR-006 Row-3 (Crashing state)
 
 

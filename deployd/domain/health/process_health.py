@@ -7,6 +7,8 @@ from datetime import datetime, timedelta  # noqa: TCH003
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType, Severity
 from deployd.domain.health.process_state import ProcessHealthStatus
 
+_DEGRADING_SEVERITIES = frozenset({Severity.WARNING, Severity.ERROR, Severity.CRITICAL})
+
 
 class ProcessHealthFSMError(Exception):
     """BBase class for PHF domain errors"""
@@ -64,25 +66,26 @@ class ProcessHealthFSM:
     def restart_attempt_count(self) -> int:
         return len(self._restart_timestamps)
 
+    # Severity contract with the adapters (ADR-006, DID-43): adapters only assign a
+    # provisional, local severity and the HTTP adapter never emits CRITICAL, so a
+    # crash must not depend on it and degradation starts at WARNING.
     @staticmethod
     def _is_warn(event: CoreEvent) -> bool:
-        return event.severity == Severity.WARNING and event.event_type in (
+        return event.severity in _DEGRADING_SEVERITIES and event.event_type in (
             CoreEventType.RESOURCE_EXHAUSTION,
             CoreEventType.HEALTH_CHECK_FAIL,
         )
 
     @staticmethod
     def _is_crit_fail(event: CoreEvent) -> bool:
-        return event.severity == Severity.CRITICAL and event.event_type in (
-            CoreEventType.PROCESS_CRASH,
-            CoreEventType.DEPENDENCY_FAILURE,
+        return ProcessHealthFSM._is_crit_crash(event) or (
+            event.severity == Severity.CRITICAL
+            and event.event_type == CoreEventType.DEPENDENCY_FAILURE
         )
 
     @staticmethod
     def _is_crit_crash(event: CoreEvent) -> bool:
-        return (
-            event.severity == Severity.CRITICAL and event.event_type == CoreEventType.PROCESS_CRASH
-        )
+        return event.event_type == CoreEventType.PROCESS_CRASH
 
     @staticmethod
     def _is_restart(event: CoreEvent) -> bool:
