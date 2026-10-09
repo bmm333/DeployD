@@ -154,7 +154,6 @@ def _provisional_severity(event: RawTelemetryEvent) -> Severity:
         "REQUEST_TIMEOUT",
         "CONNECTION_ERROR",
         "WORKER_TIMEOUT",
-        "HEALTHCHECK_FAIL",
         "HTTP_ERROR",
     ):
         return Severity.WARNING
