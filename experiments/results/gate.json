@@ -1,0 +1,348 @@
+{
+  "notes": [
+    "Trigger as in the API on develop: an investigation starts when the incident is CRITICAL (2+ hop causal chain).",
+    "'without_topology' replays the same events with a topology where every component calls every other, i.e. the correlation rules before the DID-22 fix.",
+    "The agent is a stub citing the best candidate: FULL means the gate let the LLM in."
+  ],
+  "scenarios": [
+    {
+      "before_cosine_fix": {
+        "best_score": 0.6181600213050842,
+        "gate_open": true
+      },
+      "best_score": 0.671580010652542,
+      "causal_edges": 2,
+      "decision": "FULL",
+      "expected": "FULL",
+      "expected_rank": 1,
+      "expected_runbook": "RB-AUTH-SERVICE-OOMKILL",
+      "scenario": "live_oom_auth_service",
+      "severity": "Critical",
+      "top_candidate": "RB-AUTH-SERVICE-OOMKILL",
+      "without_topology": {
+        "causal_edges": 3,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.5986228704452514,
+        "gate_open": true
+      },
+      "best_score": 0.6743114352226257,
+      "causal_edges": 2,
+      "decision": "FULL",
+      "expected": "FULL",
+      "expected_rank": 1,
+      "expected_runbook": "RB-PAYMENT-DB-TIMEOUT",
+      "scenario": "live_payment_db_timeout",
+      "severity": "Critical",
+      "top_candidate": "RB-PAYMENT-DB-TIMEOUT",
+      "without_topology": {
+        "causal_edges": 2,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.6336149573326111,
+        "gate_open": true
+      },
+      "best_score": 0.7418074786663055,
+      "causal_edges": 2,
+      "decision": "FULL",
+      "expected": "FULL",
+      "expected_rank": 1,
+      "expected_runbook": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+      "scenario": "live_search_es_cascade",
+      "severity": "Critical",
+      "top_candidate": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+      "without_topology": {
+        "causal_edges": 2,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.3,
+        "gate_open": false
+      },
+      "best_score": 0.3420986317706208,
+      "causal_edges": 2,
+      "decision": "CHAIN_ONLY",
+      "expected": "CHAIN_ONLY",
+      "expected_rank": null,
+      "expected_runbook": null,
+      "scenario": "live_novel_analytics_db",
+      "severity": "Critical",
+      "top_candidate": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+      "without_topology": {
+        "causal_edges": 2,
+        "decision": "CHAIN_ONLY",
+        "severity": "Critical"
+      }
+    },
+    {
+      "causal_edges": 1,
+      "decision": "NO_TRIGGER",
+      "expected": "NO_TRIGGER",
+      "scenario": "live_degrading_no_trigger",
+      "severity": "Degrading",
+      "without_topology": {
+        "causal_edges": 1,
+        "decision": "NO_TRIGGER",
+        "severity": "Degrading"
+      }
+    },
+    {
+      "causal_edges": 1,
+      "decision": "NO_TRIGGER",
+      "expected": "NO_TRIGGER",
+      "scenario": "synthetic_false_causality",
+      "severity": "Degrading",
+      "without_topology": {
+        "causal_edges": 2,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    }
+  ],
+  "status": "completed",
+  "threshold": 0.5,
+  "threshold_sweep": [
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "FULL",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 5,
+      "llm_allowed": {
+        "f1": 0.8571428571428571,
+        "fn": 0,
+        "fp": 1,
+        "precision": 0.75,
+        "recall": 1.0,
+        "tn": 2,
+        "tp": 3
+      },
+      "threshold": 0.3
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 6,
+      "llm_allowed": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 3
+      },
+      "threshold": 0.35
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 6,
+      "llm_allowed": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 3
+      },
+      "threshold": 0.4
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 6,
+      "llm_allowed": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 3
+      },
+      "threshold": 0.45
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 6,
+      "llm_allowed": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 3
+      },
+      "threshold": 0.5
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 6,
+      "llm_allowed": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 3
+      },
+      "threshold": 0.55
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 6,
+      "llm_allowed": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 3
+      },
+      "threshold": 0.6
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 6,
+      "llm_allowed": {
+        "f1": 1.0,
+        "fn": 0,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 3,
+        "tp": 3
+      },
+      "threshold": 0.65
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "CHAIN_ONLY",
+        "live_payment_db_timeout": "CHAIN_ONLY",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 4,
+      "llm_allowed": {
+        "f1": 0.5,
+        "fn": 2,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.3333333333333333,
+        "tn": 3,
+        "tp": 1
+      },
+      "threshold": 0.7
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "CHAIN_ONLY",
+        "live_payment_db_timeout": "CHAIN_ONLY",
+        "live_search_es_cascade": "CHAIN_ONLY",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 3,
+      "llm_allowed": {
+        "f1": 0.0,
+        "fn": 3,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tn": 3,
+        "tp": 0
+      },
+      "threshold": 0.75
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "CHAIN_ONLY",
+        "live_payment_db_timeout": "CHAIN_ONLY",
+        "live_search_es_cascade": "CHAIN_ONLY",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 3,
+      "llm_allowed": {
+        "f1": 0.0,
+        "fn": 3,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tn": 3,
+        "tp": 0
+      },
+      "threshold": 0.8
+    }
+  ]
+}
