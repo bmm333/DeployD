@@ -80,7 +80,7 @@ def main() -> None:
     build_bm25(runbooks)
     build_graph_store(runbooks)
     print("\nDone. ChromaDB is persisted; BM25 and GraphStore are verified.")
-    print("Run scripts/eval_retrieval.py to measure recall@k.")
+    print("Run python -m experiments.run_all to evaluate retrieval and the gate.")
 
 
 if __name__ == "__main__":

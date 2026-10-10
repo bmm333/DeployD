@@ -26,7 +26,6 @@ htmlcov/
 .env.*
 !.env.example
 data/historical_incidents.json
-experiments/results/
 .DS_Store
 Thumbs.db
 .agents/
@@ -39,4 +38,3 @@ data/chroma/
 data/deployd.db
 *.log
 *.sqlite3
-.temp_venv
