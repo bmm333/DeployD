@@ -169,7 +169,10 @@ def _get_agent() -> AgnoGroqAgent | None:
                 constraints_file=_DATA_DIR / "compatibility_constraints.json",
             )
             _agent = AgnoGroqAgent(
-                chroma_client=stack.chroma, runbook_repo=stack.repo, component_registry=registry
+                chroma_client=stack.chroma,
+                runbook_repo=stack.repo,
+                component_registry=registry,
+                model_id=os.getenv("DEPLOYD_GROQ_MODEL", "").strip() or AgnoGroqAgent.MODEL_ID,
             )
     return _agent
 
@@ -354,6 +357,8 @@ def _run_investigation(target_incident_id: str) -> None:
                 tokens_used=result.llm_usage,
                 llm_error=result.llm_error,
                 prompt_version=agent.prompt_version if agent else None,
+                model=agent.model_id if agent else None,
+                citations_removed=agent.last_removed_citations if agent else (),
                 answer_discarded=result.answer_discarded,
             )
 

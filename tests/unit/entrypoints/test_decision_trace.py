@@ -124,3 +124,16 @@ def test_a_discarded_answer_is_reported_with_its_reason() -> None:
     assert trace["answer_discarded"] == "the agent produced no verifiable citation"
     assert trace["llm_called"] is True
     assert trace["reason_llm_skipped"] is None
+
+
+def test_model_and_removed_citations_are_reported_only_when_the_llm_was_called() -> None:
+    called = _trace(model="openai/gpt-oss-120b", citations_removed=["RB-INVENTED"])
+    skipped = _trace(
+        model="openai/gpt-oss-120b", citations_removed=["RB-INVENTED"], llm_called=False
+    )
+
+    assert (called["model"], called["citations_removed"]) == (
+        "openai/gpt-oss-120b",
+        ["RB-INVENTED"],
+    )
+    assert (skipped["model"], skipped["citations_removed"]) == (None, [])

@@ -43,6 +43,8 @@ def test_answer_without_verifiable_citation_is_withheld(monkeypatch, tmp_path):
         last_session_id="s1",
         last_token_usage=77,
         prompt_version="1.3.0",
+        model_id="stub-model",
+        last_removed_citations=["RB-INVENTED"],
     )
     monkeypatch.setattr(api, "_get_retrieval", lambda: retrieval)
     monkeypatch.setattr(api, "_get_agent", lambda: agent)
@@ -55,6 +57,7 @@ def test_answer_without_verifiable_citation_is_withheld(monkeypatch, tmp_path):
     trace = state["decision_trace"]
     assert (trace["tier"], trace["llm_called"], trace["tokens_used"]) == ("FULL", True, 77)
     assert trace["answer_discarded"] == UNVERIFIABLE_ANSWER
+    assert (trace["model"], trace["citations_removed"]) == ("stub-model", ["RB-INVENTED"])
     assert state["session"] is None
     shown = state["chat_history"][-1]
     assert shown["kind"] == "deterministic"

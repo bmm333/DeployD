@@ -19,12 +19,9 @@ Multi-turn support distinguishes two evidence categories:
 
 Model choice
 ------------
-Groq / openai/gpt-oss-120b — fast inference matters when an engineer is
-waiting for a diagnosis during an active incident, and it supports tool calling
-plus structured output.  Llama-3.3-70b-versatile is no longer served by Groq;
-qwen/qwen3.8-27b is capped at 1000 output tokens/min on the free tier, which a
-single grounded diagnosis already exceeds.  The free tier (8000 tokens/min) is
-sufficient for the project demo: ~3k tokens per diagnosis, ~2k per follow-up.
+Groq / openai/gpt-oss-120b by default, configurable with DEPLOYD_GROQ_MODEL.
+The choice is measured, not assumed: ADR-011 compares the Groq models on the
+real pipeline (experiments/model_selection.py).
 """
 
 from __future__ import annotations
@@ -458,7 +455,7 @@ class AgnoGroqAgent:
     Evidence validation always runs.
     """
 
-    MODEL_ID = "openai/gpt-oss-120b"
+    MODEL_ID = "openai/gpt-oss-120b"  # default; see ADR-011 for the selection study
 
     def __init__(
         self,
@@ -466,6 +463,7 @@ class AgnoGroqAgent:
         chroma_client: ChromaRunbookClient | None = None,
         runbook_repo: JSONRunbookRepository | None = None,
         component_registry: ComponentRegistry | None = None,
+        model_id: str = MODEL_ID,
     ) -> None:
         # Fail-fast: validate API key at construction time
         if not os.environ.get("GROQ_API_KEY"):
@@ -474,6 +472,7 @@ class AgnoGroqAgent:
                 "Get a free key at https://console.groq.com"
             )
 
+        self._model_id = model_id
         # Load prompt template once
         self._prompt_version, self._system_prompt = _load_system_prompt()
 
@@ -506,10 +505,12 @@ class AgnoGroqAgent:
         self._sessions: dict[str, _SessionContext] = {}
         self._last_session_id: str | None = None
         self._last_token_usage: int | None = None
+        self._last_token_split: tuple[int, int] | None = None
+        self._last_removed_citations: list[str] = []
 
         logger.info(
             "AgnoGroqAgent initialised: model=%s, tools=%d",
-            self.MODEL_ID,
+            self._model_id,
             len(self._tools),
         )
 
@@ -553,9 +554,11 @@ class AgnoGroqAgent:
         )
 
         # Step 1: Run agent with structured output
+        self._last_removed_citations = []
         agent = self._create_structured_agent()
         response = agent.run(user_message)
         self._last_token_usage = _total_tokens(response)
+        self._last_token_split = _token_split(response)
         _raise_on_failed_run(response)
 
         # Agno returns content as Any when output_schema is set;
@@ -565,7 +568,7 @@ class AgnoGroqAgent:
             raise TypeError(msg)
         # Step 2: Evidence validation (deterministic)
         allowed_ids |= self._tool_retrieved_ids
-        diagnosis = _validate_evidence(response.content, allowed_ids)
+        diagnosis, self._last_removed_citations = _validate_evidence(response.content, allowed_ids)
 
         # Store session context for follow-ups
         formatted = _format_diagnosis(diagnosis)
@@ -671,9 +674,11 @@ class AgnoGroqAgent:
             ctx.followup_agent = self._create_followup_agent(ctx)
 
         self._tool_retrieved_ids.clear()
+        self._last_removed_citations = []
         self._investigation_events[:] = ctx.events
         response = ctx.followup_agent.run(framed_message)
         self._last_token_usage = _total_tokens(response)
+        self._last_token_split = _token_split(response)
         _raise_on_failed_run(response)
         if not isinstance(response.content, _FollowUpAnswer):
             msg = f"Expected a structured follow-up answer, got {type(response.content).__name__}"
@@ -681,7 +686,7 @@ class AgnoGroqAgent:
         reply = response.content
 
         ctx.allowed_evidence_ids |= self._tool_retrieved_ids
-        answer = _validate_evidence(
+        answer, self._last_removed_citations = _validate_evidence(
             AgentDiagnosis(
                 root_cause=reply.answer,
                 confidence=reply.confidence,
@@ -705,9 +710,24 @@ class AgnoGroqAgent:
         return self._last_session_id
 
     @property
+    def last_removed_citations(self) -> list[str]:
+        """References the validator removed from the most recent answer (invented by the model)."""
+        return list(self._last_removed_citations)
+
+    @property
+    def model_id(self) -> str:
+        """Groq model this agent calls."""
+        return self._model_id
+
+    @property
     def prompt_version(self) -> str:
         """Version of the system prompt this agent runs with."""
         return self._prompt_version
+
+    @property
+    def last_token_split(self) -> tuple[int, int] | None:
+        """``(input, output)`` tokens of the most recent LLM run, if reported (cost estimates)."""
+        return self._last_token_split
 
     @property
     def last_token_usage(self) -> int | None:
@@ -762,10 +782,12 @@ class AgnoGroqAgent:
         return self._create_agent(self._system_prompt + context_block, _FollowUpAnswer)
 
     def _model(self) -> Groq:
-        return Groq(id=self.MODEL_ID, temperature=TEMPERATURE, max_tokens=MAX_OUTPUT_TOKENS)
+        return Groq(id=self._model_id, temperature=TEMPERATURE, max_tokens=MAX_OUTPUT_TOKENS)
 
 
-def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> AgentDiagnosis:
+def _validate_evidence(
+    diagnosis: AgentDiagnosis, allowed_ids: set[str]
+) -> tuple[AgentDiagnosis, list[str]]:
     """Deterministic evidence validator.
 
     Validates that every cited ``evidence_references`` was actually part
@@ -786,6 +808,8 @@ def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> Agen
     The free-text fields get the same check: anything shaped like a citable
     ID that is not in ``allowed_ids`` is replaced by ``_REMOVED_CITATION``,
     so an invented ID cannot reach the engineer through the prose either.
+
+    Returns the validated diagnosis and the references it removed.
     """
     known = {_canonical_id(ref): ref for ref in allowed_ids}
     cited = [known.get(_canonical_id(ref)) for ref in diagnosis.evidence_references]
@@ -805,7 +829,7 @@ def _validate_evidence(diagnosis: AgentDiagnosis, allowed_ids: set[str]) -> Agen
             len(unsupported),
             unsupported,
         )
-    return diagnosis.model_copy(update=update)
+    return diagnosis.model_copy(update=update), unsupported
 
 
 # Models often write typographic hyphens (gpt-oss uses U+2011) inside IDs.
@@ -842,6 +866,15 @@ def _raise_on_failed_run(response: object) -> None:
     with status ERROR instead of raising; never let that pass as an answer."""
     if getattr(response, "status", None) == RunStatus.error:
         raise RuntimeError(f"LLM provider error: {getattr(response, 'content', '')}")
+
+
+def _token_split(response: object) -> tuple[int, int] | None:
+    metrics = getattr(response, "metrics", None)
+    used_in = getattr(metrics, "input_tokens", None)
+    used_out = getattr(metrics, "output_tokens", None)
+    if isinstance(used_in, int) and isinstance(used_out, int):
+        return used_in, used_out
+    return None
 
 
 def _total_tokens(response: object) -> int | None:
