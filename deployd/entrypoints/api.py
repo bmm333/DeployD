@@ -51,6 +51,7 @@ from deployd.application.use_cases.incident_lifecycle import (
 from deployd.application.use_cases.live_investigation import LiveInvestigation
 from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.graph.graph import IncidentGraph
+from deployd.domain.health.tracker import ComponentHealthTracker
 from deployd.entrypoints.decision_trace import build_decision_trace
 from deployd.infrastructure.persistence.sqlite_incident_repository import (
     SQLiteIncidentRepository,
@@ -103,6 +104,17 @@ _correlate = CorrelateEventsUseCase(
     graph=_graph, event_window=_window, config=_config, topology=_topology
 )
 _adapter = HttpEventAdapter()
+
+
+def _new_health_tracker() -> ComponentHealthTracker:
+    return ComponentHealthTracker(
+        fsm_recovery_window_s=int(_FSM_RECOVERY_WINDOW.total_seconds()),
+        fsm_max_restarts=_FSM_MAX_RESTARTS,
+        fsm_restart_window_s=int(_FSM_RESTART_WINDOW.total_seconds()),
+    )
+
+
+_health_tracker = _new_health_tracker()
 
 # Investigation state
 # Chat messages are flat str→str dicts so they persist as Incident.chat_history.
@@ -255,12 +267,23 @@ def receive_event(raw: RawTelemetryEvent, background_tasks: BackgroundTasks) -> 
             incident = _lifecycle.ensure_open(core_event)
             _lifecycle.update_severity(core_event.severity)
 
-            current_global_severity = compute_incident_severity(_graph)
-            if current_global_severity == "Critical" and _auto_diagnosed_incident_id != str(
-                incident.id
-            ):
+            # Two triggers (ADR-010): a 2+ hop causal chain, or a component of this
+            # incident that the health FSM sees crashing (DID-20). Crashes are not
+            # graph nodes, so a crash elsewhere must not start an investigation of
+            # an unrelated chain. One investigation per incident.
+            crashing, fsm_state, _ = _health_tracker.process_event(core_event)
+            in_incident = any(
+                n.event.related_component == core_event.related_component for n in _graph.nodes
+            )
+            if compute_incident_severity(_graph) == "Critical":
+                reason = "the incident reached CRITICAL"
+            elif crashing and in_incident:
+                reason = f"{core_event.related_component} is {fsm_state.value}"
+            else:
+                reason = None
+            if reason and _auto_diagnosed_incident_id != str(incident.id):
                 _auto_diagnosed_incident_id = str(incident.id)
-                background_tasks.add_task(_run_investigation, str(incident.id))
+                background_tasks.add_task(_run_investigation, str(incident.id), reason)
 
             return {
                 "status": "ok",
@@ -293,7 +316,7 @@ def get_state() -> dict[str, Any]:
 # Investigation (three-tier gate)
 
 
-def _run_investigation(target_incident_id: str) -> None:
+def _run_investigation(target_incident_id: str, reason: str) -> None:
     """Run the three-tier gate on the live graph; the LLM is reached only in Tier 3."""
     global _decision_trace, _session, _investigating  # noqa: PLW0603
 
@@ -325,8 +348,9 @@ def _run_investigation(target_incident_id: str) -> None:
                     _post(
                         "system",
                         "event",
-                        f"Investigation triggered on **{component}**: the incident reached "
-                        f"CRITICAL with a {hops}-hop causal chain. Running the three-tier gate…",
+                        f"Investigation triggered on **{component}**: {reason}, "
+                        f"{f'{hops}-hop causal chain' if hops else 'no causal chain yet'}. "
+                        "Running the three-tier gate…",
                     )
 
         result = use_case.execute(graph_snapshot, on_start=announce)
@@ -513,7 +537,7 @@ def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: 
 
 @app.post("/api/v1/reset")  # type: ignore[misc]
 def reset_state() -> dict[str, Any]:
-    global _graph, _window, _correlate, _chat_history  # noqa: PLW0603
+    global _graph, _window, _correlate, _chat_history, _health_tracker  # noqa: PLW0603
     global _decision_trace, _session, _auto_diagnosed_incident_id  # noqa: PLW0603
 
     with _state_lock:
@@ -530,6 +554,7 @@ def reset_state() -> dict[str, Any]:
         _correlate = CorrelateEventsUseCase(
             graph=_graph, event_window=_window, config=_config, topology=_topology
         )
+        _health_tracker = _new_health_tracker()
         _chat_history = []
         _decision_trace = None
         _session = None
