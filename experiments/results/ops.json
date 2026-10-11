@@ -1,0 +1,19 @@
+{
+  "cold_start_s": {
+    "value": 3.3861676790038473,
+    "what": "embedding model load + indexing 10 runbooks (model already in the HF cache)"
+  },
+  "correlation_ms_per_event": {
+    "p50": 0.03414400271140039,
+    "p95": 0.053641000704374164,
+    "samples": 18
+  },
+  "llm": {
+    "status": "not measured here; run python -m experiments.model_selection"
+  },
+  "retrieval_ms_per_query": {
+    "p50": 10.053405996586662,
+    "p95": 11.910544002603274
+  },
+  "status": "completed"
+}

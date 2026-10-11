@@ -88,7 +88,7 @@ python3.10 -m venv .venv
 | Live UI locally | `.venv/bin/streamlit run demo/live_app.py` |
 | Offline scenario demo (no API, stub agent) | `.venv/bin/streamlit run demo/app.py` |
 | Seed the runbook vector store | `.venv/bin/python scripts/seed_runbooks.py` |
-| Retrieval evaluation (recall@3, gate-open rate) | `.venv/bin/python scripts/eval_retrival.py` |
+| Evaluation: retrieval, gate, ops (no API key needed) | `.venv/bin/python -m experiments.run_all` |
 
 To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with the command written at the top of `requirements.lock` / `requirements-dev.lock` (add `--extra dev` for the dev lock).
 
@@ -104,6 +104,8 @@ To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with
 - Events are simulated; there are no real collectors yet.
 - Topology and component versions are declared in `data/components.json`, not discovered.
 - The runbook corpus is small (10 incidents), and Groq free-tier limits apply.
+- The evaluation is small: 28 hand-labelled text queries and 3 no-match queries over 10 runbooks,
+  plus 6 incident scenarios (`experiments/results/`, ADR-012).
 
 ## Contributions
 
