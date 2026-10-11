@@ -48,6 +48,11 @@ _TIER_STYLE = {
     "CHAIN_ONLY": ("#f59e0b", "Tier 2 · CHAIN ONLY"),
     "INCONCLUSIVE": ("#64748b", "Tier 1 · INCONCLUSIVE"),
 }
+_DECISION_STYLE = {
+    "ACCEPT": ("✓ Approved", "#10b981"),
+    "AMEND": ("✎ Approved with changes", "#f59e0b"),
+    "REJECT": ("✗ Rejected", "#ef4444"),
+}
 _CONFIDENCE_COLORS = {"high": "#10b981", "medium": "#f59e0b", "low": "#ef4444"}
 _AVATAR_USER = ":material/person:"
 _AVATAR_AGENT = ":material/smart_toy:"
@@ -88,6 +93,10 @@ st.markdown(
         border-color: #334155 !important;
     }
     .stApp .stButton > button[kind="secondary"] {
+        background: #1e293b !important; color: #e2e8f0 !important;
+        border: 1px solid #334155 !important;
+    }
+    .stApp [data-testid="stPopoverButton"] {
         background: #1e293b !important; color: #e2e8f0 !important;
         border: 1px solid #334155 !important;
     }
@@ -179,6 +188,9 @@ _DEFAULTS: dict[str, Any] = {
     "scope_warning": None,
     "pending": None,
     "seen_messages": None,
+    "pending_decision": None,
+    "decision_error": None,
+    "engineer": "on-call engineer",
 }
 for _k, _v in _DEFAULTS.items():
     if _k not in st.session_state:
@@ -571,6 +583,17 @@ def _render_trace(trace: dict[str, Any] | None, investigating: bool, status: str
         )
         rows.append(_trace_row("LLM called", ko) + f'<div class="dp-mini">{_esc(reason)}</div>')
 
+    decided = trace.get("human_decision")
+    if decided:
+        label, color = _DECISION_STYLE.get(decided["decision"], (decided["decision"], "#64748b"))
+        rows.append(
+            _trace_row(
+                "Human decision",
+                f'<span style="color:{color}">{label}</span> · {_esc(decided["engineer"])} '
+                f'<span class="dp-mini">v{decided["version"]}</span>',
+            )
+        )
+
     st.markdown(f'<div class="dp-card">{"".join(rows)}</div>', unsafe_allow_html=True)
 
 
@@ -585,6 +608,16 @@ def _render_message(msg: dict[str, str], animate: bool) -> None:
         return
     if kind == "user":
         with st.chat_message("user", avatar=_AVATAR_USER):
+            st.markdown(content)
+        return
+    if kind == "decision":
+        label, color = _DECISION_STYLE.get(msg.get("decision", ""), ("Decision", "#64748b"))
+        with st.chat_message("user", avatar=_AVATAR_USER):
+            st.markdown(
+                f"{_badge(label, color)}"
+                f'<span class="dp-mini">answer v{_esc(msg.get("version", ""))}</span>',
+                unsafe_allow_html=True,
+            )
             st.markdown(content)
         return
     if kind in ("gate", "error"):
@@ -622,6 +655,8 @@ def _render_message(msg: dict[str, str], animate: bool) -> None:
                 if e
             )
             tier = _tier_badge("FULL") if kind == "diagnosis" else ""
+            if kind == "revision":
+                tier = _badge(f"Revised answer · v{msg.get('version', '')}", "#8b5cf6")
             st.markdown(
                 f"{tier}{_badge(f'{conf} confidence', color)}"
                 + (f'<div style="margin-top:.3rem">Grounded in {chips}</div>' if chips else ""),
@@ -658,6 +693,56 @@ def _suggestions(component: str) -> list[str]:
         "What should I check first?",
         f"We already rolled back {component} — does that change your diagnosis?",
     ]
+
+
+def _render_review(review: dict[str, Any]) -> None:
+    """DID-38: the engineer's verdict on the answer under review. Nothing is executed."""
+    ss = st.session_state
+    v = review["version"]
+    st.markdown(
+        f'<div class="dp-label">Your decision on answer v{v} · as {_esc(ss.engineer)}</div>',
+        unsafe_allow_html=True,
+    )
+    approve, reject, amend = st.columns(3)
+    if approve.button("✓ Approve", key=f"approve-{v}", use_container_width=True, type="primary"):
+        ss.pending_decision = {"decision": "ACCEPT"}
+    with reject.popover("✗ Reject", use_container_width=True, key=f"reject-box-{v}"):
+        reason = st.text_input("Why is it wrong?", key=f"reason-{v}")
+        if st.button("Send to the agent", key=f"reject-{v}", disabled=not reason.strip()):
+            ss.pending_decision = {"decision": "REJECT", "comment": reason}
+    with amend.popover("✎ Edit & approve", use_container_width=True, key=f"amend-box-{v}"):
+        edited = st.text_area("Recommendation", value=review["recommendation"], key=f"amend-{v}")
+        if st.button("Approve edited", key=f"amend-ok-{v}", disabled=not edited.strip()):
+            ss.pending_decision = {"decision": "AMEND", "amended_recommendation": edited}
+    if ss.pending_decision:
+        st.rerun(scope="fragment")
+
+
+def _send_decision(incident_id: str | None) -> None:
+    ss = st.session_state
+    revising = ss.pending_decision["decision"] == "REJECT"
+    with st.chat_message("assistant", avatar=_AVATAR_AGENT):
+        st.markdown(
+            '<div class="dp-typing"><i></i><i></i><i></i><span class="dp-muted"> '
+            + ("the agent is revising its answer…" if revising else "recording the decision…")
+            + "</span></div>",
+            unsafe_allow_html=True,
+        )
+    ss.decision_error = None
+    try:
+        _api(
+            "POST",
+            f"/api/v1/incidents/{incident_id}/decision",
+            json={**ss.pending_decision, "engineer": ss.engineer},
+            timeout=CHAT_TIMEOUT_S,
+        )
+    except httpx.HTTPStatusError as exc:
+        ss.decision_error = f"Decision refused: {exc.response.json().get('detail', exc)}"
+    except httpx.HTTPError as exc:
+        ss.decision_error = f"Decision failed: {exc}"
+    ss.pending_decision = None
+    _poll_state()
+    st.rerun(scope="fragment")
 
 
 def _render_chat(state: dict[str, Any], incident_components: set[str]) -> None:
@@ -705,7 +790,11 @@ def _render_chat(state: dict[str, Any], incident_components: set[str]) -> None:
                 msg = "Incident is CRITICAL — investigation starting…"
             st.markdown(f'<div class="dp-muted">{msg}</div>', unsafe_allow_html=True)
         for i, m in enumerate(chat):
-            animate = i >= ss.seen_messages and m.get("kind") in ("diagnosis", "followup")
+            animate = i >= ss.seen_messages and m.get("kind") in (
+                "diagnosis",
+                "followup",
+                "revision",
+            )
             _render_message(m, animate)
         ss.seen_messages = len(chat)
 
@@ -734,6 +823,15 @@ def _render_chat(state: dict[str, Any], incident_components: set[str]) -> None:
             ss.pending = None
             _poll_state()
             st.rerun(scope="fragment")
+
+        if ss.pending_decision:
+            _send_decision(state.get("incident_id"))
+
+    if ss.decision_error:
+        st.error(ss.decision_error)
+    review = state.get("review")
+    if review and review["status"] == "pending" and not ss.pending and not ss.pending_decision:
+        _render_review(review)
 
     if ss.scope_warning:
         st.markdown(f'<div class="dp-warn">{ss.scope_warning}</div>', unsafe_allow_html=True)
@@ -800,6 +898,8 @@ def live_console() -> None:
             f'{len(graph["nodes"])} nodes · {len(graph["edges"])} edges</div></div>',
             unsafe_allow_html=True,
         )
+
+        st.text_input("Engineer on call", key="engineer", help="Recorded with every decision.")
 
         st.markdown('<div class="dp-label">Event ingestion</div>', unsafe_allow_html=True)
         upload = st.file_uploader("Upload events JSON", type=["json"], label_visibility="collapsed")
