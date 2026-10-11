@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from deployd.domain.entities.core_event import Severity
+from deployd.domain.entities.human_decision import HumanDecision
 from deployd.domain.incident.incident import Incident
 
 _SCHEMA = """
@@ -20,7 +21,8 @@ CREATE TABLE IF NOT EXISTS incidents (
     peak_severity   TEXT NOT NULL DEFAULT 'INFO',
     graph_snapshot  TEXT NOT NULL DEFAULT '{"nodes": [], "edges": []}',
     chat_history    TEXT NOT NULL DEFAULT '[]',
-    root_cause_summary TEXT
+    root_cause_summary TEXT,
+    decisions       TEXT NOT NULL DEFAULT '[]'
 );
 """
 
@@ -33,6 +35,12 @@ class SQLiteIncidentRepository:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
+            # Databases created before DID-38 have no decisions column.
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(incidents)")}
+            if "decisions" not in columns:
+                conn.execute(
+                    "ALTER TABLE incidents ADD COLUMN decisions TEXT NOT NULL DEFAULT '[]'"
+                )
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self._path))
@@ -45,15 +53,16 @@ class SQLiteIncidentRepository:
                 """
                 INSERT INTO incidents
                     (id, opened_at, resolved_at, status, peak_severity,
-                     graph_snapshot, chat_history, root_cause_summary)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     graph_snapshot, chat_history, root_cause_summary, decisions)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     resolved_at        = excluded.resolved_at,
                     status             = excluded.status,
                     peak_severity      = excluded.peak_severity,
                     graph_snapshot     = excluded.graph_snapshot,
                     chat_history       = excluded.chat_history,
-                    root_cause_summary = excluded.root_cause_summary
+                    root_cause_summary = excluded.root_cause_summary,
+                    decisions          = excluded.decisions
                 """,
                 (
                     str(incident.id),
@@ -64,6 +73,7 @@ class SQLiteIncidentRepository:
                     json.dumps(incident.graph_snapshot),
                     json.dumps(incident.chat_history),
                     incident.root_cause_summary,
+                    json.dumps([d.model_dump(mode="json") for d in incident.decisions]),
                 ),
             )
 
@@ -105,4 +115,5 @@ class SQLiteIncidentRepository:
             graph_snapshot=json.loads(row["graph_snapshot"]),
             chat_history=json.loads(row["chat_history"]),
             root_cause_summary=row["root_cause_summary"],
+            decisions=[HumanDecision.model_validate(d) for d in json.loads(row["decisions"])],
         )
