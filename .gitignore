@@ -26,7 +26,6 @@ htmlcov/
 .env.*
 !.env.example
 data/historical_incidents.json
-experiments/results/
 .DS_Store
 Thumbs.db
 .agents/
