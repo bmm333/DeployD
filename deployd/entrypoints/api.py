@@ -16,9 +16,9 @@ import os
 import threading
 import uuid
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import groq
 from agno.exceptions import AgnoError
@@ -50,6 +50,7 @@ from deployd.application.use_cases.incident_lifecycle import (
 )
 from deployd.application.use_cases.live_investigation import LiveInvestigation
 from deployd.domain.causal.config import CorrelationConfig
+from deployd.domain.entities.human_decision import DecisionValue, HumanDecision
 from deployd.domain.graph.graph import IncidentGraph
 from deployd.domain.health.tracker import ComponentHealthTracker
 from deployd.entrypoints.decision_trace import build_decision_trace
@@ -59,7 +60,7 @@ from deployd.infrastructure.persistence.sqlite_incident_repository import (
 from deployd.infrastructure.streaming.sliding_window import SlidingWindow
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 log = logging.getLogger(__name__)
 
@@ -123,6 +124,9 @@ _health_tracker = _new_health_tracker()
 _chat_history: list[dict[str, str]] = []
 _decision_trace: dict[str, Any] | None = None
 _session: dict[str, Any] | None = None  # grounded agent session (Tier 3 only)
+# The agent answer under human review (DID-38): version, what it proposed, and
+# status pending | approved | revising | closed.
+_review: dict[str, Any] | None = None
 _investigating = False
 _auto_diagnosed_incident_id: str | None = None
 
@@ -312,6 +316,7 @@ def get_state() -> dict[str, Any]:
             "chat_history": list(_chat_history),
             "decision_trace": _decision_trace,
             "session": _session,
+            "review": dict(_review) if _review else None,
             "investigating": _investigating,
         }
 
@@ -321,7 +326,7 @@ def get_state() -> dict[str, Any]:
 
 def _run_investigation(target_incident_id: str, reason: str) -> None:
     """Run the three-tier gate on the live graph; the LLM is reached only in Tier 3."""
-    global _decision_trace, _session, _investigating  # noqa: PLW0603
+    global _decision_trace, _session, _investigating, _review  # noqa: PLW0603
 
     with _state_lock:
         _investigating = True
@@ -402,7 +407,15 @@ def _run_investigation(target_incident_id: str, reason: str) -> None:
                     recommendation=result.diagnosis.recommendation,
                     evidence=",".join(result.diagnosis.evidence_references),
                     tokens=str(_decision_trace["tokens_used"] or ""),
+                    version="1",
                 )
+                _review = {
+                    "version": 1,
+                    "root_cause": result.diagnosis.root_cause,
+                    "recommendation": result.diagnosis.recommendation,
+                    "evidence": list(result.diagnosis.evidence_references),
+                    "status": "pending",
+                }
             else:
                 reason = (
                     _provider_hint(result.llm_error)
@@ -502,7 +515,14 @@ def chat(request: _ChatRequest) -> dict[str, str]:
     return {"status": "ok"}
 
 
-def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: str | None) -> None:
+def _answer_follow_up(
+    prompt: str,
+    session: dict[str, Any],
+    target_incident_id: str | None,
+    revising: int | None = None,
+) -> None:
+    """Ask the agent on the open session; ``revising`` is the version an engineer rejected."""
+    global _review  # noqa: PLW0603
     agent = _get_agent()
     if agent is None:
         with _state_lock:
@@ -515,6 +535,8 @@ def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: 
         log.exception("Follow-up failed")
         with _state_lock:
             _post("system", "error", f"{_provider_hint(str(exc))}\n\n`{str(exc)[:240]}`")
+            if revising and _review:
+                _review["status"] = "closed"
             _persist_chat()
         return
 
@@ -525,16 +547,120 @@ def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: 
 
         if _session and _session["id"] == session["id"]:
             _session["turn"] = min(_session["turn"] + 1, _session["max_turns"])
+            extra = {"version": str(revising + 1)} if revising else {}
             _post(
                 "agent",
-                "followup",
+                "revision" if revising else "followup",
                 answer.root_cause,
                 confidence=answer.confidence,
                 evidence=",".join(answer.evidence_references),
                 turn=str(_session["turn"]),
                 tokens=str(agent.last_token_usage or ""),
+                **extra,
+            )
+            if revising:
+                _review = {
+                    "version": revising + 1,
+                    "root_cause": answer.root_cause,
+                    "recommendation": answer.root_cause,  # a revision answers in prose
+                    "evidence": list(answer.evidence_references),
+                    "status": "pending",
+                }
+            _persist_chat()
+
+
+# ── Human decision (DID-38) ───────────────────────────────────────────────────
+
+
+class _DecisionRequest(BaseModel):
+    decision: Literal["ACCEPT", "REJECT", "AMEND"]
+    engineer: str
+    comment: str | None = None
+    amended_recommendation: str | None = None
+
+
+def _decision_text(decision: HumanDecision) -> str:
+    if decision.decision is DecisionValue.REJECT:
+        return f"Rejected by **{decision.engineer_id}**: {decision.comment}"
+    if decision.decision is DecisionValue.AMEND:
+        return (
+            f"Approved by **{decision.engineer_id}** with an amended recommendation: "
+            f"{decision.amended_recommendation}"
+        )
+    return f"Approved by **{decision.engineer_id}**."
+
+
+@app.post("/api/v1/incidents/{incident_id}/decision")  # type: ignore[misc]
+def record_decision(incident_id: uuid.UUID, request: _DecisionRequest) -> dict[str, Any]:
+    """The engineer's verdict on the agent's latest answer.  Approving only records the
+    decision: DeployD never executes a recommendation.  A rejection goes back to the
+    agent as engineer context, and its revision is reviewed again."""
+    with _chat_lock:
+        with _state_lock:
+            current = _incident_repo.get_current()
+            if current is None or current.id != incident_id:
+                raise HTTPException(status_code=409, detail="Not the open incident")
+            if _review is None or _review["status"] != "pending" or _decision_trace is None:
+                raise HTTPException(status_code=409, detail="No agent answer awaits a decision")
+            try:
+                decision = HumanDecision(
+                    incident_id=incident_id,
+                    decision=DecisionValue(request.decision),
+                    engineer_id=request.engineer,
+                    timestamp=datetime.now(timezone.utc),
+                    root_cause=_review["root_cause"],
+                    recommendation=_review["recommendation"],
+                    comment=request.comment,
+                    amended_recommendation=request.amended_recommendation,
+                    diagnosis_version=_review["version"],
+                    evidence_references=_review["evidence"],
+                    model=_decision_trace.get("model"),
+                    prompt_version=_decision_trace.get("prompt_version"),
+                )
+            except ValidationError as exc:
+                raise HTTPException(status_code=422, detail=exc.errors()[0]["msg"]) from exc
+            _lifecycle.record_decision(decision)
+            _post(
+                "user",
+                "decision",
+                _decision_text(decision),
+                decision=decision.decision.value,
+                engineer=decision.engineer_id,
+                version=str(decision.diagnosis_version),
+            )
+            _decision_trace["human_decision"] = {
+                "decision": decision.decision.value,
+                "engineer": decision.engineer_id,
+                "version": decision.diagnosis_version,
+                "at": decision.timestamp.isoformat(),
+            }
+            rejected = decision.decision is DecisionValue.REJECT
+            session_snapshot = _session.copy() if _session else None
+            can_revise = bool(
+                session_snapshot and session_snapshot["turn"] < session_snapshot["max_turns"]
+            )
+            if rejected and not can_revise:
+                _post(
+                    "system",
+                    "gate",
+                    "The rejection is recorded, but the agent session has no turns left: "
+                    "start a new investigation for a revised diagnosis.",
+                )
+            _review["status"] = (
+                "revising" if rejected and can_revise else ("closed" if rejected else "approved")
             )
             _persist_chat()
+
+        if rejected and can_revise and session_snapshot:
+            _answer_follow_up(
+                f"I reject your answer (version {decision.diagnosis_version}): "
+                f"{decision.comment}\nRe-examine the evidence and propose a revised root cause "
+                "and remediation, or say that the evidence is insufficient.",
+                session_snapshot,
+                str(incident_id),
+                revising=decision.diagnosis_version,
+            )
+    return {"status": "ok", "decision": decision.decision.value}
 
 
 # ── Reset ─────────────────────────────────────────────────────────────────────
@@ -543,7 +669,7 @@ def _answer_follow_up(prompt: str, session: dict[str, Any], target_incident_id: 
 @app.post("/api/v1/reset")  # type: ignore[misc]
 def reset_state() -> dict[str, Any]:
     global _graph, _window, _correlate, _chat_history, _health_tracker  # noqa: PLW0603
-    global _decision_trace, _session, _auto_diagnosed_incident_id  # noqa: PLW0603
+    global _decision_trace, _session, _auto_diagnosed_incident_id, _review  # noqa: PLW0603
 
     with _state_lock:
         closed = _lifecycle.close_current(
@@ -563,6 +689,7 @@ def reset_state() -> dict[str, Any]:
         _chat_history = []
         _decision_trace = None
         _session = None
+        _review = None
         _auto_diagnosed_incident_id = None
 
     return {
@@ -587,6 +714,7 @@ async def list_incidents() -> list[dict[str, Any]]:
             "node_count": len(inc.graph_snapshot.get("nodes", [])),  # type: ignore[arg-type]
             "duration_seconds": inc.duration_seconds,
             "root_cause_summary": inc.root_cause_summary,
+            "last_decision": inc.decisions[-1].decision.value if inc.decisions else None,
         }
         for inc in incidents
     ]
@@ -607,4 +735,5 @@ async def get_incident(incident_id: uuid.UUID) -> dict[str, Any]:
         "chat_history": incident.chat_history,
         "root_cause_summary": incident.root_cause_summary,
         "duration_seconds": incident.duration_seconds,
+        "decisions": [d.model_dump(mode="json") for d in incident.decisions],
     }
