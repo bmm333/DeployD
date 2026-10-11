@@ -9,6 +9,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from deployd.domain.entities.core_event import Severity
+from deployd.domain.entities.human_decision import HumanDecision
 
 
 class Incident(BaseModel):  # type: ignore
@@ -22,8 +23,17 @@ class Incident(BaseModel):  # type: ignore
     graph_snapshot: dict[str, object] = Field(default_factory=lambda: {"nodes": [], "edges": []})  # type: ignore[arg-type]
     chat_history: list[dict[str, str]] = Field(default_factory=list)
     root_cause_summary: str | None = None
+    decisions: list[HumanDecision] = Field(default_factory=list)  # audit trail (DID-38)
 
     model_config = {"frozen": False}
+
+    def record_decision(self, decision: HumanDecision) -> None:
+        """Append an engineer's decision; only the open incident is still under review."""
+        if decision.incident_id != self.id:
+            raise ValueError("the decision belongs to another incident")
+        if self.status != "OPEN":
+            raise ValueError("decisions are only recorded while the incident is open")
+        self.decisions.append(decision)
 
     def resolve(
         self,
