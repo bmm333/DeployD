@@ -41,7 +41,7 @@ In the UI, upload one of the files below (or paste its JSON), keep **Replay: reb
 | Elasticsearch → search | `data/scenarios/live_search_es_cascade.json` | Tier 3 FULL |
 | Postgres → payment | `data/scenarios/live_payment_db_timeout.json` | Tier 3 FULL |
 
-In a FULL investigation, ask follow-up questions in the chat. Asking about a component outside the investigation (e.g. `payment-service` during the OOM scenario) is refused: the agent only discusses evidence that went through the gate.
+In a FULL investigation, approve, reject (with a reason the agent uses to revise its answer) or edit the recommendation under the diagnosis (ADR-013), and ask follow-up questions in the chat. Asking about a component outside the investigation (e.g. `payment-service` during the OOM scenario) is refused: the agent only discusses evidence that went through the gate.
 
 ## How it works
 
