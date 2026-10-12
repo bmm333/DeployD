@@ -148,7 +148,7 @@ def divergence_event(found: FleetDivergence) -> CoreEvent:
         f"fleet {found.fleet}: {', '.join(found.affected)} fail, {len(found.healthy)} others "
         f"healthy; only {separating} separates them ({len(found.affected)}/{len(found.affected)} "
         f"vs 0/{len(found.healthy)})"
-        + (f"; {excluded} on all {total}, excluded" if excluded else "")
+        + (f"; {excluded} reached all {total}, so it cannot explain the split" if excluded else "")
     )
     key = "|".join([found.fleet, *found.affected, separating])
     return CoreEvent(

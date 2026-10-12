@@ -94,7 +94,7 @@ def test_the_release_is_excluded_because_every_instance_got_it() -> None:
     (finding,) = _findings(_replay(_events())[0])
 
     assert finding.metadata["excluded_changes"] == ["deploy 2.14.0"]
-    assert "deploy 2.14.0 on all 10, excluded" in finding.description
+    assert "deploy 2.14.0 reached all 10, so it cannot explain the split" in finding.description
 
 
 def test_the_finding_is_reached_minutes_after_the_first_error_not_hours() -> None:

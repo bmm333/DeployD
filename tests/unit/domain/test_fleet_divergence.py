@@ -96,7 +96,7 @@ def test_the_change_only_the_failing_instances_received_is_named_and_the_deploy_
     assert cause.metadata["affected"] == BAD
     assert "web-03, web-05, web-07, web-09 fail, 6 others healthy" in cause.description
     assert "os_upgrade run-1" in cause.description
-    assert "deploy 2.14.0 on all 10, excluded" in cause.description
+    assert "deploy 2.14.0 reached all 10, so it cannot explain the split" in cause.description
 
 
 def test_every_failing_instance_is_linked_to_the_one_finding() -> None:
