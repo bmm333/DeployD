@@ -59,3 +59,46 @@ def test_a_database_from_before_decisions_is_migrated(tmp_path) -> None:
     incident.record_decision(_amend(incident))
     repo.save(incident)
     assert repo.get(incident.id).decisions[0].amended_recommendation == "raise the heap to 2 GiB"
+
+
+def test_the_decision_trace_survives_a_round_trip(tmp_path) -> None:
+    repo = SQLiteIncidentRepository(tmp_path / "incidents.db")
+    incident = Incident(opened_at=T0)
+    incident.decision_trace = {"tier": "FULL", "causal_chain_length": 2, "rules_fired": ["R2"]}
+
+    repo.save(incident)
+
+    assert repo.get(incident.id).decision_trace == incident.decision_trace
+    assert repo.get(Incident(opened_at=T0).id) is None
+
+
+def test_an_incident_without_a_trace_loads_with_none(tmp_path) -> None:
+    repo = SQLiteIncidentRepository(tmp_path / "incidents.db")
+    incident = Incident(opened_at=T0)
+    repo.save(incident)
+
+    assert repo.get(incident.id).decision_trace is None
+
+
+def test_a_database_from_before_the_trace_column_is_migrated(tmp_path) -> None:
+    path = tmp_path / "before-dids-38-39.db"
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            "CREATE TABLE incidents (id TEXT PRIMARY KEY, opened_at TEXT NOT NULL, "
+            "resolved_at TEXT, status TEXT NOT NULL DEFAULT 'OPEN', "
+            "peak_severity TEXT NOT NULL DEFAULT 'INFO', "
+            "graph_snapshot TEXT NOT NULL DEFAULT '{}', chat_history TEXT NOT NULL DEFAULT '[]', "
+            "root_cause_summary TEXT, decisions TEXT NOT NULL DEFAULT '[]')"
+        )
+        conn.execute(
+            "INSERT INTO incidents (id, opened_at) VALUES (?, ?)",
+            ("8f9c7a52-1b6e-4b0a-9d4e-1f2a3b4c5d6e", T0.isoformat()),
+        )
+
+    repo = SQLiteIncidentRepository(path)
+    incident = repo.get_current()
+    assert incident is not None and incident.decision_trace is None
+
+    incident.decision_trace = {"tier": "CHAIN_ONLY"}
+    repo.save(incident)
+    assert repo.get(incident.id).decision_trace == {"tier": "CHAIN_ONLY"}

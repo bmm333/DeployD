@@ -24,6 +24,8 @@ class Incident(BaseModel):  # type: ignore
     chat_history: list[dict[str, str]] = Field(default_factory=list)
     root_cause_summary: str | None = None
     decisions: list[HumanDecision] = Field(default_factory=list)  # audit trail (DID-38)
+    # Why the gate decided what it did; kept so a past incident can show it (DID-39).
+    decision_trace: dict[str, object] | None = None
 
     model_config = {"frozen": False}
 

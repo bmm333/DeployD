@@ -240,6 +240,8 @@ def _persist_chat() -> None:
     if current is None:
         return
     current.chat_history = list(_chat_history)
+    if _decision_trace is not None:
+        current.decision_trace = copy.deepcopy(_decision_trace)
     if current.root_cause_summary is None:
         summary = next(
             (m["content"] for m in _chat_history if m["kind"] in ("diagnosis", "deterministic")),
@@ -715,6 +717,7 @@ async def list_incidents() -> list[dict[str, Any]]:
             "duration_seconds": inc.duration_seconds,
             "root_cause_summary": inc.root_cause_summary,
             "last_decision": inc.decisions[-1].decision.value if inc.decisions else None,
+            "tier": (inc.decision_trace or {}).get("tier"),
         }
         for inc in incidents
     ]
@@ -736,4 +739,5 @@ async def get_incident(incident_id: uuid.UUID) -> dict[str, Any]:
         "root_cause_summary": incident.root_cause_summary,
         "duration_seconds": incident.duration_seconds,
         "decisions": [d.model_dump(mode="json") for d in incident.decisions],
+        "decision_trace": incident.decision_trace,
     }

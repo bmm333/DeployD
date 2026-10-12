@@ -169,3 +169,17 @@ def test_decisions_stay_on_the_incident_after_it_is_closed(agent):
     assert [d["decision"] for d in detail["decisions"]] == ["ACCEPT"]
     listed = next(i for i in client.get("/api/v1/incidents").json() if i["id"] == incident_id)
     assert listed["last_decision"] == "ACCEPT"
+
+
+def test_a_closed_incident_keeps_its_decision_trace_and_tier(agent):
+    incident_id = client.get("/api/v1/state").json()["incident_id"]
+    _decide(decision="ACCEPT")
+
+    client.post("/api/v1/reset")
+
+    detail = client.get(f"/api/v1/incidents/{incident_id}").json()
+    assert detail["decision_trace"]["tier"] == "FULL"
+    assert detail["decision_trace"]["component"] == "postgres-primary"
+    assert detail["decision_trace"]["human_decision"]["decision"] == "ACCEPT"
+    listed = next(i for i in client.get("/api/v1/incidents").json() if i["id"] == incident_id)
+    assert (listed["tier"], listed["status"]) == ("FULL", "RESOLVED")
