@@ -16,6 +16,7 @@ from deployd.application.orchestrators.investigation_orchestrator import (
 )
 from deployd.application.ports.retrieval_port import RetrievalPort
 from deployd.domain.causal.causal_engine import CausalEngine
+from deployd.domain.entities.core_event import CoreEventType
 from deployd.domain.graph.graph import IncidentGraph
 from deployd.domain.graph.node import GraphNode
 from deployd.domain.health.process_health import ProcessHealthFSM
@@ -108,7 +109,7 @@ class LiveInvestigation:
             query=query,
             tier=tier,
             chain=chain_types,
-            chain_components=tuple(n.event.related_component or "?" for n in chain),
+            chain_components=self._investigated_components(chain),
             rules_fired=tuple(self._chain_rules(graph, chain)),
             candidates=retrieval.candidates,
             threshold=retrieval.confidence_threshold,
@@ -131,6 +132,18 @@ class LiveInvestigation:
             agent_available=agent_available,
             summary=result.remediation.summary if result else _AGENT_FAILED_SUMMARY,
         )
+
+    @staticmethod
+    def _investigated_components(chain: list[GraphNode]) -> tuple[str, ...]:
+        """The chain's components in order, then the instances a fleet finding names:
+        investigating the finding covers every instance it is about."""
+        names = [n.event.related_component or "?" for n in chain]
+        for node in chain:
+            if node.event.event_type is CoreEventType.FLEET_DIVERGENCE_DETECTED:
+                affected = node.event.metadata.get("affected")
+                if isinstance(affected, list):
+                    names += [m for m in map(str, affected) if m not in names]
+        return tuple(names)
 
     def _longest_chain(self, graph: IncidentGraph) -> list[GraphNode]:
         engine = CausalEngine(graph)

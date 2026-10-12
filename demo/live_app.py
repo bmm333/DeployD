@@ -280,17 +280,27 @@ def _tier_badge(tier: str | None) -> str:
 
 
 @st.cache_data
-def _known_components() -> frozenset[str]:
+def _declared_components() -> dict[str, Any]:
     try:
         with (_ROOT / "data" / "components.json").open(encoding="utf-8") as f:
-            return frozenset(json.load(f))
+            declared: dict[str, Any] = json.load(f)
+            return declared
     except (OSError, json.JSONDecodeError):
-        return frozenset()
+        return {}
+
+
+def _known_components() -> frozenset[str]:
+    return frozenset(_declared_components())
+
+
+def _fleet_members(fleet: str | None) -> set[str]:
+    """Instances declared with this fleet name: investigating a fleet covers all of them."""
+    return {name for name, spec in _declared_components().items() if spec.get("fleet") == fleet}
 
 
 def _scope_warning(prompt: str, investigated: str | None, incident: set[str]) -> str | None:
     """Warn when the question names a known component outside this investigation."""
-    in_scope = {investigated} if investigated else incident
+    in_scope = {investigated} | _fleet_members(investigated) if investigated else incident
     if not in_scope:
         return None
     text = prompt.lower()

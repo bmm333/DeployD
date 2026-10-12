@@ -11,6 +11,7 @@ from deployd.application.orchestrators.investigation_orchestrator import (
 )
 from deployd.application.use_cases.live_investigation import LiveInvestigation
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType, Severity
+from deployd.domain.graph.edge import EdgeType, GraphEdge
 from deployd.domain.graph.graph import IncidentGraph
 from deployd.domain.graph.node import GraphNode
 
@@ -237,3 +238,35 @@ def test_answer_without_verifiable_citation_is_reported_as_discarded():
     assert result.diagnosis is None
     assert result.answer_discarded == UNVERIFIABLE_ANSWER
     assert result.llm_usage == 30
+
+
+def test_a_fleet_finding_covers_the_instances_it_names():
+    graph = IncidentGraph()
+    finding = CoreEvent(
+        event_type=CoreEventType.FLEET_DIVERGENCE_DETECTED,
+        timestamp=datetime.now(timezone.utc),
+        severity=Severity.ERROR,
+        related_component="web",
+        description="fleet web: web-03, web-09 fail",
+        metadata={"affected": ["web-03", "web-09"]},
+    )
+    symptom = create_mock_event("web-09", Severity.ERROR)
+    graph.add_node(GraphNode(node_id=finding.event_id, event=finding))
+    graph.add_node(GraphNode(node_id=symptom.event_id, event=symptom))
+    graph.add_edge(
+        GraphEdge(
+            source=finding.event_id,
+            target=symptom.event_id,
+            edge_type=EdgeType.CAUSAL,
+            confidence=0.8,
+            rule_id="RULE-07",
+        )
+    )
+    retriever = StubRetriever(
+        result=RetrievalResult(candidates=[], confidence_threshold=0.5), breakdown={}
+    )
+
+    result = LiveInvestigation(retriever, InvestigationOrchestrator(agent=None)).execute(graph)
+
+    assert result is not None
+    assert result.chain_components == ("web", "web-09", "web-03")
