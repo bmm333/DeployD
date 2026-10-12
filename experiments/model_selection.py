@@ -274,10 +274,11 @@ def _graph(scenario: str, poisoned: bool = False) -> Any:
     from deployd.infrastructure.streaming.sliding_window import SlidingWindow
 
     graph = IncidentGraph()
+    config = CorrelationConfig(**json.loads((DATA / "correlation_config.json").read_text()))
     correlate = CorrelateEventsUseCase(
         graph=graph,
-        event_window=SlidingWindow(),
-        config=CorrelationConfig(**json.loads((DATA / "correlation_config.json").read_text())),
+        event_window=SlidingWindow(change_retention_seconds=config.change_lookback_seconds),
+        config=config,
         topology=load_topology(DATA / "components.json"),
     )
     adapter = HttpEventAdapter()
