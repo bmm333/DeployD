@@ -1,0 +1,3469 @@
+[
+  {
+    "timestamp": "2026-10-09T02:00:03Z",
+    "source": "api-04",
+    "event_type": "CRON_JOB",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04: cron job logrotate exited with status 1 (error writing /var/log/app/app.log.1)"
+  },
+  {
+    "timestamp": "2026-10-09T02:00:04Z",
+    "source": "api-03",
+    "event_type": "CRON_JOB",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03: cron job logrotate completed in 1 s"
+  },
+  {
+    "timestamp": "2026-10-09T02:00:06Z",
+    "source": "api-02",
+    "event_type": "CRON_JOB",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02: cron job logrotate completed in 2 s"
+  },
+  {
+    "timestamp": "2026-10-09T02:00:08Z",
+    "source": "api-01",
+    "event_type": "CRON_JOB",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01: cron job logrotate completed in 2 s"
+  },
+  {
+    "timestamp": "2026-10-09T02:00:09Z",
+    "source": "api-06",
+    "event_type": "CRON_JOB",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06: cron job logrotate completed in 1 s"
+  },
+  {
+    "timestamp": "2026-10-09T02:00:19Z",
+    "source": "api-05",
+    "event_type": "CRON_JOB",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05: cron job logrotate completed in 2 s"
+  },
+  {
+    "timestamp": "2026-10-09T02:03:37Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T02:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.3,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T02:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.1,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T02:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.8,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T02:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 58.0,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 58%"
+  },
+  {
+    "timestamp": "2026-10-09T02:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.3,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T02:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.7,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T02:09:56Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T02:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 58.6,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 59%"
+  },
+  {
+    "timestamp": "2026-10-09T02:27:38Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T02:31:31Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T02:35:36Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T02:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 59.1,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 59%"
+  },
+  {
+    "timestamp": "2026-10-09T02:58:05Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T03:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.6,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T03:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.3,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T03:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.1,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T03:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 59.7,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 60%"
+  },
+  {
+    "timestamp": "2026-10-09T03:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.8,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T03:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.3,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T03:07:33Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T03:10:12Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T03:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 60.3,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 60%"
+  },
+  {
+    "timestamp": "2026-10-09T03:30:55Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T03:31:21Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T03:32:37Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T03:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 60.8,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 61%"
+  },
+  {
+    "timestamp": "2026-10-09T03:58:00Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T04:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.7,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T04:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.3,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T04:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 44.0,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T04:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 61.4,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 61%"
+  },
+  {
+    "timestamp": "2026-10-09T04:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.1,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T04:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.3,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T04:11:45Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T04:12:13Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T04:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 62.0,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 62%"
+  },
+  {
+    "timestamp": "2026-10-09T04:28:16Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T04:30:00Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T04:31:44Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T04:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 62.5,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 63%"
+  },
+  {
+    "timestamp": "2026-10-09T04:58:47Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T05:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.1,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T05:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.4,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T05:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.2,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T05:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 63.1,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 63%"
+  },
+  {
+    "timestamp": "2026-10-09T05:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.5,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T05:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.7,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T05:09:24Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T05:13:04Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T05:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 63.7,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 64%"
+  },
+  {
+    "timestamp": "2026-10-09T05:28:32Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T05:34:51Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T05:35:54Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T05:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 64.2,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 64%"
+  },
+  {
+    "timestamp": "2026-10-09T05:56:39Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T06:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.5,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T06:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.5,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T06:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.3,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T06:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 64.8,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 65%"
+  },
+  {
+    "timestamp": "2026-10-09T06:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.1,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T06:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.4,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T06:12:21Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T06:14:07Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T06:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 65.4,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 65%"
+  },
+  {
+    "timestamp": "2026-10-09T06:32:22Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T06:33:52Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T06:37:33Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T06:40:00Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 710
+    },
+    "description": "postgres-primary query latency p95 710 ms during vacuum"
+  },
+  {
+    "timestamp": "2026-10-09T06:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 65.9,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 66%"
+  },
+  {
+    "timestamp": "2026-10-09T06:54:00Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T07:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.9,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T07:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.5,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T07:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.3,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T07:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 66.5,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 66%"
+  },
+  {
+    "timestamp": "2026-10-09T07:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.6,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T07:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.6,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T07:11:00Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T07:18:58Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T07:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 67.1,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 67%"
+  },
+  {
+    "timestamp": "2026-10-09T07:29:31Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T07:30:00Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T07:33:07Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T07:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 67.6,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 68%"
+  },
+  {
+    "timestamp": "2026-10-09T07:58:33Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T08:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.2,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T08:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.8,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T08:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.0,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T08:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 68.2,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 68%"
+  },
+  {
+    "timestamp": "2026-10-09T08:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.2,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T08:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.6,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T08:09:36Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T08:18:48Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T08:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 68.8,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 69%"
+  },
+  {
+    "timestamp": "2026-10-09T08:31:02Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T08:31:16Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T08:37:08Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T08:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 69.3,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 69%"
+  },
+  {
+    "timestamp": "2026-10-09T09:02:23Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T09:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.1,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T09:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.1,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T09:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.4,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T09:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 69.9,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 70%"
+  },
+  {
+    "timestamp": "2026-10-09T09:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.9,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T09:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.1,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T09:06:12Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T09:10:00Z",
+    "source": "api-01",
+    "event_type": "DEPLOY_START",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-01: deploy 3.8.1 started"
+  },
+  {
+    "timestamp": "2026-10-09T09:11:10Z",
+    "source": "api-01",
+    "event_type": "DEPLOY_SUCCESS",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-01: deploy 3.8.1 finished"
+  },
+  {
+    "timestamp": "2026-10-09T09:12:00Z",
+    "source": "api-02",
+    "event_type": "DEPLOY_START",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-02: deploy 3.8.1 started"
+  },
+  {
+    "timestamp": "2026-10-09T09:13:10Z",
+    "source": "api-02",
+    "event_type": "DEPLOY_SUCCESS",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-02: deploy 3.8.1 finished"
+  },
+  {
+    "timestamp": "2026-10-09T09:14:00Z",
+    "source": "api-03",
+    "event_type": "DEPLOY_START",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-03: deploy 3.8.1 started"
+  },
+  {
+    "timestamp": "2026-10-09T09:14:44Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T09:15:10Z",
+    "source": "api-03",
+    "event_type": "DEPLOY_SUCCESS",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-03: deploy 3.8.1 finished"
+  },
+  {
+    "timestamp": "2026-10-09T09:16:00Z",
+    "source": "api-04",
+    "event_type": "DEPLOY_START",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-04: deploy 3.8.1 started"
+  },
+  {
+    "timestamp": "2026-10-09T09:17:10Z",
+    "source": "api-04",
+    "event_type": "DEPLOY_SUCCESS",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-04: deploy 3.8.1 finished"
+  },
+  {
+    "timestamp": "2026-10-09T09:18:00Z",
+    "source": "api-05",
+    "event_type": "DEPLOY_START",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-05: deploy 3.8.1 started"
+  },
+  {
+    "timestamp": "2026-10-09T09:19:10Z",
+    "source": "api-05",
+    "event_type": "DEPLOY_SUCCESS",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-05: deploy 3.8.1 finished"
+  },
+  {
+    "timestamp": "2026-10-09T09:20:00Z",
+    "source": "api-06",
+    "event_type": "DEPLOY_START",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-06: deploy 3.8.1 started"
+  },
+  {
+    "timestamp": "2026-10-09T09:21:10Z",
+    "source": "api-06",
+    "event_type": "DEPLOY_SUCCESS",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "3.8.1",
+      "peer_group": "api"
+    },
+    "description": "api-06: deploy 3.8.1 finished"
+  },
+  {
+    "timestamp": "2026-10-09T09:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 70.5,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 70%"
+  },
+  {
+    "timestamp": "2026-10-09T09:30:38Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T09:31:10Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T09:39:01Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T09:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 71.0,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 71%"
+  },
+  {
+    "timestamp": "2026-10-09T10:01:41Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T10:01:57Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T10:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.7,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T10:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.1,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T10:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.9,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T10:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 71.6,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 72%"
+  },
+  {
+    "timestamp": "2026-10-09T10:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.7,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T10:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.6,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T10:15:30Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T10:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 72.2,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 72%"
+  },
+  {
+    "timestamp": "2026-10-09T10:30:04Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T10:30:08Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T10:41:42Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T10:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 72.7,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 73%"
+  },
+  {
+    "timestamp": "2026-10-09T11:02:35Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T11:02:45Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T11:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.2,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T11:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.1,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T11:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.8,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T11:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 73.3,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 73%"
+  },
+  {
+    "timestamp": "2026-10-09T11:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.7,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T11:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.9,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T11:20:00Z",
+    "source": "api-02",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-02 GET /api/items answered 500 once (client retry succeeded)"
+  },
+  {
+    "timestamp": "2026-10-09T11:20:09Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T11:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 73.9,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 74%"
+  },
+  {
+    "timestamp": "2026-10-09T11:30:56Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T11:31:12Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T11:39:57Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T11:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 74.4,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 74%"
+  },
+  {
+    "timestamp": "2026-10-09T12:02:23Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T12:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.8,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T12:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.1,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T12:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.9,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T12:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 75.0,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 75%"
+  },
+  {
+    "timestamp": "2026-10-09T12:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.8,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T12:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.0,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T12:06:24Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T12:16:59Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T12:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 75.6,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 76%"
+  },
+  {
+    "timestamp": "2026-10-09T12:26:01Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T12:30:07Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T12:43:55Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T12:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 76.1,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 76%"
+  },
+  {
+    "timestamp": "2026-10-09T13:02:54Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.8,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T13:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.3,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 41%"
+  },
+  {
+    "timestamp": "2026-10-09T13:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.5,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T13:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 80.7,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 81%"
+  },
+  {
+    "timestamp": "2026-10-09T13:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.2,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T13:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.4,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T13:05:22Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:20:23Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:22:49Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 83.6,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 84%"
+  },
+  {
+    "timestamp": "2026-10-09T13:31:45Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:36:13Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:40:01Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:43:32Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:44:12Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 86.5,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 87%"
+  },
+  {
+    "timestamp": "2026-10-09T13:47:35Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:47:47Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:51:12Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:52:06Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:55:18Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:56:12Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:59:40Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T13:59:56Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:00:05Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:03:11Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:03:41Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:04:08Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:04:11Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.6,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T14:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.7,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 44%"
+  },
+  {
+    "timestamp": "2026-10-09T14:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.2,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T14:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 89.4,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 89%"
+  },
+  {
+    "timestamp": "2026-10-09T14:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.5,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T14:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.6,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T14:07:39Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:07:49Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:08:06Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:08:51Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:11:26Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:11:33Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:12:11Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:13:30Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:15:38Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:15:55Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:16:07Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:17:33Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:19:17Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:19:46Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:20:00Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:21:14Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:22:39Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:23:30Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:24:24Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:24:28Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:24:32Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 92.3,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 92%"
+  },
+  {
+    "timestamp": "2026-10-09T14:25:31Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:26:27Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:27:28Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:27:52Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:28:58Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:29:08Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:30:03Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:30:41Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:32:03Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:32:19Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:33:14Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:33:21Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:34:07Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:34:16Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:36:35Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:36:53Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:36:54Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:37:38Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:38:26Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:38:43Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:40:27Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:40:42Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:41:31Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:42:05Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:42:18Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:42:19Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:43:51Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:44:36Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:45:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 95.2,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 95%"
+  },
+  {
+    "timestamp": "2026-10-09T14:45:40Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:45:42Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:45:54Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:46:31Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:48:24Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:48:54Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:49:02Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:49:27Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:49:51Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:50:05Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:52:20Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:52:22Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:52:46Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:53:34Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:54:16Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:54:29Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:55:52Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:56:29Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:57:22Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:57:23Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:57:50Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T14:58:14Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:00:22Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:01:04Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:01:09Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:01:26Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:01:57Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:02:39Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:03:52Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:04:30Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 9 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:05:00Z",
+    "source": "api-01",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.5,
+      "mount": "/var"
+    },
+    "description": "api-01 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T15:05:00Z",
+    "source": "api-02",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.7,
+      "mount": "/var"
+    },
+    "description": "api-02 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T15:05:00Z",
+    "source": "api-03",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 41.6,
+      "mount": "/var"
+    },
+    "description": "api-03 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T15:05:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 98.1,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 98%"
+  },
+  {
+    "timestamp": "2026-10-09T15:05:00Z",
+    "source": "api-05",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 43.0,
+      "mount": "/var"
+    },
+    "description": "api-05 /var usage 43%"
+  },
+  {
+    "timestamp": "2026-10-09T15:05:00Z",
+    "source": "api-06",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 42.1,
+      "mount": "/var"
+    },
+    "description": "api-06 /var usage 42%"
+  },
+  {
+    "timestamp": "2026-10-09T15:05:15Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:05:16Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:05:39Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:07:07Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:07:43Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:09:07Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:09:24Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:09:29Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:09:53Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:11:14Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:12:00Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:12:22Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:12:23Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:12:44Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:12:55Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:13:06Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:13:28Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:13:50Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:14:00Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_FAIL",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 deep health check failed: cannot create temp file (No space left on device)"
+  },
+  {
+    "timestamp": "2026-10-09T15:14:02Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:14:09Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:14:12Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:14:34Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:14:56Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:15:10Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:15:18Z",
+    "source": "api-04",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "peer_group": "api"
+    },
+    "description": "api-04 POST /api/orders answered 500: write /var/log/app/app.log: No space left on device (28)"
+  },
+  {
+    "timestamp": "2026-10-09T15:16:00Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_FAIL",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 deep health check failed: cannot create temp file (No space left on device)"
+  },
+  {
+    "timestamp": "2026-10-09T15:16:10Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:16:31Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:17:25Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:18:00Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_FAIL",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 deep health check failed: cannot create temp file (No space left on device)"
+  },
+  {
+    "timestamp": "2026-10-09T15:18:10Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:18:52Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:20:14Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 7 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:20:18Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:20:52Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:22:00Z",
+    "source": "api-04",
+    "event_type": "PROCESS_STOP",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04: application exited with OSError 28, supervisor restarting"
+  },
+  {
+    "timestamp": "2026-10-09T15:22:15Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:22:20Z",
+    "source": "api-04",
+    "event_type": "PROCESS_START",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04: application service restarted by the supervisor"
+  },
+  {
+    "timestamp": "2026-10-09T15:23:21Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:24:00Z",
+    "source": "api-04",
+    "event_type": "PROCESS_STOP",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04: application exited with OSError 28, supervisor restarting"
+  },
+  {
+    "timestamp": "2026-10-09T15:24:08Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:24:09Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:24:20Z",
+    "source": "api-04",
+    "event_type": "PROCESS_START",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04: application service restarted by the supervisor"
+  },
+  {
+    "timestamp": "2026-10-09T15:25:00Z",
+    "source": "api-04",
+    "event_type": "DISK_IO",
+    "metadata": {
+      "percent": 100.0,
+      "mount": "/var"
+    },
+    "description": "api-04 /var usage 100%"
+  },
+  {
+    "timestamp": "2026-10-09T15:25:10Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:26:00Z",
+    "source": "api-04",
+    "event_type": "PROCESS_STOP",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04: application exited with OSError 28, supervisor restarting"
+  },
+  {
+    "timestamp": "2026-10-09T15:26:03Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:26:20Z",
+    "source": "api-04",
+    "event_type": "PROCESS_START",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04: application service restarted by the supervisor"
+  },
+  {
+    "timestamp": "2026-10-09T15:26:43Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:28:04Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:28:06Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:29:39Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 5 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:30:39Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:30:51Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:32:33Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:32:37Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:33:12Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:34:43Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:34:53Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:36:10Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:36:35Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:37:33Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:38:16Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:38:26Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:39:45Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:40:37Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:41:33Z",
+    "source": "api-04",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-04 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:42:04Z",
+    "source": "api-02",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-02 target healthy (health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:42:23Z",
+    "source": "api-01",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-01 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:42:56Z",
+    "source": "api-06",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-06 target healthy (health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:43:29Z",
+    "source": "api-03",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-03 target healthy (health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-09T15:43:58Z",
+    "source": "api-05",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {
+      "peer_group": "api"
+    },
+    "description": "api-05 target healthy (health check /healthz answered 200 in 13 ms)"
+  }
+]

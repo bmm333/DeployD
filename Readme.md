@@ -40,6 +40,8 @@ In the live UI (`demo/live_app.py`, the one `docker compose` starts), upload one
 | OOM on auth-service | `data/scenarios/live_oom_auth_service.json` | Tier 3 FULL — grounded diagnosis, then multi-turn follow-ups |
 | Elasticsearch → search | `data/scenarios/live_search_es_cascade.json` | Tier 3 FULL |
 | Postgres → payment | `data/scenarios/live_payment_db_timeout.json` | Tier 3 FULL |
+| Disk full on one instance of a group, peers healthy (369 events) | `data/scenarios/live_disk_full_single_instance.json` | **A miss, reported as such (ADR-012):** investigates the right instance, does not explain it (Tier 2, the disk-full runbook is rank 3) |
+| An external DNS resolver stops answering (185 events) | `data/scenarios/live_dns_failure.json` | **A miss:** symptoms are linked, no 2-hop chain, no investigation |
 | A production day: green release, 4 of 10 instances upgraded by the platform | `data/scenarios/live_ec2_os_upgrade.json` (935 events over 16 hours) | Tier 3 FULL — names the change only the failing instances received and rules out the release (ADR-014) |
 
 In a FULL investigation, approve, reject (with a reason the agent uses to revise its answer) or edit the recommendation under the diagnosis (ADR-013), and ask follow-up questions in the chat. Asking about a component outside the investigation (e.g. `payment-service` during the OOM scenario) is refused: the agent only discusses evidence that went through the gate.
@@ -107,7 +109,7 @@ To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with
 - Topology and component versions are declared in `data/components.json`, not discovered.
 - The runbook corpus is small (11 incidents), and Groq free-tier limits apply.
 - The evaluation is small: 30 hand-labelled text queries and 3 no-match queries over 11 runbooks,
-  plus 7 incident scenarios (`experiments/results/`, ADR-012). The runbook of the EC2 scenario was written by us, so that match demonstrates the pipeline rather than measuring retrieval.
+  plus 9 incident scenarios (`experiments/results/`, ADR-012): 7/9 gate decisions as intended, the 2 misses are failures no rule was written for. The runbook of the EC2 scenario was written by us, so that match demonstrates the pipeline rather than measuring retrieval.
 - Peer divergence needs events tagged with `peer_group` and `change_kind` by the collector and a healthy peer seen working in the last 5 minutes; it fires once per error cluster (ADR-014).
 
 ## Contributions

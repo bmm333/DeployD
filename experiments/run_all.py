@@ -43,6 +43,10 @@ LIVE_EXPECTED: dict[str, tuple[str, str | None]] = {
     "live_novel_analytics_db": ("CHAIN_ONLY", None),
     "live_degrading_no_trigger": ("NO_TRIGGER", None),
     "live_ec2_os_upgrade": ("FULL", "RB-FLEET-OS-UPGRADE-DIVERGENCE"),
+    # DID-45: failures the rules were not written around. Expected is what a good system
+    # would do, not what it does today: both are misses and are reported as such (ADR-012).
+    "live_disk_full_single_instance": ("FULL", "RB-INVENTORY-DISK-FULL"),
+    "live_dns_failure": ("CHAIN_ONLY", None),
     "synthetic_false_causality": ("NO_TRIGGER", None),
 }
 
@@ -352,20 +356,42 @@ class _CitingAgent:
         raise NotImplementedError
 
 
-def _gate(stack: _Stack, graph: Any, threshold: float) -> tuple[str, Any]:
-    """The API's decision: investigate only a CRITICAL incident, then the three-tier gate."""
+def _crash_triggered(events: list[dict[str, Any]], graph: Any) -> str | None:
+    """The API's second trigger (ADR-010): a component of the incident that the health FSM
+    sees crashing: returns that component (the investigation's focus) or None. 'Of the
+    incident' is read on the final graph, a close approximation."""
+    from deployd.adapters.incoming.http_event_adapter import HttpEventAdapter, RawTelemetryEvent
+    from deployd.domain.health.tracker import ComponentHealthTracker
+
+    tracker = ComponentHealthTracker(
+        fsm_recovery_window_s=300, fsm_max_restarts=3, fsm_restart_window_s=120
+    )
+    adapter = HttpEventAdapter()
+    in_graph = {n.event.related_component for n in graph.nodes}
+    for raw in events:
+        event = adapter.translate(RawTelemetryEvent(**raw))
+        crashing, _, _ = tracker.process_event(event)
+        if crashing and event.related_component in in_graph:
+            return event.related_component
+    return None
+
+
+def _gate(stack: _Stack, graph: Any, threshold: float, crash: str | None = None) -> tuple[str, Any]:
+    """The API's decision: investigate a CRITICAL incident or a crash in it, then the
+    three-tier gate."""
     from deployd.application.orchestrators.investigation_orchestrator import (
         InvestigationOrchestrator,
     )
     from deployd.application.use_cases.correlate_events import compute_incident_severity
     from deployd.application.use_cases.live_investigation import LiveInvestigation
 
-    if compute_incident_severity(graph) != "Critical":
+    critical = compute_incident_severity(graph) == "Critical"
+    if not critical and crash is None:
         return "NO_TRIGGER", None
     result = LiveInvestigation(
         retriever=stack.retriever(threshold),
         orchestrator=InvestigationOrchestrator(agent=_CitingAgent()),
-    ).execute(graph)
+    ).execute(graph, focus=None if critical else crash)
     return (result.tier.value if result else "NO_TRIGGER"), result
 
 
@@ -384,12 +410,13 @@ def evaluate_gate(stack: _Stack) -> dict[str, Any]:
 
     topology = load_topology(DATA / "components.json")
     graphs = {name: _correlate(_events(name), topology)[0] for name in LIVE_EXPECTED}
+    crashes = {name: _crash_triggered(_events(name), graphs[name]) for name in LIVE_EXPECTED}
 
     scenarios = []
     for name, (expected, expected_runbook) in LIVE_EXPECTED.items():
-        decision, result = _gate(stack, graphs[name], DEFAULT_THRESHOLD)
+        decision, result = _gate(stack, graphs[name], DEFAULT_THRESHOLD, crashes[name])
         before_graph = _correlate(_events(name), _complete_topology(_events(name)))[0]
-        before_decision, _ = _gate(stack, before_graph, DEFAULT_THRESHOLD)
+        before_decision, _ = _gate(stack, before_graph, DEFAULT_THRESHOLD, crashes[name])
         row: dict[str, Any] = {
             "scenario": name,
             "expected": expected,
@@ -433,7 +460,9 @@ def evaluate_gate(stack: _Stack) -> dict[str, Any]:
 
     sweep = []
     for threshold in THRESHOLDS:
-        decisions = {name: _gate(stack, graphs[name], threshold)[0] for name in LIVE_EXPECTED}
+        decisions = {
+            name: _gate(stack, graphs[name], threshold, crashes[name])[0] for name in LIVE_EXPECTED
+        }
         actual = [LIVE_EXPECTED[n][0] == "FULL" for n in LIVE_EXPECTED]
         predicted = [decisions[n] == "FULL" for n in LIVE_EXPECTED]
         cm = _confusion(actual, predicted)
