@@ -240,14 +240,14 @@ def test_answer_without_verifiable_citation_is_reported_as_discarded():
     assert result.llm_usage == 30
 
 
-def test_a_fleet_finding_covers_the_instances_it_names():
+def test_a_peer_finding_covers_the_instances_it_names():
     graph = IncidentGraph()
     finding = CoreEvent(
-        event_type=CoreEventType.FLEET_DIVERGENCE_DETECTED,
+        event_type=CoreEventType.PEER_DIVERGENCE_DETECTED,
         timestamp=datetime.now(timezone.utc),
         severity=Severity.ERROR,
         related_component="web",
-        description="fleet web: web-03, web-09 fail",
+        description="peer group web: web-03, web-09 fail",
         metadata={"affected": ["web-03", "web-09"]},
     )
     symptom = create_mock_event("web-09", Severity.ERROR)

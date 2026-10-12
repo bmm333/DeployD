@@ -13,7 +13,7 @@ The log is generated, not hand-typed, so that its size and noise are reproducibl
 seed drives every jitter. Nothing in it names a package: the cause is a change that exists
 on the failing instances and on none of the healthy ones, which is what the engine finds.
 
-    python scripts/generate_fleet_scenario.py
+    python scripts/generate_ec2_scenario.py
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ WAVES = [
     ("web-07", "web-08"),
     ("web-09", "web-10"),
 ]
+PEER_GROUP = "web"  # what an auto scaling group name would be
 RELEASE, PREVIOUS = "2.14.0", "2.13.9"
 PATCH_RUN = "patch-baseline-2026-10-07"
 
@@ -47,6 +48,8 @@ def at(hours: int, minutes: int = 0, seconds: int = 0) -> datetime:
 
 
 def emit(when: datetime, source: str, event_type: str, description: str, **metadata: Any) -> None:
+    if source in HOSTS:  # the collector tags every event with the group the instance belongs to
+        metadata["peer_group"] = PEER_GROUP
     events.append(
         {
             "timestamp": when.strftime("%Y-%m-%dT%H:%M:%SZ"),

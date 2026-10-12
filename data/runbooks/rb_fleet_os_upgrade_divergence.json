@@ -7,7 +7,7 @@
         "orders-lb"
     ],
     "causal_chain": [
-        "FLEET_DIVERGENCE_DETECTED",
+        "PEER_DIVERGENCE_DETECTED",
         "DEPENDENCY_FAILURE",
         "STATE_CHANGE"
     ],
@@ -19,7 +19,7 @@
     ],
     "occurred_at": "2026-05-19T09:30:00Z",
     "tags": [
-        "fleet-divergence",
+        "peer-divergence",
         "os-upgrade",
         "unattended-upgrades",
         "partial-failure",

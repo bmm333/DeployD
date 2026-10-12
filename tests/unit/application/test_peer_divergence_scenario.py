@@ -60,9 +60,7 @@ def _replay(
 
 def _findings(graph: IncidentGraph) -> list[CoreEvent]:
     return [
-        n.event
-        for n in graph.nodes
-        if n.event.event_type is CoreEventType.FLEET_DIVERGENCE_DETECTED
+        n.event for n in graph.nodes if n.event.event_type is CoreEventType.PEER_DIVERGENCE_DETECTED
     ]
 
 

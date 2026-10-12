@@ -289,28 +289,22 @@ def _declared_components() -> dict[str, Any]:
         return {}
 
 
-def _known_components() -> frozenset[str]:
-    return frozenset(_declared_components())
-
-
-def _fleet_members(fleet: str | None) -> set[str]:
-    """Instances declared with this fleet name: investigating a fleet covers all of them."""
-    return {name for name, spec in _declared_components().items() if spec.get("fleet") == fleet}
-
-
-def _scope_warning(prompt: str, investigated: str | None, incident: set[str]) -> str | None:
-    """Warn when the question names a known component outside this investigation."""
-    in_scope = {investigated} | _fleet_members(investigated) if investigated else incident
+def _scope_warning(
+    prompt: str, investigated: str | None, evidence: set[str], incident: set[str]
+) -> str | None:
+    """Warn when the question names a component outside the evidence of this investigation."""
+    in_scope = ({investigated} | evidence) if investigated else incident
     if not in_scope:
         return None
     text = prompt.lower()
-    foreign = sorted(c for c in _known_components() - in_scope if c.lower() in text)
+    known = set(_declared_components()) | incident
+    foreign = sorted(c for c in known - in_scope if c.lower() in text)
     if not foreign:
         return None
     return (
         f"⚠️ This investigation covers <b>{_esc(', '.join(sorted(in_scope)))}</b>. "
         f"You asked about <b>{_esc(', '.join(foreign))}</b> — the agent stays on the "
-        "investigated component; another component needs its own investigation."
+        "evidence of this investigation; another component needs its own investigation."
     )
 
 
@@ -865,12 +859,13 @@ def _render_chat(state: dict[str, Any], incident_components: set[str]) -> None:
         st.markdown(f'<div class="dp-warn">{ss.scope_warning}</div>', unsafe_allow_html=True)
 
     investigated = session["component"] if session else (trace or {}).get("component")
+    evidence = set((trace or {}).get("chain_components") or [])
     can_follow_up = bool(session) and session["turn"] < session["max_turns"]
     if can_follow_up and not ss.pending:
         cols = st.columns(3)
         for col, text in zip(cols, _suggestions(session["component"]), strict=False):
             if col.button(text, use_container_width=True, key=f"sugg-{text}"):
-                ss.scope_warning = _scope_warning(text, investigated, incident_components)
+                ss.scope_warning = _scope_warning(text, investigated, evidence, incident_components)
                 ss.pending = text
                 st.rerun(scope="fragment")
 
@@ -882,7 +877,7 @@ def _render_chat(state: dict[str, Any], incident_components: set[str]) -> None:
     busy = bool(ss.pending) or bool(state.get("investigating"))
     prompt = st.chat_input(placeholder, disabled=busy)
     if prompt:
-        ss.scope_warning = _scope_warning(prompt, investigated, incident_components)
+        ss.scope_warning = _scope_warning(prompt, investigated, evidence, incident_components)
         ss.pending = prompt
         st.rerun(scope="fragment")
 

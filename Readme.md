@@ -64,7 +64,7 @@ telemetry event ─► HttpEventAdapter ─► correlator: RULE-01..07, topology
                      decision trace + grounded, validated diagnosis + multi-turn chat (live UI)
 ```
 
-- **Deterministic core** — correlation rules link a cause to an effect only through the declared topology (`calls` in `data/components.json`) or a dependency named by the event; the window follows event time, so recorded scenarios replay identically. Deploys and config/host changes are kept for 24 h, and RULE-07 compares who received which change with who is failing across a declared `fleet`, which is how a change hours before the errors is found without naming any package.
+- **Deterministic core** — correlation rules link a cause to an effect only through the declared topology (`calls` in `data/components.json`) or a dependency named by the event; the window follows event time, so recorded scenarios replay identically. Deploys and config/host changes are kept for 24 h, and RULE-07 compares who received which change with who is failing inside a peer group taken from the events' own `peer_group` tag, which is how a change hours before the errors is found without naming any package or declaring any instance.
 - **AI layer** — reached only in Tier 3. The agent gets the causal chain and the retrieved runbooks, may call read-only tools (`search_runbooks`, `get_runbook_detail`, `check_component_dependencies`), and its citations are checked against the evidence set; provider errors fail closed to the deterministic result.
 - Architecture decisions are recorded in [`ADR/`](ADR/).
 
@@ -90,7 +90,7 @@ python3.10 -m venv .venv
 | Offline mode: 3 predefined scenarios, in-process, stub agent, no API or API key | `.venv/bin/streamlit run demo/app.py` |
 | Seed the runbook vector store | `.venv/bin/python scripts/seed_runbooks.py` |
 | Evaluation: retrieval, gate, ops (no API key needed) | `.venv/bin/python -m experiments.run_all` |
-| Regenerate the EC2 production-day scenario (seeded) | `.venv/bin/python scripts/generate_fleet_scenario.py` |
+| Regenerate the EC2 production-day scenario (seeded) | `.venv/bin/python scripts/generate_ec2_scenario.py` |
 
 To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with the command written at the top of `requirements.lock` / `requirements-dev.lock` (add `--extra dev` for the dev lock).
 
@@ -108,7 +108,7 @@ To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with
 - The runbook corpus is small (11 incidents), and Groq free-tier limits apply.
 - The evaluation is small: 30 hand-labelled text queries and 3 no-match queries over 11 runbooks,
   plus 7 incident scenarios (`experiments/results/`, ADR-012). The runbook of the EC2 scenario was written by us, so that match demonstrates the pipeline rather than measuring retrieval.
-- Fleet divergence needs a declared fleet, a healthy sibling seen working in the last 5 minutes, and events tagged with `change_kind` by the collector; it fires once per error cluster (ADR-014).
+- Peer divergence needs events tagged with `peer_group` and `change_kind` by the collector and a healthy peer seen working in the last 5 minutes; it fires once per error cluster (ADR-014).
 
 ## Contributions
 
@@ -119,7 +119,7 @@ To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with
 | AI / retrieval | hybrid RAG pipeline and evaluation (DID-7), runbooks and labeled queries (DID-10), Agno agent and tools (DID-15) | RRF fusion study (DID-19) |
 | Infrastructure / UX | project setup and CI (DID-1), Docker (DID-14), scenario simulator (DID-16), live UI, dependency locking (DID-29) | Streamlit investigation demo (DID-13) |
 | Hardening | topology-aware rules, event-time window, severity, agent tool validation (DID-22..25, DID-27) | API concurrency (DID-26) |
-| Change intelligence | fleet divergence rule, 24 h change memory, EC2 production-day scenario (DID-42) | |
+| Change intelligence | peer divergence rule, 24 h change memory, EC2 production-day scenario (DID-42) | |
 
 ## Beyond the course
 

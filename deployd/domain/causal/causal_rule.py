@@ -6,10 +6,10 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from deployd.domain.causal.config import CorrelationConfig
-from deployd.domain.causal.fleet_divergence import (
-    RULE_ID as FLEET_DIVERGENCE_RULE_ID,
+from deployd.domain.causal.peer_divergence import (
+    RULE_ID as PEER_DIVERGENCE_RULE_ID,
 )
-from deployd.domain.causal.fleet_divergence import divergence_event, find_fleet_divergence
+from deployd.domain.causal.peer_divergence import divergence_event, find_peer_divergence
 from deployd.domain.causal.topology import Topology
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType
 
@@ -284,19 +284,19 @@ def rule_config_drift(
     ]
 
 
-def rule_fleet_divergence(
+def rule_peer_divergence(
     event: CoreEvent,
     window: Sequence[CoreEvent],
     config: CorrelationConfig,
-    topology: Topology,
+    topology: Topology,  # noqa: ARG001 — peers come from the events' own tags
 ) -> list[RuleMatch]:
-    """RULE-07 — Fleet divergence: the change that separates failing from healthy instances"""
-    found = find_fleet_divergence(event, window, config, topology)
+    """RULE-07 — Peer divergence: the change that separates failing from healthy members"""
+    found = find_peer_divergence(event, window, config)
     if found is None:
         return []
     cause = divergence_event(found)
     return [
-        RuleMatch(trigger=symptom, cause=cause, rule_id=FLEET_DIVERGENCE_RULE_ID, confidence=0.80)
+        RuleMatch(trigger=symptom, cause=cause, rule_id=PEER_DIVERGENCE_RULE_ID, confidence=0.80)
         for symptom in found.first_symptoms.values()
     ]
 
@@ -308,5 +308,5 @@ DEFAULT_RULES: Sequence[CorrelationRuleFn] = [
     rule_healthcheck_failure_cascade,
     rule_resource_exhaustion,
     rule_config_drift,
-    rule_fleet_divergence,
+    rule_peer_divergence,
 ]
