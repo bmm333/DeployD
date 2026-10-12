@@ -2,8 +2,8 @@
 
 | Stage | p50 | p95 |
 |---|---:|---:|
-| Correlation (ms / event, 1507 events) | 0.02 | 0.07 |
-| Retrieval (ms / query) | 10.10 | 11.72 |
+| Correlation (ms / event, 1713 events) | 0.02 | 0.23 |
+| Retrieval (ms / query) | 10.80 | 13.32 |
 | LLM diagnosis, openai/gpt-oss-120b (s) | 3.24 | 4.56 |
 | LLM follow-up (s) | 2.60 | 3.18 |
 

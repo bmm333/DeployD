@@ -7,7 +7,7 @@ from __future__ import annotations
 import bisect
 from datetime import timedelta
 
-from deployd.domain.entities.core_event import CHANGE_EVENT_TYPES, CoreEvent
+from deployd.domain.entities.core_event import LONG_LIVED_EVENT_TYPES, CoreEvent
 
 DEFAULT_WINDOW_SECONDS: float = 5 * 60  # 5 minutes
 
@@ -17,7 +17,8 @@ class SlidingWindow:
 
     The window follows event time, not the wall clock, so replayed or late-shipped
     events correlate the same way as live ones. Events older than the window are dropped,
-    except change events (deploys, config and host changes), which are kept for
+    except change events (deploys, config and host changes) and the record of the changes in force
+    at each failure, which are kept for
     ``change_retention_seconds`` because a change can precede its effect by hours.
     """
 
@@ -48,7 +49,7 @@ class SlidingWindow:
         self._events = [
             e
             for e in self._events
-            if e.timestamp >= (change_cutoff if e.event_type in CHANGE_EVENT_TYPES else cutoff)
+            if e.timestamp >= (change_cutoff if e.event_type in LONG_LIVED_EVENT_TYPES else cutoff)
         ]
 
     def __len__(self) -> int:

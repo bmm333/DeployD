@@ -103,7 +103,7 @@ def test_runner_writes_every_section(tmp_path, monkeypatch) -> None:
     expected = {"retrieval", "gate", "ops", "summary"}
     assert {p.stem for p in tmp_path.glob("*.json")} == expected
     assert {p.stem for p in tmp_path.glob("*.md")} == expected
-    assert summary["sections"]["gate"][1].startswith("7/9")
+    assert summary["sections"]["gate"][1].startswith("7/10")
     assert json.loads((tmp_path / "summary.json").read_text())["seed"] == 7
 
 

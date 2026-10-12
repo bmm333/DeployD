@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
+from deployd.domain.causal.change_contrast import RULE_ID as CHANGE_CONTRAST_RULE_ID
+from deployd.domain.causal.change_contrast import contrast_event, find_change_contrast
 from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.causal.peer_divergence import (
     RULE_ID as PEER_DIVERGENCE_RULE_ID,
@@ -301,6 +303,26 @@ def rule_peer_divergence(
     ]
 
 
+def rule_change_contrast(
+    event: CoreEvent,
+    window: Sequence[CoreEvent],
+    config: CorrelationConfig,
+    topology: Topology,  # noqa: ARG001 — an entity is compared with itself
+) -> list[RuleMatch]:
+    """RULE-08 — Change contrast: the change constant across every failure of a lone entity"""
+    found = find_change_contrast(event, window, config)
+    if found is None:
+        return []
+    return [
+        RuleMatch(
+            trigger=found.first_symptom,
+            cause=contrast_event(found),
+            rule_id=CHANGE_CONTRAST_RULE_ID,
+            confidence=0.70,
+        )
+    ]
+
+
 DEFAULT_RULES: Sequence[CorrelationRuleFn] = [
     rule_db_latency_anomaly,
     rule_downstream_timeout,
@@ -309,4 +331,5 @@ DEFAULT_RULES: Sequence[CorrelationRuleFn] = [
     rule_resource_exhaustion,
     rule_config_drift,
     rule_peer_divergence,
+    rule_change_contrast,
 ]

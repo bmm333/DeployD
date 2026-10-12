@@ -113,3 +113,18 @@ def test_a_retention_shorter_than_the_window_never_shrinks_it() -> None:
     window.append(_event(200, "symptom"))
 
     assert _descriptions(window) == ["os upgrade", "symptom"]
+
+
+def test_the_record_of_the_changes_in_force_at_a_failure_is_kept_like_a_change() -> None:
+    window = SlidingWindow(window_seconds=300, change_retention_seconds=3600)
+    window.append(
+        CoreEvent(
+            event_type=CoreEventType.SYMPTOM_OBSERVED,
+            severity=Severity.INFO,
+            timestamp=T0,
+            description="failing under os_upgrade",
+        )
+    )
+    window.append(_event(1800, "recent symptom"))
+
+    assert _descriptions(window) == ["failing under os_upgrade", "recent symptom"]

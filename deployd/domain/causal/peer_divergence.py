@@ -16,6 +16,8 @@ import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from deployd.domain.causal.changes import ChangeSignature, is_failure, label
+from deployd.domain.causal.changes import signature as change_signature
 from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.entities.core_event import (
     CHANGE_EVENT_TYPES,
@@ -27,18 +29,6 @@ from deployd.domain.entities.core_event import (
 RULE_ID = "RULE-07-PEER-DIVERGENCE"
 
 _NAMESPACE = uuid.UUID("5d0f7a52-8a53-4a53-9c5b-3f1e6f0d9b11")
-
-_FAILURE_TYPES = frozenset(
-    {
-        CoreEventType.DEPENDENCY_FAILURE,
-        CoreEventType.CONNECTIVITY_LOSS,
-        CoreEventType.PROCESS_CRASH,
-        CoreEventType.HEALTH_CHECK_FAIL,
-    }
-)
-
-# A change is identified by what it is, not by which member reports it.
-ChangeSignature = tuple[str, str]
 
 
 @dataclass(frozen=True)
@@ -53,28 +43,6 @@ class PeerDivergence:
     first_symptoms: dict[str, CoreEvent]  # per affected member
 
 
-def label(signature: ChangeSignature) -> str:
-    kind, ref = signature
-    return f"{kind} {ref}" if ref else kind
-
-
-def _is_failure(event: CoreEvent, config: CorrelationConfig) -> bool:
-    if event.event_type in _FAILURE_TYPES:
-        return True
-    if event.event_type is not CoreEventType.STATE_CHANGE:
-        return False
-    status = config.get_metric(event.metadata, "status_code")
-    return isinstance(status, int) and status >= 500
-
-
-def _signature(event: CoreEvent) -> ChangeSignature | None:
-    kind = event.metadata.get("change_kind")
-    if event.event_type not in CHANGE_EVENT_TYPES or not isinstance(kind, str) or not kind:
-        return None
-    ref = event.metadata.get("change_ref")
-    return kind, ref if isinstance(ref, str) else ""
-
-
 def find_peer_divergence(
     event: CoreEvent,
     window: Sequence[CoreEvent],
@@ -82,7 +50,7 @@ def find_peer_divergence(
 ) -> PeerDivergence | None:
     """Evaluate *event* as the symptom that completes a failure cluster on one member."""
     host, group = event.related_component, event.metadata.get("peer_group")
-    if host is None or not isinstance(group, str) or not group or not _is_failure(event, config):
+    if host is None or not isinstance(group, str) or not group or not is_failure(event, config):
         return None
 
     failures: dict[str, list[CoreEvent]] = {}
@@ -92,13 +60,13 @@ def find_peer_divergence(
         member = e.related_component
         if member is None or e.metadata.get("peer_group") != group:
             continue
-        signature = _signature(e)
-        if signature is not None:
+        sig = change_signature(e)
+        if sig is not None:
             if e.timestamp <= event.timestamp:  # a later change cannot be the cause
-                reported.setdefault(signature, {}).setdefault(member, e)
+                reported.setdefault(sig, {}).setdefault(member, e)
         elif e.event_type not in CHANGE_EVENT_TYPES:
             observed.add(member)
-            if _is_failure(e, config):
+            if is_failure(e, config):
                 failures.setdefault(member, []).append(e)
 
     threshold = config.thresholds.error_rate
@@ -117,12 +85,12 @@ def find_peer_divergence(
     # one that does not carry it are noise, neither affected nor healthy.
     separating: dict[ChangeSignature, CoreEvent] = {}
     affected: set[str] = set()
-    for signature, members in reported.items():
+    for sig, members in reported.items():
         carriers = {
             m for m in failures if m in members and members[m].timestamp <= failures[m][0].timestamp
         }
         if clustered <= carriers and not members.keys() & healthy:
-            separating[signature] = min((members[m] for m in carriers), key=lambda e: e.timestamp)
+            separating[sig] = min((members[m] for m in carriers), key=lambda e: e.timestamp)
             affected |= carriers
     if not separating:
         return None
