@@ -14,15 +14,9 @@ if TYPE_CHECKING:
 def load_topology(components_file: Path) -> Topology:
     components = json.loads(components_file.read_text(encoding="utf-8"))
     calls: dict[str, list[str]] = {}
-    fleets: dict[str, str] = {}
     for name, spec in components.items():
         callees = spec.get("calls", [])
         if not isinstance(callees, list) or not all(isinstance(c, str) for c in callees):
             raise ValueError(f"{components_file}: 'calls' of {name!r} must be a list of names")
         calls[name] = callees
-        fleet = spec.get("fleet")
-        if fleet is not None:
-            if not isinstance(fleet, str) or not fleet:
-                raise ValueError(f"{components_file}: 'fleet' of {name!r} must be a non-empty name")
-            fleets[name] = fleet
-    return Topology.from_calls(calls, fleets)
+    return Topology.from_calls(calls)

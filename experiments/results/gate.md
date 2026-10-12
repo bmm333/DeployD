@@ -11,7 +11,7 @@
 | live_search_es_cascade | FULL | FULL | 0.74 | 1 | FULL (Critical) | best 0.63, gate open |
 | live_novel_analytics_db | CHAIN_ONLY | CHAIN_ONLY | 0.31 | – | CHAIN_ONLY (Critical) | best 0.30, gate closed |
 | live_degrading_no_trigger | NO_TRIGGER | NO_TRIGGER | – | – | NO_TRIGGER (Degrading) | – |
-| live_ec2_os_upgrade | FULL | FULL | 0.68 | 1 | NO_TRIGGER (Degrading) | best 0.50, gate open |
+| live_ec2_os_upgrade | FULL | FULL | 0.68 | 1 | FULL (Critical) | best 0.51, gate open |
 | synthetic_false_causality | NO_TRIGGER | NO_TRIGGER | – | – | FULL (Critical) | – |
 
 ## Threshold sweep (LLM allowed = FULL)

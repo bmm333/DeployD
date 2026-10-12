@@ -99,10 +99,10 @@
     },
     {
       "before_cosine_fix": {
-        "best_score": 0.5020985126495361,
+        "best_score": 0.5082693815231323,
         "gate_open": true
       },
-      "best_score": 0.676049256324768,
+      "best_score": 0.6791346907615661,
       "causal_edges": 12,
       "decision": "FULL",
       "expected": "FULL",
@@ -112,9 +112,9 @@
       "severity": "Critical",
       "top_candidate": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
       "without_topology": {
-        "causal_edges": 8,
-        "decision": "NO_TRIGGER",
-        "severity": "Degrading"
+        "causal_edges": 12,
+        "decision": "FULL",
+        "severity": "Critical"
       }
     },
     {

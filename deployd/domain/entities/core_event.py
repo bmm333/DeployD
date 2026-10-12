@@ -41,9 +41,9 @@ class CoreEventType(str, Enum):
     # Detection-derived (DID-9): inferred by a DetectionRule from evidence + reference
     # data, not observed directly by an adapter.
     CONFIG_DRIFT_DETECTED = "CONFIG_DRIFT_DETECTED"
-    # Fleet divergence (DID-42): some instances of a fleet fail and their siblings do not,
+    # Peer divergence (DID-42): some members of a peer group fail and the others do not,
     # and the only change that separates the two groups is named in the description.
-    FLEET_DIVERGENCE_DETECTED = "FLEET_DIVERGENCE_DETECTED"
+    PEER_DIVERGENCE_DETECTED = "PEER_DIVERGENCE_DETECTED"
 
 
 # Events that record something being changed. A change can precede its effect by hours, so

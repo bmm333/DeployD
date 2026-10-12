@@ -1,9 +1,13 @@
-"""RULE-07: fleet divergence (DID-42).
+"""RULE-07: peer divergence (DID-42, DID-44).
 
-When some instances of a fleet fail and their siblings do not, the cause is a change that
-separates the two groups, not one every instance received. The rule compares *who got which
+When some members of a peer group fail and the others do not, the cause is a change that
+separates the two groups, not one every member received. The rule compares *who got which
 change* with *who is failing*; it names no package, OS or vendor: the identity of a change
 is the ``change_kind`` / ``change_ref`` the collector put in the event metadata.
+
+A peer group is whatever the collector tags (``metadata.peer_group``: an auto scaling group,
+a target group, a Beanstalk environment, a workload). Nothing lists the members: they are the
+components seen with the tag, so instances can come and go.
 """
 
 from __future__ import annotations
@@ -13,7 +17,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from deployd.domain.causal.config import CorrelationConfig
-from deployd.domain.causal.topology import Topology
 from deployd.domain.entities.core_event import (
     CHANGE_EVENT_TYPES,
     CoreEvent,
@@ -21,7 +24,7 @@ from deployd.domain.entities.core_event import (
     Severity,
 )
 
-RULE_ID = "RULE-07-FLEET-DIVERGENCE"
+RULE_ID = "RULE-07-PEER-DIVERGENCE"
 
 _NAMESPACE = uuid.UUID("5d0f7a52-8a53-4a53-9c5b-3f1e6f0d9b11")
 
@@ -34,20 +37,20 @@ _FAILURE_TYPES = frozenset(
     }
 )
 
-# A change is identified by what it is, not by which host reports it.
+# A change is identified by what it is, not by which member reports it.
 ChangeSignature = tuple[str, str]
 
 
 @dataclass(frozen=True)
-class FleetDivergence:
-    """Which instances fail, which do not, and the changes that separate them."""
+class PeerDivergence:
+    """Which members fail, which do not, and the changes that separate them."""
 
-    fleet: str
+    group: str
     affected: tuple[str, ...]
     healthy: tuple[str, ...]
     separating: dict[ChangeSignature, CoreEvent]  # earliest report among the affected
-    excluded: tuple[ChangeSignature, ...]  # changes every observed instance received
-    first_symptoms: dict[str, CoreEvent]  # per affected instance
+    excluded: tuple[ChangeSignature, ...]  # changes every observed member received
+    first_symptoms: dict[str, CoreEvent]  # per affected member
 
 
 def label(signature: ChangeSignature) -> str:
@@ -72,24 +75,22 @@ def _signature(event: CoreEvent) -> ChangeSignature | None:
     return kind, ref if isinstance(ref, str) else ""
 
 
-def find_fleet_divergence(
+def find_peer_divergence(
     event: CoreEvent,
     window: Sequence[CoreEvent],
     config: CorrelationConfig,
-    topology: Topology,
-) -> FleetDivergence | None:
-    """Evaluate *event* as the symptom that completes a failure cluster on one instance."""
-    host = event.related_component
-    fleet = topology.fleet_of(host)
-    if host is None or len(fleet) < 2 or not _is_failure(event, config):
+) -> PeerDivergence | None:
+    """Evaluate *event* as the symptom that completes a failure cluster on one member."""
+    host, group = event.related_component, event.metadata.get("peer_group")
+    if host is None or not isinstance(group, str) or not group or not _is_failure(event, config):
         return None
 
     failures: dict[str, list[CoreEvent]] = {}
-    observed: set[str] = set()  # instances seen doing something other than being changed
+    observed: set[str] = set()  # members seen doing something other than being changed
     reported: dict[ChangeSignature, dict[str, CoreEvent]] = {}
     for e in window:
         member = e.related_component
-        if member is None or member not in fleet:
+        if member is None or e.metadata.get("peer_group") != group:
             continue
         signature = _signature(e)
         if signature is not None:
@@ -112,8 +113,8 @@ def find_fleet_divergence(
         return None
 
     # A change explains the divergence when every clustered failure carries it and no healthy
-    # instance does. Instances with a few errors that carry it count as affected; a few
-    # errors on one that does not carry it are noise, neither affected nor healthy.
+    # member does. Members with a few errors that carry it count as affected; a few errors on
+    # one that does not carry it are noise, neither affected nor healthy.
     separating: dict[ChangeSignature, CoreEvent] = {}
     affected: set[str] = set()
     for signature, members in reported.items():
@@ -127,8 +128,8 @@ def find_fleet_divergence(
         return None
 
     everyone = affected | healthy
-    return FleetDivergence(
-        fleet=topology.fleets[host],
+    return PeerDivergence(
+        group=group,
         affected=tuple(sorted(affected)),
         healthy=tuple(sorted(healthy)),
         separating=separating,
@@ -139,27 +140,27 @@ def find_fleet_divergence(
     )
 
 
-def divergence_event(found: FleetDivergence) -> CoreEvent:
+def divergence_event(found: PeerDivergence) -> CoreEvent:
     """The finding as a derived event; deterministic id, so re-evaluation is idempotent."""
     separating = ", ".join(label(s) for s in sorted(found.separating))
     excluded = ", ".join(label(s) for s in found.excluded)
     total = len(found.affected) + len(found.healthy)
     description = (
-        f"fleet {found.fleet}: {', '.join(found.affected)} fail, {len(found.healthy)} others "
-        f"healthy; only {separating} separates them ({len(found.affected)}/{len(found.affected)} "
-        f"vs 0/{len(found.healthy)})"
+        f"peer group {found.group}: {', '.join(found.affected)} fail, {len(found.healthy)} "
+        f"others healthy; only {separating} separates them ({len(found.affected)}/"
+        f"{len(found.affected)} vs 0/{len(found.healthy)})"
         + (f"; {excluded} reached all {total}, so it cannot explain the split" if excluded else "")
     )
-    key = "|".join([found.fleet, *found.affected, separating])
+    key = "|".join([found.group, *found.affected, separating])
     return CoreEvent(
         event_id=uuid.uuid5(_NAMESPACE, key),
-        event_type=CoreEventType.FLEET_DIVERGENCE_DETECTED,
+        event_type=CoreEventType.PEER_DIVERGENCE_DETECTED,
         timestamp=min(e.timestamp for e in found.separating.values()),
         severity=Severity.ERROR,
-        related_component=found.fleet,
+        related_component=found.group,
         description=description,
         metadata={
-            "fleet": found.fleet,
+            "peer_group": found.group,
             "affected": list(found.affected),
             "healthy": list(found.healthy),
             "separating_changes": [label(s) for s in sorted(found.separating)],

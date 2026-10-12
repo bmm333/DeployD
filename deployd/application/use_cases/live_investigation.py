@@ -135,11 +135,11 @@ class LiveInvestigation:
 
     @staticmethod
     def _investigated_components(chain: list[GraphNode]) -> tuple[str, ...]:
-        """The chain's components in order, then the instances a fleet finding names:
+        """The chain's components in order, then the members a peer-divergence finding names:
         investigating the finding covers every instance it is about."""
         names = [n.event.related_component or "?" for n in chain]
         for node in chain:
-            if node.event.event_type is CoreEventType.FLEET_DIVERGENCE_DETECTED:
+            if node.event.event_type is CoreEventType.PEER_DIVERGENCE_DETECTED:
                 affected = node.event.metadata.get("affected")
                 if isinstance(affected, list):
                     names += [m for m in map(str, affected) if m not in names]
