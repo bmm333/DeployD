@@ -76,3 +76,15 @@ def test_reset_starts_a_fresh_health_tracker():
     state = _send(MEMORY_THEN_OOM)
 
     assert state["decision_trace"] is not None
+
+
+def test_a_crash_investigates_the_crashing_component_not_another_anomaly_of_the_incident():
+    state = _send(
+        [
+            _event(0, "analytics-postgres", "LATENCY", latency_ms=710),  # unrelated anomaly
+            _event(20, "auth-service", "MEMORY_SAMPLE", memory_percent=97),
+            _event(40, "auth-service", "OOM_KILL"),
+        ]
+    )
+
+    assert state["decision_trace"]["component"] == "auth-service"
