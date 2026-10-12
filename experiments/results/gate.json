@@ -99,10 +99,10 @@
     },
     {
       "before_cosine_fix": {
-        "best_score": 0.5082693815231323,
+        "best_score": 0.5169930458068848,
         "gate_open": true
       },
-      "best_score": 0.6791346907615661,
+      "best_score": 0.6834965229034424,
       "causal_edges": 12,
       "decision": "FULL",
       "expected": "FULL",
@@ -115,6 +115,38 @@
         "causal_edges": 12,
         "decision": "FULL",
         "severity": "Critical"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.15,
+        "gate_open": false
+      },
+      "best_score": 0.22675431966781617,
+      "causal_edges": 0,
+      "decision": "CHAIN_ONLY",
+      "expected": "FULL",
+      "expected_rank": 3,
+      "expected_runbook": "RB-INVENTORY-DISK-FULL",
+      "scenario": "live_disk_full_single_instance",
+      "severity": "Degrading",
+      "top_candidate": "RB-AUTH-SERVICE-OOMKILL",
+      "without_topology": {
+        "causal_edges": 0,
+        "decision": "CHAIN_ONLY",
+        "severity": "Degrading"
+      }
+    },
+    {
+      "causal_edges": 5,
+      "decision": "NO_TRIGGER",
+      "expected": "CHAIN_ONLY",
+      "scenario": "live_dns_failure",
+      "severity": "Degrading",
+      "without_topology": {
+        "causal_edges": 5,
+        "decision": "NO_TRIGGER",
+        "severity": "Degrading"
       }
     },
     {
@@ -136,6 +168,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "FULL",
         "live_novel_analytics_db": "FULL",
         "live_oom_auth_service": "FULL",
@@ -145,12 +179,12 @@
       },
       "exact_decisions": 6,
       "llm_allowed": {
-        "f1": 0.888888888888889,
-        "fn": 0,
+        "f1": 0.8000000000000002,
+        "fn": 1,
         "fp": 1,
         "precision": 0.8,
-        "recall": 1.0,
-        "tn": 2,
+        "recall": 0.8,
+        "tn": 3,
         "tp": 4
       },
       "threshold": 0.3
@@ -158,6 +192,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "FULL",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "FULL",
@@ -167,12 +203,12 @@
       },
       "exact_decisions": 7,
       "llm_allowed": {
-        "f1": 1.0,
-        "fn": 0,
+        "f1": 0.888888888888889,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 1.0,
-        "tn": 3,
+        "recall": 0.8,
+        "tn": 4,
         "tp": 4
       },
       "threshold": 0.35
@@ -180,6 +216,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "FULL",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "FULL",
@@ -189,12 +227,12 @@
       },
       "exact_decisions": 7,
       "llm_allowed": {
-        "f1": 1.0,
-        "fn": 0,
+        "f1": 0.888888888888889,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 1.0,
-        "tn": 3,
+        "recall": 0.8,
+        "tn": 4,
         "tp": 4
       },
       "threshold": 0.4
@@ -202,6 +240,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "FULL",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "FULL",
@@ -211,12 +251,12 @@
       },
       "exact_decisions": 7,
       "llm_allowed": {
-        "f1": 1.0,
-        "fn": 0,
+        "f1": 0.888888888888889,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 1.0,
-        "tn": 3,
+        "recall": 0.8,
+        "tn": 4,
         "tp": 4
       },
       "threshold": 0.45
@@ -224,6 +264,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "FULL",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "FULL",
@@ -233,12 +275,12 @@
       },
       "exact_decisions": 7,
       "llm_allowed": {
-        "f1": 1.0,
-        "fn": 0,
+        "f1": 0.888888888888889,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 1.0,
-        "tn": 3,
+        "recall": 0.8,
+        "tn": 4,
         "tp": 4
       },
       "threshold": 0.5
@@ -246,6 +288,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "FULL",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "FULL",
@@ -255,12 +299,12 @@
       },
       "exact_decisions": 7,
       "llm_allowed": {
-        "f1": 1.0,
-        "fn": 0,
+        "f1": 0.888888888888889,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 1.0,
-        "tn": 3,
+        "recall": 0.8,
+        "tn": 4,
         "tp": 4
       },
       "threshold": 0.55
@@ -268,6 +312,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "FULL",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "FULL",
@@ -277,12 +323,12 @@
       },
       "exact_decisions": 7,
       "llm_allowed": {
-        "f1": 1.0,
-        "fn": 0,
+        "f1": 0.888888888888889,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 1.0,
-        "tn": 3,
+        "recall": 0.8,
+        "tn": 4,
         "tp": 4
       },
       "threshold": 0.6
@@ -290,6 +336,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "FULL",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "FULL",
@@ -299,12 +347,12 @@
       },
       "exact_decisions": 7,
       "llm_allowed": {
-        "f1": 1.0,
-        "fn": 0,
+        "f1": 0.888888888888889,
+        "fn": 1,
         "fp": 0,
         "precision": 1.0,
-        "recall": 1.0,
-        "tn": 3,
+        "recall": 0.8,
+        "tn": 4,
         "tp": 4
       },
       "threshold": 0.65
@@ -312,6 +360,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "CHAIN_ONLY",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "CHAIN_ONLY",
@@ -321,12 +371,12 @@
       },
       "exact_decisions": 4,
       "llm_allowed": {
-        "f1": 0.4,
-        "fn": 3,
+        "f1": 0.33333333333333337,
+        "fn": 4,
         "fp": 0,
         "precision": 1.0,
-        "recall": 0.25,
-        "tn": 3,
+        "recall": 0.2,
+        "tn": 4,
         "tp": 1
       },
       "threshold": 0.7
@@ -334,6 +384,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "CHAIN_ONLY",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "CHAIN_ONLY",
@@ -344,11 +396,11 @@
       "exact_decisions": 3,
       "llm_allowed": {
         "f1": 0.0,
-        "fn": 4,
+        "fn": 5,
         "fp": 0,
         "precision": 0.0,
         "recall": 0.0,
-        "tn": 3,
+        "tn": 4,
         "tp": 0
       },
       "threshold": 0.75
@@ -356,6 +408,8 @@
     {
       "decisions": {
         "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
         "live_ec2_os_upgrade": "CHAIN_ONLY",
         "live_novel_analytics_db": "CHAIN_ONLY",
         "live_oom_auth_service": "CHAIN_ONLY",
@@ -366,11 +420,11 @@
       "exact_decisions": 3,
       "llm_allowed": {
         "f1": 0.0,
-        "fn": 4,
+        "fn": 5,
         "fp": 0,
         "precision": 0.0,
         "recall": 0.0,
-        "tn": 3,
+        "tn": 4,
         "tp": 0
       },
       "threshold": 0.8

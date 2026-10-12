@@ -65,6 +65,9 @@ EXPECTED_SHAPE = {  # severity, nodes, edges
     "live_novel_analytics_db": ("Critical", 3, 2),
     "live_degrading_no_trigger": ("Degrading", 2, 1),
     "live_ec2_os_upgrade": ("Critical", 16, 12),
+    # DID-45: no rule was written for these; no 2-hop chain forms
+    "live_disk_full_single_instance": ("Degrading", 5, 0),
+    "live_dns_failure": ("Degrading", 10, 5),
 }
 
 
