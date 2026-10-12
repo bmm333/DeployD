@@ -20,6 +20,7 @@ from typing import Any
 import httpx
 import streamlit as st
 import streamlit.components.v1 as components
+from ui_logic import choose_source, describe_events, parse_events, uncovered_chains
 from ui_text import split_answer
 
 API_URL = os.getenv("DEPLOYD_API_URL", "http://localhost:8000").rstrip("/")
@@ -31,7 +32,6 @@ HISTORY_LIMIT = 20
 TICK_S = 0.25
 CHAT_TIMEOUT_S = 120.0
 TYPEWRITER_DELAY_S = 0.018
-REQUIRED_KEYS = ("timestamp", "source", "event_type")
 
 _ROOT = Path(__file__).resolve().parent.parent
 
@@ -144,6 +144,10 @@ st.markdown(
         background: #0f172a; border-radius: 0 4px 4px 0;
     }
     .dp-muted { color: #64748b !important; font-size: 0.85rem; }
+    .dp-ready {
+        background: #10b98114; border: 1px solid #10b98155; border-radius: 8px;
+        padding: .45rem .6rem; margin: .3rem 0; font-size: .82rem; color: #a7f3d0 !important;
+    }
     .dp-warn {
         background: rgba(245,158,11,0.12); border: 1px solid #f59e0b;
         border-radius: 8px; padding: 0.5rem 0.8rem; font-size: 0.85rem; margin: .3rem 0;
@@ -193,6 +197,8 @@ _DEFAULTS: dict[str, Any] = {
     "seen_messages": None,
     "pending_decision": None,
     "decision_error": None,
+    "input_gen": 0,
+    "last_sent": None,
     "history": [],
     "last_history": 0.0,
     "history_error": None,
@@ -233,20 +239,6 @@ def _send_event(event: dict[str, Any]) -> None:
         record["error"] = str(exc)
     st.session_state.sent.append(record)
     st.session_state.last_send = time.monotonic()
-
-
-def _parse_events(raw: str) -> list[dict[str, Any]]:
-    """Accept a list of events, {"events": [...]}, or a single event object."""
-    data = json.loads(raw)
-    if isinstance(data, dict):
-        data = data.get("events", [data])
-    if not isinstance(data, list) or not all(isinstance(e, dict) for e in data):
-        raise ValueError("Expected a JSON list of event objects.")
-    for i, ev in enumerate(data):
-        missing = [k for k in REQUIRED_KEYS if k not in ev]
-        if missing:
-            raise ValueError(f"Event #{i} is missing required field(s): {', '.join(missing)}")
-    return data
 
 
 def _rebase_timestamps(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -955,6 +947,24 @@ def _render_history() -> None:
                 st.rerun(scope="fragment")
 
 
+def _render_uninvestigated(graph: dict[str, Any], trace: dict[str, Any] | None) -> None:
+    """DeployD investigates one chain per incident: say so when the graph holds another."""
+    if not trace or not trace.get("chain_components"):
+        return
+    left_out = uncovered_chains(graph, trace["chain_components"])
+    if not left_out:
+        return
+    chains = "; ".join(" → ".join(chain) for chain in left_out)
+    plural = "chains were" if len(left_out) > 1 else "chain was"
+    st.markdown(
+        f'<div class="dp-warn"><b>{len(left_out)} more causal {plural} not investigated:</b> '
+        f"{_esc(chains)}.<br>DeployD runs one investigation per incident, on the first "
+        f"CRITICAL chain ({_esc(trace['component'])}). Press <b>Reset incident</b> and send "
+        f"the rest on its own to investigate it.</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def _render_past(detail: dict[str, Any]) -> None:
     """A past incident, read-only: its graph, decision trace and chat as they were."""
     banner, back = st.columns([8, 3], gap="small")
@@ -1035,8 +1045,40 @@ def live_console() -> None:
         st.text_input("Engineer on call", key="engineer", help="Recorded with every decision.")
 
         st.markdown('<div class="dp-label">Event ingestion</div>', unsafe_allow_html=True)
-        upload = st.file_uploader("Upload events JSON", type=["json"], label_visibility="collapsed")
-        pasted = st.text_area("Or paste events JSON", height=140, placeholder=_EXAMPLE)
+        # A new key empties both inputs after every send (a file would otherwise be sent again).
+        upload = st.file_uploader(
+            "Upload events JSON",
+            type=["json"],
+            label_visibility="collapsed",
+            key=f"upload-{ss.input_gen}",
+        )
+        pasted = st.text_area(
+            "Or paste events JSON", height=140, placeholder=_EXAMPLE, key=f"paste-{ss.input_gen}"
+        )
+
+        source = choose_source(
+            upload.name if upload else None,
+            upload.getvalue().decode("utf-8", "replace") if upload else None,
+            pasted,
+        )
+        events: list[dict[str, Any]] = []
+        if source is None:
+            st.caption("Nothing to send yet: upload a file or paste events.")
+        else:
+            try:
+                events = parse_events(source.raw)
+                st.markdown(
+                    f'<div class="dp-ready">✓ Ready to send <b>{_esc(source.label)}</b><br>'
+                    f'<span class="dp-muted">{_esc(describe_events(events))}</span></div>',
+                    unsafe_allow_html=True,
+                )
+            except (json.JSONDecodeError, ValueError) as exc:
+                st.error(f"{source.label}: {exc}")
+            if source.ignored_paste:
+                st.warning(
+                    "A file and pasted text are both present: only the file is sent. "
+                    "Remove one of them."
+                )
 
         rebase = st.checkbox(
             "Replay: rebase timestamps to now",
@@ -1044,28 +1086,27 @@ def live_console() -> None:
             help="Keeps the spacing between events. Correlation works either way; "
             "this only makes times and incident durations look current.",
         )
+        can_send = bool(events) and not ss.queue
         c1, c2 = st.columns(2)
-        one_by_one = c1.button("Send one by one", use_container_width=True, disabled=bool(ss.queue))
+        one_by_one = c1.button("Send one by one", use_container_width=True, disabled=not can_send)
         send_all = c2.button(
-            "Send all", use_container_width=True, disabled=bool(ss.queue), type="primary"
+            "Send all", use_container_width=True, disabled=not can_send, type="primary"
         )
 
-        if one_by_one or send_all:
-            raw = upload.getvalue().decode("utf-8") if upload else pasted
-            try:
-                events = _parse_events(raw)
-            except (json.JSONDecodeError, ValueError) as exc:
-                st.error(f"Invalid events JSON: {exc}")
-                events = []
-            if rebase:
-                events = _rebase_timestamps(events)
+        if (one_by_one or send_all) and source is not None:
+            batch = _rebase_timestamps(events) if rebase else events
+            ss.last_sent = {"label": source.label, "count": len(batch)}
             if one_by_one:
-                ss.queue = events
+                ss.queue = batch
             else:
-                for ev in events:
+                for ev in batch:
                     _send_event(ev)
                 _poll_state()
-                st.rerun(scope="fragment")
+            ss.input_gen += 1
+            st.rerun(scope="fragment")
+
+        if ss.last_sent:
+            st.caption(f"Last sent: {ss.last_sent['label']} · {ss.last_sent['count']} event(s)")
 
         if ss.queue:
             st.caption(f"Sending… {len(ss.queue)} event(s) left")
@@ -1077,6 +1118,8 @@ def live_console() -> None:
                 st.error(f"Reset failed: {exc}")
             ss.queue, ss.sent, ss.scope_warning, ss.pending = [], [], None, None
             ss.viewing, ss.past = None, None
+            ss.input_gen += 1
+            ss.last_sent = None
             _poll_state()
             _fetch_history()
             st.rerun(scope="fragment")
@@ -1103,6 +1146,7 @@ def live_console() -> None:
         if ss.past:
             _render_past(ss.past)
         else:
+            _render_uninvestigated(graph, trace)
             _render_graph()
             chat_col, trace_col = st.columns([64, 36], gap="medium")
             with trace_col:
