@@ -40,14 +40,15 @@ In the live UI (`demo/live_app.py`, the one `docker compose` starts), upload one
 | OOM on auth-service | `data/scenarios/live_oom_auth_service.json` | Tier 3 FULL — grounded diagnosis, then multi-turn follow-ups |
 | Elasticsearch → search | `data/scenarios/live_search_es_cascade.json` | Tier 3 FULL |
 | Postgres → payment | `data/scenarios/live_payment_db_timeout.json` | Tier 3 FULL |
+| A production day: green release, 4 of 10 instances upgraded by the platform | `data/scenarios/live_ec2_os_upgrade.json` (935 events over 16 hours) | Tier 3 FULL — names the change only the failing instances received and rules out the release (ADR-014) |
 
 In a FULL investigation, approve, reject (with a reason the agent uses to revise its answer) or edit the recommendation under the diagnosis (ADR-013), and ask follow-up questions in the chat. Asking about a component outside the investigation (e.g. `payment-service` during the OOM scenario) is refused: the agent only discusses evidence that went through the gate.
 
 ## How it works
 
 ```
-telemetry event ─► HttpEventAdapter ─► correlator: RULE-01..06, topology-aware,
-                                        5-minute event-time window
+telemetry event ─► HttpEventAdapter ─► correlator: RULE-01..07, topology-aware,
+                                        5-minute event-time window (changes: 24 h)
                                                 │
                                                 ▼
                                    IncidentGraph ─► severity: a causal chain of
@@ -63,7 +64,7 @@ telemetry event ─► HttpEventAdapter ─► correlator: RULE-01..06, topology
                      decision trace + grounded, validated diagnosis + multi-turn chat (live UI)
 ```
 
-- **Deterministic core** — correlation rules link a cause to an effect only through the declared topology (`calls` in `data/components.json`) or a dependency named by the event; the window follows event time, so recorded scenarios replay identically.
+- **Deterministic core** — correlation rules link a cause to an effect only through the declared topology (`calls` in `data/components.json`) or a dependency named by the event; the window follows event time, so recorded scenarios replay identically. Deploys and config/host changes are kept for 24 h, and RULE-07 compares who received which change with who is failing across a declared `fleet`, which is how a change hours before the errors is found without naming any package.
 - **AI layer** — reached only in Tier 3. The agent gets the causal chain and the retrieved runbooks, may call read-only tools (`search_runbooks`, `get_runbook_detail`, `check_component_dependencies`), and its citations are checked against the evidence set; provider errors fail closed to the deterministic result.
 - Architecture decisions are recorded in [`ADR/`](ADR/).
 
@@ -89,6 +90,7 @@ python3.10 -m venv .venv
 | Offline mode: 3 predefined scenarios, in-process, stub agent, no API or API key | `.venv/bin/streamlit run demo/app.py` |
 | Seed the runbook vector store | `.venv/bin/python scripts/seed_runbooks.py` |
 | Evaluation: retrieval, gate, ops (no API key needed) | `.venv/bin/python -m experiments.run_all` |
+| Regenerate the EC2 production-day scenario (seeded) | `.venv/bin/python scripts/generate_fleet_scenario.py` |
 
 To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with the command written at the top of `requirements.lock` / `requirements-dev.lock` (add `--extra dev` for the dev lock).
 
@@ -103,9 +105,10 @@ To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with
 - Single-tenant proof of concept: one incident at a time, kept in process memory; `/chat` and `/reset` assume a single active incident.
 - Events are simulated; there are no real collectors yet.
 - Topology and component versions are declared in `data/components.json`, not discovered.
-- The runbook corpus is small (10 incidents), and Groq free-tier limits apply.
-- The evaluation is small: 28 hand-labelled text queries and 3 no-match queries over 10 runbooks,
-  plus 6 incident scenarios (`experiments/results/`, ADR-012).
+- The runbook corpus is small (11 incidents), and Groq free-tier limits apply.
+- The evaluation is small: 30 hand-labelled text queries and 3 no-match queries over 11 runbooks,
+  plus 7 incident scenarios (`experiments/results/`, ADR-012). The runbook of the EC2 scenario was written by us, so that match demonstrates the pipeline rather than measuring retrieval.
+- Fleet divergence needs a declared fleet, a healthy sibling seen working in the last 5 minutes, and events tagged with `change_kind` by the collector; it fires once per error cluster (ADR-014).
 
 ## Contributions
 
@@ -116,6 +119,7 @@ To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with
 | AI / retrieval | hybrid RAG pipeline and evaluation (DID-7), runbooks and labeled queries (DID-10), Agno agent and tools (DID-15) | RRF fusion study (DID-19) |
 | Infrastructure / UX | project setup and CI (DID-1), Docker (DID-14), scenario simulator (DID-16), live UI, dependency locking (DID-29) | Streamlit investigation demo (DID-13) |
 | Hardening | topology-aware rules, event-time window, severity, agent tool validation (DID-22..25, DID-27) | API concurrency (DID-26) |
+| Change intelligence | fleet divergence rule, 24 h change memory, EC2 production-day scenario (DID-42) | |
 
 ## Beyond the course
 
