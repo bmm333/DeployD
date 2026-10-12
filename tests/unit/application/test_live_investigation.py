@@ -270,3 +270,61 @@ def test_a_peer_finding_covers_the_instances_it_names():
 
     assert result is not None
     assert result.chain_components == ("web", "web-09", "web-03")
+
+
+def _two_single_node_chains(first: str, second: str) -> IncidentGraph:
+    graph = IncidentGraph()
+    for i, component in enumerate((first, second)):
+        event = create_mock_event(component, Severity.ERROR).model_copy(
+            update={"timestamp": datetime(2026, 10, 9, 6 + i, 0, tzinfo=timezone.utc)}
+        )
+        graph.add_node(GraphNode(node_id=event.event_id, event=event))
+    return graph
+
+
+def _investigated(graph: IncidentGraph, focus: str | None) -> str | None:
+    retriever = StubRetriever(
+        result=RetrievalResult(candidates=[], confidence_threshold=0.5), breakdown={}
+    )
+    result = LiveInvestigation(retriever, InvestigationOrchestrator(agent=None)).execute(
+        graph, focus=focus
+    )
+    return result.component if result else None
+
+
+def test_the_focus_component_wins_over_another_chain_of_the_same_length():
+    graph = _two_single_node_chains("api-04", "postgres-primary")
+
+    assert _investigated(graph, focus="api-04") == "api-04"
+    assert _investigated(graph, focus="postgres-primary") == "postgres-primary"
+
+
+def test_the_focus_wins_even_over_a_longer_chain_elsewhere():
+    graph = _two_single_node_chains("api-04", "web")
+    other = create_mock_event("web-09", Severity.ERROR)
+    graph.add_node(GraphNode(node_id=other.event_id, event=other))
+    web = next(n for n in graph.nodes if n.event.related_component == "web")
+    graph.add_edge(
+        GraphEdge(
+            source=web.node_id,
+            target=other.event_id,
+            edge_type=EdgeType.CAUSAL,
+            confidence=0.8,
+            rule_id="RULE-07",
+        )
+    )
+
+    assert _investigated(graph, focus="api-04") == "api-04"
+    assert _investigated(graph, focus=None) == "web"
+
+
+def test_without_a_focus_equal_chains_resolve_to_the_most_recent():
+    graph = _two_single_node_chains("api-04", "postgres-primary")
+
+    assert _investigated(graph, focus=None) == "postgres-primary"  # 07:00, after api-04 at 06:00
+
+
+def test_a_focus_that_is_in_no_chain_falls_back_to_the_longest_chain():
+    graph = _two_single_node_chains("api-04", "postgres-primary")
+
+    assert _investigated(graph, focus="unknown") == "postgres-primary"

@@ -286,15 +286,17 @@ def receive_event(raw: RawTelemetryEvent, background_tasks: BackgroundTasks) -> 
             in_incident = any(
                 n.event.related_component == core_event.related_component for n in _graph.nodes
             )
+            focus = None
             if compute_incident_severity(_graph) == "Critical":
                 reason = "the incident reached CRITICAL"
             elif crashing and in_incident:
                 reason = f"{core_event.related_component} is {fsm_state.value}"
+                focus = core_event.related_component  # investigate the crashing component
             else:
                 reason = None
             if reason and _auto_diagnosed_incident_id != str(incident.id):
                 _auto_diagnosed_incident_id = str(incident.id)
-                background_tasks.add_task(_run_investigation, str(incident.id), reason)
+                background_tasks.add_task(_run_investigation, str(incident.id), reason, focus)
 
             return {
                 "status": "ok",
@@ -328,7 +330,7 @@ def get_state() -> dict[str, Any]:
 # Investigation (three-tier gate)
 
 
-def _run_investigation(target_incident_id: str, reason: str) -> None:
+def _run_investigation(target_incident_id: str, reason: str, focus: str | None = None) -> None:
     """Run the three-tier gate on the live graph; the LLM is reached only in Tier 3."""
     global _decision_trace, _session, _investigating, _review  # noqa: PLW0603
 
@@ -365,7 +367,7 @@ def _run_investigation(target_incident_id: str, reason: str) -> None:
                         "Running the three-tier gate…",
                     )
 
-        result = use_case.execute(graph_snapshot, on_start=announce)
+        result = use_case.execute(graph_snapshot, on_start=announce, focus=focus)
         if not result:
             return
 

@@ -60,13 +60,16 @@ class LiveInvestigation:
         self,
         graph: IncidentGraph,
         on_start: Callable[[str, int], None] | None = None,
+        focus: str | None = None,
     ) -> LiveInvestigationResult | None:
         """Run the investigation, or return ``None`` when the graph has no causal chain.
 
         ``on_start(component, hops)`` is called once the chain is known, before
-        retrieval and the (possibly slow) agent run.
+        retrieval and the (possibly slow) agent run. ``focus`` is the component that
+        triggered the investigation (a crash): its chains win over a longer chain
+        elsewhere in the incident.
         """
-        chain = self._longest_chain(graph)
+        chain = self._longest_chain(graph, focus)
         if not chain:
             return None
 
@@ -145,10 +148,15 @@ class LiveInvestigation:
                     names += [m for m in map(str, affected) if m not in names]
         return tuple(names)
 
-    def _longest_chain(self, graph: IncidentGraph) -> list[GraphNode]:
+    def _longest_chain(self, graph: IncidentGraph, focus: str | None) -> list[GraphNode]:
         engine = CausalEngine(graph)
         chains = [c for root in graph.get_root_nodes() for c in engine.causal_chain(root.node_id)]
-        return max(chains, key=len, default=[])
+        if focus is not None:
+            chains = [
+                c for c in chains if any(n.event.related_component == focus for n in c)
+            ] or chains
+        # Equal chains: the most recent, not the first one the graph happens to list.
+        return max(chains, key=lambda c: (len(c), c[-1].event.timestamp), default=[])
 
     def _chain_rules(self, graph: IncidentGraph, chain: list[GraphNode]) -> list[str]:
         rules: list[str] = []
