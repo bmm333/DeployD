@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-10",
+  "date": "2026-10-11",
   "sections": {
     "gate": [
       "completed",
@@ -11,7 +11,7 @@
     ],
     "ops": [
       "completed",
-      "LLM: not measured here; run python -m experiments.model_selection"
+      "LLM: from experiments/results/model_selection.json (DID-34)"
     ],
     "retrieval": [
       "completed",
