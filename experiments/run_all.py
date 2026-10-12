@@ -495,7 +495,8 @@ def evaluate_ops(stack: _Stack, retrieval: dict[str, Any]) -> dict[str, Any]:
         "retrieval_ms_per_query": retrieval["latency_ms"],
         "cold_start_s": {
             "value": stack.cold_start_s,
-            "what": "embedding model load + indexing 10 runbooks (model already in the HF cache)",
+            "what": f"embedding model load + indexing {len(stack.runbook_ids)} runbooks "
+            "(model already in the HF cache)",
         },
         "llm": llm,
     }
