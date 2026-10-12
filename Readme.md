@@ -31,7 +31,7 @@ The first investigation downloads the embedding model (`all-MiniLM-L6-v2`, ~90 M
 
 ## Demo walkthrough
 
-In the UI, upload one of the files below (or paste its JSON), keep **Replay: rebase timestamps to now** checked and press **Send one by one**. Press **Reset incident** between scenarios.
+In the live UI (`demo/live_app.py`, the one `docker compose` starts), upload one of the files below (or paste its JSON), keep **Replay: rebase timestamps to now** checked and press **Send one by one**. The UI shows what is about to be sent (file, number of events, components) and empties the inputs after sending. Press **Reset incident** between scenarios: an incident gets one investigation, so a second scenario sent into the same incident is not investigated (the UI warns about it): the finished incident moves to **Past incidents**, where **Open** shows it again read-only (graph, decision trace, chat and decisions) until you press **Return to Live**.
 
 | Scenario | File | Expected result |
 |---|---|---|
@@ -85,8 +85,8 @@ python3.10 -m venv .venv
 | Tests + coverage (gate 80%) | `.venv/bin/pytest` |
 | Lint / format / types | `.venv/bin/pre-commit run --all-files` |
 | API locally | `.venv/bin/uvicorn deployd.entrypoints.api:app --port 8000 --env-file .env` |
-| Live UI locally | `.venv/bin/streamlit run demo/live_app.py` |
-| Offline scenario demo (no API, stub agent) | `.venv/bin/streamlit run demo/app.py` |
+| Live UI locally (primary) | `.venv/bin/streamlit run demo/live_app.py` |
+| Offline mode: 3 predefined scenarios, in-process, stub agent, no API or API key | `.venv/bin/streamlit run demo/app.py` |
 | Seed the runbook vector store | `.venv/bin/python scripts/seed_runbooks.py` |
 | Evaluation: retrieval, gate, ops (no API key needed) | `.venv/bin/python -m experiments.run_all` |
 
