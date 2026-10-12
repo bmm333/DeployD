@@ -54,6 +54,7 @@ def build_decision_trace(
     answer_discarded: str | None = None,
     model: str | None = None,
     citations_removed: Sequence[str] = (),
+    chain_components: Sequence[str] = (),
 ) -> dict[str, Any]:
     """Assemble the decision trace exposed by ``GET /api/v1/state``.
 
@@ -61,7 +62,8 @@ def build_decision_trace(
     hop count is ``len(chain) - 1``.  ``breakdown`` maps runbook IDs to their
     per-signal scores (semantic, bm25, causal, component).  ``answer_discarded``
     says why a Tier-3 answer was withheld from the engineer (fail-closed);
-    ``citations_removed`` lists what the evidence validator stripped from it.
+    ``citations_removed`` lists what the evidence validator stripped from it;
+    ``chain_components`` are the components of the investigated chain, in order.
     """
     ranked = sorted(candidates, key=lambda c: c.score, reverse=True)
     top = [_candidate(c, breakdown, threshold) for c in ranked[:TOP_CANDIDATES]]
@@ -72,6 +74,7 @@ def build_decision_trace(
         "component": component,
         "retrieval_query": query,
         "causal_chain": list(chain),
+        "chain_components": list(chain_components),
         "causal_chain_length": max(len(chain) - 1, 0),
         "rules_fired": _unique(rules_fired),
         "threshold": threshold,

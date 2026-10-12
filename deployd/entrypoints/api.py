@@ -390,6 +390,7 @@ def _run_investigation(target_incident_id: str, reason: str) -> None:
                 prompt_version=agent.prompt_version if agent else None,
                 model=agent.model_id if agent else None,
                 citations_removed=agent.last_removed_citations if agent else (),
+                chain_components=result.chain_components,
                 answer_discarded=result.answer_discarded,
             )
 

@@ -180,6 +180,11 @@ def test_a_closed_incident_keeps_its_decision_trace_and_tier(agent):
     detail = client.get(f"/api/v1/incidents/{incident_id}").json()
     assert detail["decision_trace"]["tier"] == "FULL"
     assert detail["decision_trace"]["component"] == "postgres-primary"
+    assert detail["decision_trace"]["chain_components"] == [
+        "postgres-primary",
+        "payment-service",
+        "checkout-service",
+    ]
     assert detail["decision_trace"]["human_decision"]["decision"] == "ACCEPT"
     listed = next(i for i in client.get("/api/v1/incidents").json() if i["id"] == incident_id)
     assert (listed["tier"], listed["status"]) == ("FULL", "RESOLVED")

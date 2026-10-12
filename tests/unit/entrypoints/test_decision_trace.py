@@ -116,6 +116,14 @@ def test_prompt_version_is_reported_only_when_the_llm_was_called() -> None:
     assert _trace(prompt_version="1.2.0", llm_called=False)["prompt_version"] is None
 
 
+def test_the_components_of_the_investigated_chain_are_reported_in_order() -> None:
+    assert _trace()["chain_components"] == []
+
+    trace = _trace(chain_components=["postgres-primary", "payment-service", "checkout-service"])
+
+    assert trace["chain_components"] == ["postgres-primary", "payment-service", "checkout-service"]
+
+
 def test_a_discarded_answer_is_reported_with_its_reason() -> None:
     assert _trace()["answer_discarded"] is None
 
