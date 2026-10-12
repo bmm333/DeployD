@@ -91,6 +91,10 @@ _RAW_TYPE_MAP: dict[str, CoreEventType] = {
     # Queue / async
     "QUEUE_OVERFLOW": CoreEventType.RESOURCE_EXHAUSTION,
     "WORKER_TIMEOUT": CoreEventType.DEPENDENCY_FAILURE,
+    # What changed, and when (DID-42): git pushes, CI jobs, OS/host upgrades
+    "GIT_PUSH": CoreEventType.CONFIG_CHANGE,
+    "PIPELINE_JOB": CoreEventType.STATE_CHANGE,
+    "HOST_UPGRADE": CoreEventType.CONFIG_CHANGE,
     # GC / runtime
     "GC": CoreEventType.STATE_CHANGE,
     "GC_PAUSE": CoreEventType.STATE_CHANGE,
@@ -107,12 +111,33 @@ def _map_event_type(raw_type: str) -> CoreEventType:
 # ---------------------------------------------------------------------------
 
 
+# A CI job this many times slower than its own average is worth a look.
+_SLOW_JOB_RATIO = 2
+
+
+def _pipeline_job_severity(meta: dict[str, Any]) -> Severity:
+    if meta.get("job_status") == "failed":
+        return Severity.ERROR
+    duration, average = meta.get("duration_ms"), meta.get("avg_duration_ms")
+    if (
+        isinstance(duration, int | float)
+        and isinstance(average, int | float)
+        and average > 0
+        and duration >= _SLOW_JOB_RATIO * average
+    ):
+        return Severity.WARNING
+    return Severity.INFO
+
+
 def _provisional_severity(event: RawTelemetryEvent) -> Severity:
     """
     Assign a provisional (locally-scoped) severity based on metric thresholds.
     """
     meta = event.metadata
     raw_type = event.event_type.upper()
+
+    if raw_type == "PIPELINE_JOB":
+        return _pipeline_job_severity(meta)
 
     # HTTP response codes
     status = meta.get("status_code")

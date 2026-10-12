@@ -37,6 +37,30 @@ def _translate(event_type: str, **metadata: Any) -> tuple[CoreEventType, Severit
             {"memory_percent": 85},
             (CoreEventType.RESOURCE_EXHAUSTION, Severity.WARNING),
         ),
+        ("GIT_PUSH", {}, (CoreEventType.CONFIG_CHANGE, Severity.INFO)),
+        ("HOST_UPGRADE", {}, (CoreEventType.CONFIG_CHANGE, Severity.INFO)),
+        (
+            "PIPELINE_JOB",
+            {"duration_ms": 300_000, "avg_duration_ms": 280_000},
+            (CoreEventType.STATE_CHANGE, Severity.INFO),
+        ),
+        (
+            "PIPELINE_JOB",
+            {"duration_ms": 860_000, "avg_duration_ms": 300_000},
+            (CoreEventType.STATE_CHANGE, Severity.WARNING),
+        ),
+        (
+            "PIPELINE_JOB",
+            {"duration_ms": 10_000, "avg_duration_ms": 300_000, "job_status": "failed"},
+            (CoreEventType.STATE_CHANGE, Severity.ERROR),
+        ),
+        # No baseline, no verdict: a duration alone says nothing about a job.
+        ("PIPELINE_JOB", {"duration_ms": 860_000}, (CoreEventType.STATE_CHANGE, Severity.INFO)),
+        (
+            "PIPELINE_JOB",
+            {"duration_ms": 9, "avg_duration_ms": 0},
+            (CoreEventType.STATE_CHANGE, Severity.INFO),
+        ),
     ],
 )
 def test_provisional_severity(
