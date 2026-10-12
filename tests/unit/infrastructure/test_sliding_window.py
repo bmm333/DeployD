@@ -71,3 +71,45 @@ def test_snapshot_is_a_copy() -> None:
     window.snapshot().clear()
 
     assert len(window) == 1
+
+
+def _change(seconds: float, description: str) -> CoreEvent:
+    return CoreEvent(
+        event_type=CoreEventType.CONFIG_CHANGE,
+        severity=Severity.INFO,
+        timestamp=T0 + timedelta(seconds=seconds),
+        description=description,
+    )
+
+
+def test_change_events_outlive_the_window_up_to_their_retention() -> None:
+    window = SlidingWindow(window_seconds=300, change_retention_seconds=3600)
+    window.append(_change(0, "os upgrade"))
+    window.append(_event(10, "old symptom"))
+    window.append(_event(1800, "recent symptom"))
+
+    assert _descriptions(window) == ["os upgrade", "recent symptom"]
+
+
+def test_change_events_are_dropped_after_their_retention() -> None:
+    window = SlidingWindow(window_seconds=300, change_retention_seconds=3600)
+    window.append(_change(0, "os upgrade"))
+    window.append(_event(3601, "symptom"))
+
+    assert _descriptions(window) == ["symptom"]
+
+
+def test_without_a_retention_change_events_follow_the_window() -> None:
+    window = SlidingWindow(window_seconds=300)
+    window.append(_change(0, "os upgrade"))
+    window.append(_event(1800, "symptom"))
+
+    assert _descriptions(window) == ["symptom"]
+
+
+def test_a_retention_shorter_than_the_window_never_shrinks_it() -> None:
+    window = SlidingWindow(window_seconds=300, change_retention_seconds=10)
+    window.append(_change(0, "os upgrade"))
+    window.append(_event(200, "symptom"))
+
+    assert _descriptions(window) == ["os upgrade", "symptom"]

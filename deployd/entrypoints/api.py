@@ -95,10 +95,12 @@ _get_incident = GetIncidentUseCase(_incident_repo)
 _state_lock = threading.Lock()
 _chat_lock = threading.Lock()
 _graph = IncidentGraph()
-_window = SlidingWindow(window_seconds=300)
-
 with (_DATA_DIR / "correlation_config.json").open(encoding="utf-8") as f:
     _config = CorrelationConfig(**json.load(f))
+
+_window = SlidingWindow(
+    window_seconds=300, change_retention_seconds=_config.change_lookback_seconds
+)
 
 _topology = load_topology(_DATA_DIR / "components.json")
 _correlate = CorrelateEventsUseCase(
@@ -684,7 +686,9 @@ def reset_state() -> dict[str, Any]:
         )
 
         _graph = IncidentGraph()
-        _window = SlidingWindow(window_seconds=300)
+        _window = SlidingWindow(
+            window_seconds=300, change_retention_seconds=_config.change_lookback_seconds
+        )
         _correlate = CorrelateEventsUseCase(
             graph=_graph, event_window=_window, config=_config, topology=_topology
         )
