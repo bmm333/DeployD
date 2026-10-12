@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 
 from deployd.domain.entities.core_event import CoreEvent, Severity
+from deployd.domain.entities.human_decision import HumanDecision
 from deployd.domain.incident.incident import Incident
 from deployd.domain.incident.incident_repository import IncidentRepository
 
@@ -35,6 +36,15 @@ class IncidentLifecycleUseCase:
             return
         current.update_severity(severity)
         self._repo.save(current)
+
+    def record_decision(self, decision: HumanDecision) -> Incident:
+        """Append an engineer's decision to the open incident it belongs to."""
+        current = self._repo.get_current()
+        if current is None or current.id != decision.incident_id:
+            raise ValueError("decisions are only recorded on the open incident")
+        current.record_decision(decision)
+        self._repo.save(current)
+        return current
 
     def close_current(
         self,

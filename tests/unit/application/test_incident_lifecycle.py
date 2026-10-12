@@ -8,6 +8,7 @@ from deployd.application.use_cases.incident_lifecycle import (
     ListIncidentsUseCase,
 )
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType, Severity
+from deployd.domain.entities.human_decision import DecisionValue, HumanDecision
 from deployd.infrastructure.persistence.sqlite_incident_repository import SQLiteIncidentRepository
 
 T0 = datetime(2026, 9, 30, 10, 0, tzinfo=timezone.utc)
@@ -84,3 +85,34 @@ def test_list_and_get_incidents(repo):
 
     fetched = uc_get.execute(inc.id)
     assert fetched.id == inc.id
+
+
+def _accept(incident_id: uuid.UUID) -> HumanDecision:
+    return HumanDecision(
+        incident_id=incident_id,
+        decision=DecisionValue.ACCEPT,
+        engineer_id="ben",
+        timestamp=T0,
+        root_cause="cache growth",
+        recommendation="roll back",
+    )
+
+
+def test_a_decision_is_saved_on_the_open_incident(repo):
+    uc = IncidentLifecycleUseCase(repo)
+    incident = uc.ensure_open(_ev("1"))
+
+    uc.record_decision(_accept(incident.id))
+
+    assert [d.decision for d in repo.get(incident.id).decisions] == [DecisionValue.ACCEPT]
+
+
+def test_a_decision_on_a_closed_or_unknown_incident_is_refused(repo):
+    uc = IncidentLifecycleUseCase(repo)
+    incident = uc.ensure_open(_ev("1"))
+    uc.close_current({}, [])
+
+    with pytest.raises(ValueError, match="open incident"):
+        uc.record_decision(_accept(incident.id))
+    with pytest.raises(ValueError, match="open incident"):
+        uc.record_decision(_accept(uuid.uuid4()))
