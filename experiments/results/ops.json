@@ -1,12 +1,12 @@
 {
   "cold_start_s": {
-    "value": 3.3139100139997026,
+    "value": 3.314941691001877,
     "what": "embedding model load + indexing 11 runbooks (model already in the HF cache)"
   },
   "correlation_ms_per_event": {
-    "p50": 0.018134000129066408,
-    "p95": 0.0718849987606518,
-    "samples": 1507
+    "p50": 0.024015000235522166,
+    "p95": 0.22833800176158547,
+    "samples": 1713
   },
   "llm": {
     "diagnosis_latency_s": {
@@ -30,8 +30,8 @@
     "status": "from experiments/results/model_selection.json (DID-34)"
   },
   "retrieval_ms_per_query": {
-    "p50": 10.096306003106292,
-    "p95": 11.72160300120595
+    "p50": 10.796910999488318,
+    "p95": 13.323257000593003
   },
   "status": "completed"
 }

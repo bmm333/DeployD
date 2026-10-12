@@ -164,3 +164,71 @@ def test_the_hours_between_the_upgrade_and_the_errors_need_a_longer_memory_than_
     graph, _ = _replay(_events(), retain_changes=False)
 
     assert _findings(graph) == []
+
+
+SINGLE = DATA / "scenarios" / "live_ec2_single_instance.json"
+
+
+def _contrasts(graph: IncidentGraph) -> list[CoreEvent]:
+    return sorted(
+        (
+            n.event
+            for n in graph.nodes
+            if n.event.event_type is CoreEventType.CHANGE_CONTRAST_DETECTED
+        ),
+        key=lambda e: e.description,
+    )
+
+
+def test_a_lone_instance_has_no_peer_finding_but_a_contrast_over_time() -> None:
+    graph, first_critical = _replay(json.loads(SINGLE.read_text()))
+
+    assert _findings(graph) == []
+    assert len(_contrasts(graph)) == 2
+    assert first_critical is not None and first_critical["timestamp"][:13] == "2026-10-08T10"
+
+
+def test_before_the_rollback_the_upgrade_and_the_release_are_not_separable() -> None:
+    graph, _ = _replay(json.loads(SINGLE.read_text()))
+
+    first = next(c for c in _contrasts(graph) if "not separable yet" in c.description)
+
+    assert first.metadata["implicated_changes"] == [
+        "deploy 2.14.0",
+        "os_upgrade patch-baseline-2026-10-07",
+    ]
+
+
+def test_after_the_rollback_only_the_upgrade_is_left() -> None:
+    graph, _ = _replay(json.loads(SINGLE.read_text()))
+
+    later = next(c for c in _contrasts(graph) if "the only change" in c.description)
+
+    assert later.metadata["implicated_changes"] == ["os_upgrade patch-baseline-2026-10-07"]
+    assert later.metadata["varied_changes"] == ["deploy 2.14.0 -> 2.13.9"]
+
+
+def test_the_investigation_opens_before_the_rollback_not_after() -> None:
+    events = json.loads(SINGLE.read_text())
+    _, first_critical = _replay(events)
+
+    rollback = next(e for e in events if e["metadata"].get("job") == "rollback-prod")
+
+    assert first_critical is not None
+    assert first_critical["timestamp"] < rollback["timestamp"]
+
+
+def test_without_the_rollback_the_two_changes_stay_unseparated() -> None:
+    events = [
+        e for e in json.loads(SINGLE.read_text()) if e["metadata"].get("change_ref") != "2.13.9"
+    ]
+
+    graph, _ = _replay(events)
+
+    assert [c.metadata["varied_changes"] for c in _contrasts(graph)] == [[]]
+
+
+def test_the_ten_instance_day_leaves_the_peer_rule_alone() -> None:
+    graph, _ = _replay(_events())
+
+    assert _contrasts(graph) == []

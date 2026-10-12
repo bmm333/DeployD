@@ -9,7 +9,8 @@ the other six do not. The shallow health check keeps passing, so the load balanc
 routing to the broken instances. The team suspects the release and rolls it back; the
 errors stay, because the release was never the difference between the two groups.
 
-The log is generated, not hand-typed, so that its size and noise are reproducible: a fixed
+A second file replays the same day for one instance on its own (the OS upgrade must then be found
+without peers). The log is generated, not hand-typed, so that its size and noise are reproducible: a fixed
 seed drives every jitter. Nothing in it names a package: the cause is a change that exists
 on the failing instances and on none of the healthy ones, which is what the engine finds.
 
@@ -25,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 OUT = Path("data/scenarios/live_ec2_os_upgrade.json")
+OUT_SINGLE = Path("data/scenarios/live_ec2_single_instance.json")
 DAY = datetime(2026, 10, 8, tzinfo=timezone.utc)
 HOSTS = [f"web-{i:02d}" for i in range(1, 11)]
 BAD = ["web-03", "web-05", "web-07", "web-09"]
@@ -374,6 +376,15 @@ def incident_day() -> None:
     )
 
 
+def single_instance(all_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The same day for a lone instance: no peers, no load balancer, no group tag."""
+    return [
+        {**e, "metadata": {k: v for k, v in e["metadata"].items() if k != "peer_group"}}
+        for e in all_events
+        if e["source"] == BAD[-1] or not e["source"].startswith("web-")
+    ]
+
+
 def main() -> None:
     night()
     release_pipeline()
@@ -381,6 +392,9 @@ def main() -> None:
     events.sort(key=lambda e: e["timestamp"])
     OUT.write_text(json.dumps(events, indent=2) + "\n", encoding="utf-8")
     print(f"{len(events)} events, {events[0]['timestamp']} -> {events[-1]['timestamp']} -> {OUT}")
+    alone = single_instance(events)
+    OUT_SINGLE.write_text(json.dumps(alone, indent=2) + "\n", encoding="utf-8")
+    print(f"{len(alone)} events (only {BAD[-1]}) -> {OUT_SINGLE}")
 
 
 if __name__ == "__main__":

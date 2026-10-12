@@ -44,6 +44,11 @@ class CoreEventType(str, Enum):
     # Peer divergence (DID-42): some members of a peer group fail and the others do not,
     # and the only change that separates the two groups is named in the description.
     PEER_DIVERGENCE_DETECTED = "PEER_DIVERGENCE_DETECTED"
+    # Change contrast (DID-48): an entity without peers is compared with itself over time.
+    CHANGE_CONTRAST_DETECTED = "CHANGE_CONTRAST_DETECTED"
+    # Not an observation of the world: a record of the changes in force at a failure, kept
+    # for hours so that the entity can be compared with itself (DID-48).
+    SYMPTOM_OBSERVED = "SYMPTOM_OBSERVED"
 
 
 # Events that record something being changed. A change can precede its effect by hours, so
@@ -56,6 +61,12 @@ CHANGE_EVENT_TYPES: frozenset[CoreEventType] = frozenset(
         CoreEventType.CONFIG_CHANGE,
     }
 )
+
+# What the window keeps for hours: the changes, and the record of the changes in force at
+# each failure (DID-48).
+LONG_LIVED_EVENT_TYPES: frozenset[CoreEventType] = CHANGE_EVENT_TYPES | {
+    CoreEventType.SYMPTOM_OBSERVED
+}
 
 
 class Severity(str, Enum):

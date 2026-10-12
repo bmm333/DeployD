@@ -42,6 +42,7 @@ In the live UI (`demo/live_app.py`, the one `docker compose` starts), upload one
 | Postgres → payment | `data/scenarios/live_payment_db_timeout.json` | Tier 3 FULL |
 | Disk full on one instance of a group, peers healthy (369 events) | `data/scenarios/live_disk_full_single_instance.json` | **A miss, reported as such (ADR-012):** investigates the right instance, does not explain it (Tier 2, the disk-full runbook is rank 3) |
 | An external DNS resolver stops answering (185 events) | `data/scenarios/live_dns_failure.json` | **A miss:** symptoms are linked, no 2-hop chain, no investigation |
+| The same day for one instance alone (206 events) | `data/scenarios/live_ec2_single_instance.json` | Tier 3 FULL — no peers: the contrast is over time. First both the release and the upgrade are implicated, after the rollback only the upgrade (ADR-014) |
 | A production day: green release, 4 of 10 instances upgraded by the platform | `data/scenarios/live_ec2_os_upgrade.json` (935 events over 16 hours) | Tier 3 FULL — names the change only the failing instances received and rules out the release (ADR-014) |
 
 In a FULL investigation, approve, reject (with a reason the agent uses to revise its answer) or edit the recommendation under the diagnosis (ADR-013), and ask follow-up questions in the chat. Asking about a component outside the investigation (e.g. `payment-service` during the OOM scenario) is refused: the agent only discusses evidence that went through the gate.
@@ -49,7 +50,7 @@ In a FULL investigation, approve, reject (with a reason the agent uses to revise
 ## How it works
 
 ```
-telemetry event ─► HttpEventAdapter ─► correlator: RULE-01..07, topology-aware,
+telemetry event ─► HttpEventAdapter ─► correlator: RULE-01..08, topology-aware,
                                         5-minute event-time window (changes: 24 h)
                                                 │
                                                 ▼
@@ -66,7 +67,7 @@ telemetry event ─► HttpEventAdapter ─► correlator: RULE-01..07, topology
                      decision trace + grounded, validated diagnosis + multi-turn chat (live UI)
 ```
 
-- **Deterministic core** — correlation rules link a cause to an effect only through the declared topology (`calls` in `data/components.json`) or a dependency named by the event; the window follows event time, so recorded scenarios replay identically. Deploys and config/host changes are kept for 24 h, and RULE-07 compares who received which change with who is failing inside a peer group taken from the events' own `peer_group` tag, which is how a change hours before the errors is found without naming any package or declaring any instance.
+- **Deterministic core** — correlation rules link a cause to an effect only through the declared topology (`calls` in `data/components.json`) or a dependency named by the event; the window follows event time, so recorded scenarios replay identically. Deploys and config/host changes are kept for 24 h, and RULE-07 compares who received which change with who is failing inside a peer group taken from the events' own `peer_group` tag, and RULE-08 compares a lone instance with itself over time (a change constant across every failure is implicated, one that varied while it kept failing is ruled out): that is how a change hours before the errors is found without naming any package or declaring any instance.
 - **AI layer** — reached only in Tier 3. The agent gets the causal chain and the retrieved runbooks, may call read-only tools (`search_runbooks`, `get_runbook_detail`, `check_component_dependencies`), and its citations are checked against the evidence set; provider errors fail closed to the deterministic result.
 - Architecture decisions are recorded in [`ADR/`](ADR/).
 
@@ -109,7 +110,7 @@ To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with
 - Topology and component versions are declared in `data/components.json`, not discovered.
 - The runbook corpus is small (11 incidents), and Groq free-tier limits apply.
 - The evaluation is small: 30 hand-labelled text queries and 3 no-match queries over 11 runbooks,
-  plus 9 incident scenarios (`experiments/results/`, ADR-012): 7/9 gate decisions as intended, the 2 misses are failures no rule was written for. The runbook of the EC2 scenario was written by us, so that match demonstrates the pipeline rather than measuring retrieval.
+  plus 10 incident scenarios (`experiments/results/`, ADR-012): 8/10 gate decisions as intended, the 2 misses are failures no rule was written for; the safe threshold band is 0.35-0.50. The runbook of the EC2 scenario was written by us, so that match demonstrates the pipeline rather than measuring retrieval.
 - Peer divergence needs events tagged with `peer_group` and `change_kind` by the collector and a healthy peer seen working in the last 5 minutes; it fires once per error cluster (ADR-014).
 
 ## Contributions

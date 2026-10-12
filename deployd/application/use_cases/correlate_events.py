@@ -8,6 +8,7 @@ from typing import Literal
 
 from deployd.application.ports.event_window_port import EventWindowPort
 from deployd.domain.causal.causal_rule import DEFAULT_RULES, CorrelationRuleFn, RuleMatch
+from deployd.domain.causal.changes import observation_event
 from deployd.domain.causal.config import CorrelationConfig
 from deployd.domain.causal.topology import Topology
 from deployd.domain.entities.core_event import CoreEvent
@@ -60,6 +61,11 @@ class CorrelateEventsUseCase:
         """
         self._window.append(event)
         snapshot = self._window.snapshot()
+
+        observation = observation_event(event, snapshot, self._config)
+        if observation is not None:
+            self._window.append(observation)
+            snapshot = self._window.snapshot()
 
         for rule_fn in self._rules:
             matches = rule_fn(event, snapshot, self._config, self._topology)

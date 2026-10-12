@@ -3,7 +3,7 @@
   "sections": {
     "gate": [
       "completed",
-      "7/9 decisions correct at threshold 0.5"
+      "8/10 decisions correct at threshold 0.5"
     ],
     "llm": [
       "see model_selection.md",

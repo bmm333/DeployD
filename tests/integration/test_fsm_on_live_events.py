@@ -38,6 +38,7 @@ EXPECTED_STATES = {
     # 17% of web-09's requests answer 500, yet its process runs and its shallow health
     # check passes: the process-health FSM cannot see this failure, the peer comparison can.
     "live_ec2_os_upgrade": {"web-09": H, "web-02": H},
+    "live_ec2_single_instance": {"web-09": H},
     # the service whose resolver fails stays HEALTHY: only its caller's probe fails
     "live_dns_failure": {"payment-service": H, "checkout-service": D},
 }

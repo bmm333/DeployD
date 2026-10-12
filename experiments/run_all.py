@@ -43,6 +43,7 @@ LIVE_EXPECTED: dict[str, tuple[str, str | None]] = {
     "live_novel_analytics_db": ("CHAIN_ONLY", None),
     "live_degrading_no_trigger": ("NO_TRIGGER", None),
     "live_ec2_os_upgrade": ("FULL", "RB-FLEET-OS-UPGRADE-DIVERGENCE"),
+    "live_ec2_single_instance": ("FULL", "RB-FLEET-OS-UPGRADE-DIVERGENCE"),
     # DID-45: failures the rules were not written around. Expected is what a good system
     # would do, not what it does today: both are misses and are reported as such (ADR-012).
     "live_disk_full_single_instance": ("FULL", "RB-INVENTORY-DISK-FULL"),
