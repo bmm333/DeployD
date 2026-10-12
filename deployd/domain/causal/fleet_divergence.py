@@ -106,18 +106,23 @@ def find_fleet_divergence(
     if len(own) != threshold or own[-1].event_id != event.event_id:
         return None
 
-    affected = {m for m, found in failures.items() if len(found) >= threshold}
+    clustered = {m for m, found in failures.items() if len(found) >= threshold}
     healthy = observed - set(failures)  # silence is not health: a healthy one was seen working
     if not healthy:
         return None
 
-    separating = {
-        sig: min((members[m] for m in affected), key=lambda e: e.timestamp)
-        for sig, members in reported.items()
-        if affected <= members.keys()
-        and not members.keys() & healthy
-        and all(members[m].timestamp <= failures[m][0].timestamp for m in affected)
-    }
+    # A change explains the divergence when every clustered failure carries it and no healthy
+    # instance does. Instances with a few errors that carry it count as affected; a few
+    # errors on one that does not carry it are noise, neither affected nor healthy.
+    separating: dict[ChangeSignature, CoreEvent] = {}
+    affected: set[str] = set()
+    for signature, members in reported.items():
+        carriers = {
+            m for m in failures if m in members and members[m].timestamp <= failures[m][0].timestamp
+        }
+        if clustered <= carriers and not members.keys() & healthy:
+            separating[signature] = min((members[m] for m in carriers), key=lambda e: e.timestamp)
+            affected |= carriers
     if not separating:
         return None
 
@@ -140,9 +145,9 @@ def divergence_event(found: FleetDivergence) -> CoreEvent:
     excluded = ", ".join(label(s) for s in found.excluded)
     total = len(found.affected) + len(found.healthy)
     description = (
-        f"fleet {found.fleet}: {len(found.affected)}/{total} instances fail, "
-        f"{len(found.healthy)} healthy; only change separating them: {separating} "
-        f"({len(found.affected)}/{len(found.affected)} failing, 0/{len(found.healthy)} healthy)"
+        f"fleet {found.fleet}: {', '.join(found.affected)} fail, {len(found.healthy)} others "
+        f"healthy; only {separating} separates them ({len(found.affected)}/{len(found.affected)} "
+        f"vs 0/{len(found.healthy)})"
         + (f"; {excluded} on all {total}, excluded" if excluded else "")
     )
     key = "|".join([found.fleet, *found.affected, separating])

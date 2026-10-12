@@ -94,7 +94,7 @@ def test_the_change_only_the_failing_instances_received_is_named_and_the_deploy_
     assert cause.metadata["separating_changes"] == ["os_upgrade run-1"]
     assert cause.metadata["excluded_changes"] == ["deploy 2.14.0"]
     assert cause.metadata["affected"] == BAD
-    assert "4/10 instances fail" in cause.description
+    assert "web-03, web-05, web-07, web-09 fail, 6 others healthy" in cause.description
     assert "os_upgrade run-1" in cause.description
     assert "deploy 2.14.0 on all 10, excluded" in cause.description
 
@@ -201,3 +201,36 @@ def test_the_same_divergence_always_yields_the_same_event_id() -> None:
     assert found is not None
     assert divergence_event(found).event_id == divergence_event(found).event_id
     assert divergence_event(found).timestamp == _at(5)
+
+
+def test_instances_with_only_a_few_errors_that_carry_the_change_count_as_affected() -> None:
+    """Only the last host to fail has a full cluster in the window; the others kept erroring."""
+    window = _fleet_history()
+    window += [_error(h, 601 + i) for i, h in enumerate(BAD[:-1])]
+    window += [_error(BAD[-1], 605 + n * 0.1) for n in range(3)]
+    window += [_ok(h, 604) for h in HOSTS if h not in BAD]
+    window.sort(key=lambda e: e.timestamp)
+
+    cause = _fire(window, _last_error(window))[0].cause
+
+    assert cause is not None and cause.metadata["affected"] == BAD
+
+
+def test_a_stray_error_on_an_instance_without_the_change_does_not_hide_the_finding() -> None:
+    window = _incident()
+    window.append(_error("web-02", 601.4))
+    window.sort(key=lambda e: e.timestamp)
+
+    cause = _fire(window, _last_error(window))[0].cause
+
+    assert cause is not None
+    assert cause.metadata["affected"] == BAD
+    assert "web-02" not in cause.metadata["healthy"]  # type: ignore[operator]  # a list of names
+
+
+def test_a_failing_cluster_the_change_does_not_explain_means_no_finding() -> None:
+    window = _incident()
+    window += [_error("web-02", 601.5 + n * 0.1) for n in range(3)]
+    window.sort(key=lambda e: e.timestamp)
+
+    assert _fire(window, _last_error(window)) == []
