@@ -1,5 +1,6 @@
 {
   "database_components": ["db", "postgres", "redis", "mongo", "data-store", "dynamodb", "rds", "mysql"],
+  "change_lookback_seconds": 86400,
   "thresholds": {
     "latency_ms": 500,
     "resource_percent": 90,

@@ -42,6 +42,7 @@ LIVE_EXPECTED: dict[str, tuple[str, str | None]] = {
     "live_search_es_cascade": ("FULL", "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE"),
     "live_novel_analytics_db": ("CHAIN_ONLY", None),
     "live_degrading_no_trigger": ("NO_TRIGGER", None),
+    "live_ec2_os_upgrade": ("FULL", "RB-FLEET-OS-UPGRADE-DIVERGENCE"),
     "synthetic_false_causality": ("NO_TRIGGER", None),
 }
 
@@ -314,10 +315,11 @@ def _correlate(events: list[dict[str, Any]], topology: Any) -> tuple[Any, list[f
     from deployd.infrastructure.streaming.sliding_window import SlidingWindow
 
     graph = IncidentGraph()
+    config = CorrelationConfig(**_load_json(DATA / "correlation_config.json"))
     correlate = CorrelateEventsUseCase(
         graph=graph,
-        event_window=SlidingWindow(),
-        config=CorrelationConfig(**_load_json(DATA / "correlation_config.json")),
+        event_window=SlidingWindow(change_retention_seconds=config.change_lookback_seconds),
+        config=config,
         topology=topology,
     )
     adapter = HttpEventAdapter()
@@ -493,7 +495,8 @@ def evaluate_ops(stack: _Stack, retrieval: dict[str, Any]) -> dict[str, Any]:
         "retrieval_ms_per_query": retrieval["latency_ms"],
         "cold_start_s": {
             "value": stack.cold_start_s,
-            "what": "embedding model load + indexing 10 runbooks (model already in the HF cache)",
+            "what": f"embedding model load + indexing {len(stack.runbook_ids)} runbooks "
+            "(model already in the HF cache)",
         },
         "llm": llm,
     }

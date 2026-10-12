@@ -1,4 +1,4 @@
-"""load_topology reads the declared ``calls`` of each component."""
+"""load_topology reads the declared ``calls`` and ``fleet`` of each component."""
 
 from __future__ import annotations
 
@@ -28,6 +28,26 @@ def test_malformed_calls_are_rejected(tmp_path: Path) -> None:
     path = _write(tmp_path, {"api-gateway": {"calls": "auth-service"}})
 
     with pytest.raises(ValueError, match="api-gateway"):
+        load_topology(path)
+
+
+def test_components_with_the_same_fleet_name_form_a_fleet(tmp_path: Path) -> None:
+    path = _write(
+        tmp_path,
+        {"web-01": {"fleet": "web"}, "web-02": {"fleet": "web"}, "db": {}},
+    )
+
+    topology = load_topology(path)
+
+    assert topology.fleet_of("web-01") == frozenset({"web-01", "web-02"})
+    assert topology.fleet_of("db") == frozenset()
+
+
+@pytest.mark.parametrize("fleet", ["", 3, ["web"]])
+def test_malformed_fleet_is_rejected(tmp_path: Path, fleet: object) -> None:
+    path = _write(tmp_path, {"web-01": {"fleet": fleet}})
+
+    with pytest.raises(ValueError, match="web-01"):
         load_topology(path)
 
 

@@ -6,6 +6,10 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
 from deployd.domain.causal.config import CorrelationConfig
+from deployd.domain.causal.fleet_divergence import (
+    RULE_ID as FLEET_DIVERGENCE_RULE_ID,
+)
+from deployd.domain.causal.fleet_divergence import divergence_event, find_fleet_divergence
 from deployd.domain.causal.topology import Topology
 from deployd.domain.entities.core_event import CoreEvent, CoreEventType
 
@@ -280,6 +284,23 @@ def rule_config_drift(
     ]
 
 
+def rule_fleet_divergence(
+    event: CoreEvent,
+    window: Sequence[CoreEvent],
+    config: CorrelationConfig,
+    topology: Topology,
+) -> list[RuleMatch]:
+    """RULE-07 — Fleet divergence: the change that separates failing from healthy instances"""
+    found = find_fleet_divergence(event, window, config, topology)
+    if found is None:
+        return []
+    cause = divergence_event(found)
+    return [
+        RuleMatch(trigger=symptom, cause=cause, rule_id=FLEET_DIVERGENCE_RULE_ID, confidence=0.80)
+        for symptom in found.first_symptoms.values()
+    ]
+
+
 DEFAULT_RULES: Sequence[CorrelationRuleFn] = [
     rule_db_latency_anomaly,
     rule_downstream_timeout,
@@ -287,4 +308,5 @@ DEFAULT_RULES: Sequence[CorrelationRuleFn] = [
     rule_healthcheck_failure_cascade,
     rule_resource_exhaustion,
     rule_config_drift,
+    rule_fleet_divergence,
 ]

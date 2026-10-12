@@ -30,7 +30,7 @@ def _replay(
     graph = IncidentGraph()
     use_case = CorrelateEventsUseCase(
         graph=graph,
-        event_window=SlidingWindow(),
+        event_window=SlidingWindow(change_retention_seconds=config.change_lookback_seconds),
         config=config,
         topology=load_topology(DATA / "components.json"),
     )
@@ -64,6 +64,7 @@ EXPECTED_SHAPE = {  # severity, nodes, edges
     "live_payment_db_timeout": ("Critical", 3, 2),
     "live_novel_analytics_db": ("Critical", 3, 2),
     "live_degrading_no_trigger": ("Degrading", 2, 1),
+    "live_ec2_os_upgrade": ("Critical", 16, 12),
 }
 
 

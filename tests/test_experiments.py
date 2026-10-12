@@ -81,7 +81,7 @@ def test_runner_writes_every_section(tmp_path, monkeypatch) -> None:
             {
                 "threshold": run_all.DEFAULT_THRESHOLD,
                 "llm_allowed": {"precision": 1.0, "recall": 1.0, "f1": 1.0},
-                "exact_decisions": 6,
+                "exact_decisions": 7,
             }
         ],
     }
@@ -103,7 +103,7 @@ def test_runner_writes_every_section(tmp_path, monkeypatch) -> None:
     expected = {"retrieval", "gate", "ops", "summary"}
     assert {p.stem for p in tmp_path.glob("*.json")} == expected
     assert {p.stem for p in tmp_path.glob("*.md")} == expected
-    assert summary["sections"]["gate"][1].startswith("6/6")
+    assert summary["sections"]["gate"][1].startswith("7/7")
     assert json.loads((tmp_path / "summary.json").read_text())["seed"] == 7
 
 

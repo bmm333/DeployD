@@ -26,11 +26,13 @@
     {"id": "para-10", "category": "paraphrase", "query": "the search page is slow because the ES nodes are saturated", "expected": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE"},
     {"id": "para-11", "category": "paraphrase", "query": "invoicing pods crash and come back repeatedly since the newest build", "expected": "RB-BILLING-DEPLOY-REGRESSION"},
     {"id": "para-12", "category": "paraphrase", "query": "the delivery service cannot reach its database because of a network split", "expected": "RB-SHIPPING-NETWORK-PARTITION"},
+    {"id": "para-13", "category": "paraphrase", "query": "about a third of the web servers return errors after a normal release while the rest are fine, and rolling back did not help", "expected": "RB-FLEET-OS-UPGRADE-DIVERGENCE"},
 
     {"id": "hard-01", "category": "hard_negative", "query": "auth-service memory is normal but login checks fail after a config reload", "expected": "RB-AUTH-SERVICE-CONFIG-ROLLBACK", "confusable_with": "RB-AUTH-SERVICE-OOMKILL"},
     {"id": "hard-02", "category": "hard_negative", "query": "billing crash loop that started right after the release", "expected": "RB-BILLING-DEPLOY-REGRESSION", "confusable_with": "RB-NOTIFICATION-CRASH-LOOP"},
     {"id": "hard-03", "category": "hard_negative", "query": "shipping database refuses connections because of a network partition, the pool is fine", "expected": "RB-SHIPPING-NETWORK-PARTITION", "confusable_with": "RB-PAYMENT-DB-TIMEOUT"},
     {"id": "hard-04", "category": "hard_negative", "query": "checkout errors since the redis primary failed over, the database is healthy", "expected": "RB-CHECKOUT-REDIS-ELECTION", "confusable_with": "RB-PAYMENT-DB-TIMEOUT"},
+    {"id": "hard-05", "category": "hard_negative", "query": "the release is identical on every host but only the upgraded ones fail with symbol lookup errors after the deploy restart", "expected": "RB-FLEET-OS-UPGRADE-DIVERGENCE", "confusable_with": "RB-BILLING-DEPLOY-REGRESSION"},
 
     {"id": "none-01", "category": "no_match", "query": "TLS certificate expired on the edge proxy, clients get handshake errors", "expected": null},
     {"id": "none-02", "category": "no_match", "query": "kafka consumer lag keeps growing on the analytics pipeline", "expected": null},
