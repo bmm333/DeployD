@@ -20,11 +20,14 @@ from typing import Any
 import httpx
 import streamlit as st
 import streamlit.components.v1 as components
+from ui_text import split_answer
 
 API_URL = os.getenv("DEPLOYD_API_URL", "http://localhost:8000").rstrip("/")
 PUBLIC_API_URL = os.getenv("DEPLOYD_PUBLIC_API_URL", API_URL).rstrip("/")
 SEND_DELAY_S = 0.5
 POLL_INTERVAL_S = 2.0
+HISTORY_INTERVAL_S = 5.0
+HISTORY_LIMIT = 20
 TICK_S = 0.25
 CHAT_TIMEOUT_S = 120.0
 TYPEWRITER_DELAY_S = 0.018
@@ -190,6 +193,11 @@ _DEFAULTS: dict[str, Any] = {
     "seen_messages": None,
     "pending_decision": None,
     "decision_error": None,
+    "history": [],
+    "last_history": 0.0,
+    "history_error": None,
+    "viewing": None,
+    "past": None,
     "engineer": "on-call engineer",
 }
 for _k, _v in _DEFAULTS.items():
@@ -356,6 +364,7 @@ _GRAPH_HTML = """
 <div id="err"></div>
 <script>
 const API = "__API__";
+const SNAPSHOT = __SNAPSHOT__;  // null = live: poll the API; else draw this incident once
 const SEV = {INFO: "#3b82f6", WARNING: "#f59e0b", ERROR: "#ef4444", CRITICAL: "#a855f7"};
 const TYPES = {
   STATE_CHANGE: "State change", RESOURCE_EXHAUSTION: "Resource exhaustion",
@@ -472,6 +481,11 @@ function render(g) {
 }
 
 async function poll() {
+  if (SNAPSHOT) {
+    const key = JSON.stringify(SNAPSHOT);
+    if (key !== last) { last = key; render(SNAPSHOT); }
+    return;
+  }
   try {
     const s = await (await fetch(API + "/api/v1/state")).json();
     document.getElementById("err").textContent = "";
@@ -483,14 +497,18 @@ async function poll() {
   }
 }
 window.addEventListener("resize", () => { last = ""; poll(); });
-poll(); setInterval(poll, 2000);
+poll(); if (!SNAPSHOT) setInterval(poll, 2000);
 </script></body></html>
 """
 
 
-def _render_graph() -> None:
+def _render_graph(snapshot: dict[str, Any] | None = None) -> None:
+    """The causal graph: live (the page polls the API) or a past incident's snapshot."""
     st.markdown('<div class="dp-label">Causal graph</div>', unsafe_allow_html=True)
-    components.html(_GRAPH_HTML.replace("__API__", PUBLIC_API_URL), height=235)
+    # "</" would end the <script> early: event text is untrusted.
+    data = json.dumps(snapshot).replace("</", "<\\/") if snapshot is not None else "null"
+    page = _GRAPH_HTML.replace("__API__", PUBLIC_API_URL).replace("__SNAPSHOT__", data)
+    components.html(page, height=235)
 
 
 def _trace_row(key: str, value: str) -> str:
@@ -508,10 +526,14 @@ def _score_bar(score: float, threshold: float) -> str:
     )
 
 
-def _render_trace(trace: dict[str, Any] | None, investigating: bool, status: str) -> None:
+def _render_trace(
+    trace: dict[str, Any] | None, investigating: bool, status: str, past: bool = False
+) -> None:
     st.markdown('<div class="dp-label">Decision trace</div>', unsafe_allow_html=True)
     if trace is None:
-        if investigating:
+        if past:
+            body = "No decision trace was recorded for this incident."
+        elif investigating:
             body = "Running the three-tier gate…"
         elif status == "Critical":
             body = "Incident is CRITICAL — the gate is about to run."
@@ -664,10 +686,14 @@ def _render_message(msg: dict[str, str], animate: bool) -> None:
             )
         if kind == "diagnosis":
             st.markdown("**Root cause**")
+        preview, rest = split_answer(content)
         if animate:
-            st.write_stream(_typewriter(content))
+            st.write_stream(_typewriter(preview))
         else:
-            st.markdown(content)
+            st.markdown(preview)
+        if rest:
+            with st.expander("Show more"):
+                st.markdown(rest)
         if kind == "diagnosis":
             st.markdown(
                 f'<div class="dp-reco"><b>Recommendation</b><br>{_esc(msg.get("recommendation", ""))}'
@@ -851,11 +877,116 @@ def _render_chat(state: dict[str, Any], incident_components: set[str]) -> None:
         if can_follow_up
         else "Ask about this incident (the gate decides whether the LLM answers)…"
     )
-    prompt = st.chat_input(placeholder, disabled=bool(ss.pending))
+    busy = bool(ss.pending) or bool(state.get("investigating"))
+    prompt = st.chat_input(placeholder, disabled=busy)
     if prompt:
         ss.scope_warning = _scope_warning(prompt, investigated, incident_components)
         ss.pending = prompt
         st.rerun(scope="fragment")
+
+
+def _fmt_duration(seconds: float | None) -> str:
+    if seconds is None:
+        return "open"
+    if seconds < 60:
+        return f"{seconds:.0f} s"
+    if seconds < 3600:
+        return f"{seconds / 60:.0f} min"
+    return f"{seconds / 3600:.1f} h"
+
+
+def _fetch_history() -> None:
+    ss = st.session_state
+    try:
+        ss.history = _api("GET", "/api/v1/incidents")
+        ss.history_error = None
+    except httpx.HTTPError as exc:
+        ss.history_error = f"Cannot load past incidents: {exc}"
+    ss.last_history = time.monotonic()
+
+
+def _open_incident(incident_id: str) -> None:
+    ss = st.session_state
+    try:
+        ss.past = _api("GET", f"/api/v1/incidents/{incident_id}")
+        ss.viewing = incident_id
+        ss.history_error = None
+    except httpx.HTTPError as exc:
+        ss.history_error = f"Cannot open the incident: {exc}"
+
+
+def _return_to_live() -> None:
+    ss = st.session_state
+    ss.viewing, ss.past = None, None
+    _poll_state()
+
+
+def _render_history() -> None:
+    """Past (resolved) incidents; opening one shows it read-only on the right."""
+    ss = st.session_state
+    st.markdown('<div class="dp-label">Past incidents</div>', unsafe_allow_html=True)
+    if ss.history_error:
+        st.caption(ss.history_error)
+    past = [i for i in ss.history if i["status"] == "RESOLVED"][:HISTORY_LIMIT]
+    if not past:
+        st.markdown(
+            '<div class="dp-muted">None yet: resetting an incident archives it here.</div>',
+            unsafe_allow_html=True,
+        )
+        return
+    with st.container(height=280):
+        for inc in past:
+            sev = inc["peak_severity"]
+            color = "#6366f1" if inc["id"] == ss.viewing else _SEV_COLORS.get(sev, "#64748b")
+            decision = _DECISION_STYLE.get(inc.get("last_decision") or "")
+            summary = (inc.get("root_cause_summary") or "no investigation").strip()
+            st.markdown(
+                f'<div class="dp-ev" style="border-color:{color}">'
+                f'<span style="color:{color}">{_esc(sev)}</span> · '
+                f'{_esc(inc["opened_at"][:16].replace("T", " "))} · '
+                f'{_fmt_duration(inc["duration_seconds"])}'
+                f'{_tier_badge(inc.get("tier"))}'
+                + (f' <span style="color:{decision[1]}">{decision[0]}</span>' if decision else "")
+                + f'<br><span class="dp-muted">{_esc(summary[:110])}</span></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("Open", key=f"open-{inc['id']}", use_container_width=True):
+                _open_incident(inc["id"])
+                st.rerun(scope="fragment")
+
+
+def _render_past(detail: dict[str, Any]) -> None:
+    """A past incident, read-only: its graph, decision trace and chat as they were."""
+    banner, back = st.columns([8, 3], gap="small")
+    banner.markdown(
+        f'<div class="dp-warn">Viewing past incident <b>{_esc(detail["id"][:8])}</b> · '
+        f'{_esc(detail["peak_severity"])} · read-only. The live incident keeps running in the '
+        f"background.</div>",
+        unsafe_allow_html=True,
+    )
+    if back.button("↩ Return to Live", type="primary", use_container_width=True):
+        _return_to_live()
+        st.rerun(scope="fragment")
+
+    _render_graph(detail.get("graph_snapshot") or {"nodes": [], "edges": []})
+    chat_col, trace_col = st.columns([64, 36], gap="medium")
+    with trace_col:
+        _render_trace(detail.get("decision_trace"), False, detail["peak_severity"], past=True)
+    with chat_col:
+        st.markdown(
+            '<div class="dp-label">Investigation chat</div>'
+            '<div style="margin:.2rem 0 .4rem;font-size:.85rem"><b>Past incident</b> · read-only</div>',
+            unsafe_allow_html=True,
+        )
+        with st.container(height=440):
+            chat = detail.get("chat_history") or []
+            if not chat:
+                st.markdown(
+                    '<div class="dp-muted">No messages were recorded for this incident.</div>',
+                    unsafe_allow_html=True,
+                )
+            for message in chat:
+                _render_message(message, False)
 
 
 st.markdown(
@@ -877,6 +1008,8 @@ def live_console() -> None:
         sent_now = True
     if sent_now or ss.state is None or now - ss.last_poll >= POLL_INTERVAL_S:
         _poll_state()
+    if now - ss.last_history >= HISTORY_INTERVAL_S:
+        _fetch_history()
 
     state: dict[str, Any] = ss.state or {}
     graph = state.get("graphs") or {"nodes": [], "edges": []}
@@ -943,8 +1076,12 @@ def live_console() -> None:
             except httpx.HTTPError as exc:
                 st.error(f"Reset failed: {exc}")
             ss.queue, ss.sent, ss.scope_warning, ss.pending = [], [], None, None
+            ss.viewing, ss.past = None, None
             _poll_state()
+            _fetch_history()
             st.rerun(scope="fragment")
+
+        _render_history()
 
         st.markdown('<div class="dp-label">Live event feed</div>', unsafe_allow_html=True)
         rows = []
@@ -963,12 +1100,15 @@ def live_console() -> None:
         st.markdown(f'<div class="dp-feed">{feed}</div>', unsafe_allow_html=True)
 
     with right:
-        _render_graph()
-        chat_col, trace_col = st.columns([64, 36], gap="medium")
-        with trace_col:
-            _render_trace(trace, bool(state.get("investigating")), status)
-        with chat_col:
-            _render_chat(state, incident_components)
+        if ss.past:
+            _render_past(ss.past)
+        else:
+            _render_graph()
+            chat_col, trace_col = st.columns([64, 36], gap="medium")
+            with trace_col:
+                _render_trace(trace, bool(state.get("investigating")), status)
+            with chat_col:
+                _render_chat(state, incident_components)
 
 
 live_console()
