@@ -47,6 +47,22 @@ In the live UI (`demo/live_app.py`, the one `docker compose` starts), upload one
 
 In a FULL investigation, approve, reject (with a reason the agent uses to revise its answer) or edit the recommendation under the diagnosis (ADR-013), and ask follow-up questions in the chat. Asking about a component outside the investigation (e.g. `payment-service` during the OOM scenario) is refused: the agent only discusses evidence that went through the gate.
 
+## Ask your assistant about the incident (MCP)
+
+A read-only MCP server lets an assistant you already use (Claude Code, Claude Desktop, any MCP client) look at the live incident: severity and causal graph, why the engine did or did not call its LLM, the matching runbook. It has five tools, all `GET`s, and cannot approve, reject or reset anything (ADR-015). It needs the API running.
+
+```bash
+claude mcp add deployd -- .venv/bin/python -m deployd.entrypoints.mcp_server
+```
+
+For Claude Desktop, in `claude_desktop_config.json`:
+
+```json
+{"mcpServers": {"deployd": {"command": "/path/to/DeployD/.venv/bin/python", "args": ["-m", "deployd.entrypoints.mcp_server"], "cwd": "/path/to/DeployD"}}}
+```
+
+Load a scenario, then ask: *"What is going on in the current incident, and which change separates the instances that fail?"* Another API address: `--api-url` or `DEPLOYD_API_URL`. The `mcp` package is an optional extra (`pip install -e ".[mcp]"`), already in the dev lockfile.
+
 ## How it works
 
 ```
@@ -93,6 +109,7 @@ python3.10 -m venv .venv
 | Offline mode: 3 predefined scenarios, in-process, stub agent, no API or API key | `.venv/bin/streamlit run demo/app.py` |
 | Seed the runbook vector store | `.venv/bin/python scripts/seed_runbooks.py` |
 | Evaluation: retrieval, gate, ops (no API key needed) | `.venv/bin/python -m experiments.run_all` |
+| MCP server (stdio, read-only; the API must be running) | `.venv/bin/python -m deployd.entrypoints.mcp_server` |
 | Regenerate the EC2 production-day scenario (seeded) | `.venv/bin/python scripts/generate_ec2_scenario.py` |
 
 To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with the command written at the top of `requirements.lock` / `requirements-dev.lock` (add `--extra dev` for the dev lock).
@@ -105,6 +122,7 @@ To change dependencies, edit `pyproject.toml` and regenerate both lockfiles with
 
 ## Limitations
 
+- The MCP server has no authentication and its answers carry log text to someone else's model: marked as data and cut, not made safe (ADR-015).
 - Single-tenant proof of concept: one incident at a time, kept in process memory; `/chat` and `/reset` assume a single active incident.
 - Events are simulated; there are no real collectors yet.
 - Topology and component versions are declared in `data/components.json`, not discovered.

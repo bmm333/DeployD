@@ -24,6 +24,12 @@ import groq
 from agno.exceptions import AgnoError
 from deployd.adapters.incoming.http_event_adapter import HttpEventAdapter, RawTelemetryEvent
 from deployd.adapters.outgoing.ai.agno_agent import MAX_FOLLOW_UP_TURNS, AgnoGroqAgent
+from deployd.adapters.outgoing.ai.tool_models import (
+    QUERY_MAX_CHARS,
+    QUERY_MIN_CHARS,
+    ComponentInput,
+    DependencyCheckResult,
+)
 from deployd.adapters.outgoing.registry.json_component_repository import (
     JSONComponentRepository,
 )
@@ -54,11 +60,12 @@ from deployd.domain.entities.human_decision import DecisionValue, HumanDecision
 from deployd.domain.graph.graph import IncidentGraph
 from deployd.domain.health.tracker import ComponentHealthTracker
 from deployd.entrypoints.decision_trace import build_decision_trace
+from deployd.entrypoints.read_models import RunbookMatch, RunbookMatches
 from deployd.infrastructure.persistence.sqlite_incident_repository import (
     SQLiteIncidentRepository,
 )
 from deployd.infrastructure.streaming.sliding_window import SlidingWindow
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ValidationError
 
@@ -103,6 +110,10 @@ _window = SlidingWindow(
 )
 
 _topology = load_topology(_DATA_DIR / "components.json")
+_registry = JSONComponentRepository(
+    components_file=_DATA_DIR / "components.json",
+    constraints_file=_DATA_DIR / "compatibility_constraints.json",
+)
 _correlate = CorrelateEventsUseCase(
     graph=_graph, event_window=_window, config=_config, topology=_topology
 )
@@ -182,14 +193,10 @@ def _get_agent() -> AgnoGroqAgent | None:
     with _init_lock:
         if _agent is None:
             stack = _get_retrieval()
-            registry = JSONComponentRepository(
-                components_file=_DATA_DIR / "components.json",
-                constraints_file=_DATA_DIR / "compatibility_constraints.json",
-            )
             _agent = AgnoGroqAgent(
                 chroma_client=stack.chroma,
                 runbook_repo=stack.repo,
-                component_registry=registry,
+                component_registry=_registry,
                 model_id=os.getenv("DEPLOYD_GROQ_MODEL", "").strip() or AgnoGroqAgent.MODEL_ID,
             )
     return _agent
@@ -705,6 +712,56 @@ def reset_state() -> dict[str, Any]:
         "status": "reset",
         "closed_incident_id": str(closed.id) if closed else None,
     }
+
+
+# ── Read-only lookups (consumed by the MCP server, DID-40) ───────────────────
+
+
+@app.get("/api/v1/runbooks/search")  # type: ignore[misc]
+def search_runbooks(
+    query: str = Query(min_length=QUERY_MIN_CHARS, max_length=QUERY_MAX_CHARS),
+) -> RunbookMatches:
+    """Historical runbooks that match a free-text description (hybrid retrieval, no LLM)."""
+    stack = _get_retrieval()
+    result = stack.retriever.retrieve(query.strip(), top_k=3)
+    matches = []
+    for candidate in result.candidates:
+        detail = stack.repo.get_by_id(candidate.runbook_id)
+        if detail is None:
+            continue
+        matches.append(
+            RunbookMatch(
+                runbook_id=detail.runbook_id,
+                score=round(candidate.score, 3),
+                summary=detail.summary[:200],
+                root_cause=detail.root_cause[:150],
+                causal_chain=list(detail.causal_chain),
+                fix=detail.fix[:150],
+                affected_components=list(detail.affected_components),
+            )
+        )
+    return RunbookMatches(threshold=result.confidence_threshold, runbooks=matches)
+
+
+@app.get("/api/v1/components/{component}/compatibility")  # type: ignore[misc]
+def component_compatibility(component: str) -> DependencyCheckResult:
+    """Deterministic compatibility check of a declared component against known constraints."""
+    try:
+        name = ComponentInput(component=component).component
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail="invalid component name") from exc
+    if _registry.get_component_state(name) is None:
+        raise HTTPException(status_code=404, detail=f"component '{name}' is not in the registry")
+    report = _registry.check_compatibility(name)
+    return DependencyCheckResult.model_validate(
+        {
+            "evidence_id": report.evidence_id,
+            "component": report.component_name,
+            "status": report.status.value.upper(),
+            "installed_versions": report.installed_versions,
+            "violations": report.violations,
+        }
+    )
 
 
 # ── Incident history ──────────────────────────────────────────────────────────
