@@ -1,0 +1,26 @@
+{
+    "runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+    "incident_id": "INC-2026-08-27-006",
+    "summary": "checkout-service intermittently failed to write session state after a Redis Sentinel failover promoted a new primary; the service kept connections open to the old primary.",
+    "affected_components": [
+        "checkout-service",
+        "redis-cache"
+    ],
+    "causal_chain": [
+        "DEPENDENCY_FAILURE",
+        "DEPENDENCY_FAILURE"
+    ],
+    "root_cause": "Redis Sentinel failover promoted a new primary after the old one became unresponsive, but checkout-service's connection pool held stale connections to the old primary for several minutes, causing writes to silently fail.",
+    "fix": "Reduced the Redis client's connection TTL and enabled automatic reconnection on topology change events.",
+    "fix_commands": [
+        "kubectl rollout restart deployment/checkout-service -n prod"
+    ],
+    "occurred_at": "2024-12-02T05:51:00Z",
+    "tags": [
+        "redis",
+        "failover",
+        "stale-connection",
+        "checkout-service",
+        "silent-failure"
+    ]
+}

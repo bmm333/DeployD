@@ -1,0 +1,37 @@
+{
+  "cold_start_s": {
+    "value": 3.314941691001877,
+    "what": "embedding model load + indexing 11 runbooks (model already in the HF cache)"
+  },
+  "correlation_ms_per_event": {
+    "p50": 0.024015000235522166,
+    "p95": 0.22833800176158547,
+    "samples": 1713
+  },
+  "llm": {
+    "diagnosis_latency_s": {
+      "p50": 3.244813647997944,
+      "p95": 4.5604996160000155
+    },
+    "diagnosis_tokens_in_out": [
+      2118,
+      1071.6666666666667
+    ],
+    "est_cost_usd_per_incident": 0.0024553375,
+    "follow_up_latency_s": {
+      "p50": 2.5993585729993356,
+      "p95": 3.177334225998493
+    },
+    "follow_up_tokens_in_out": [
+      2254.125,
+      682
+    ],
+    "model": "openai/gpt-oss-120b",
+    "status": "from experiments/results/model_selection.json (DID-34)"
+  },
+  "retrieval_ms_per_query": {
+    "p50": 10.796910999488318,
+    "p95": 13.323257000593003
+  },
+  "status": "completed"
+}

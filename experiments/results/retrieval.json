@@ -1,0 +1,1813 @@
+{
+  "dataset": {
+    "file": "experiments/datasets/retrieval_queries.json",
+    "no_match_queries": 3,
+    "runbooks": 11,
+    "scored_queries": 30
+  },
+  "label_structure_upper_bound": {
+    "evaluated_query_count": 12,
+    "mrr": 1.0,
+    "non_evaluable_query_ids": [],
+    "query_count": 12,
+    "recall_at_1": 1.0,
+    "recall_at_3": 1.0
+  },
+  "latency_ms": {
+    "p50": 10.796910999488318,
+    "p95": 13.323257000593003
+  },
+  "no_match": {
+    "queries": [
+      {
+        "best_score": 0.2783508002758026,
+        "query_id": "none-01",
+        "top": "RB-AUTH-SERVICE-CONFIG-ROLLBACK"
+      },
+      {
+        "best_score": 0.25823251044617834,
+        "query_id": "none-02",
+        "top": "RB-FLEET-OS-UPGRADE-DIVERGENCE"
+      },
+      {
+        "best_score": 0.2586017668247223,
+        "query_id": "none-03",
+        "top": "RB-BILLING-DEPLOY-REGRESSION"
+      }
+    ],
+    "rejected_below_threshold": 3,
+    "threshold": 0.5
+  },
+  "random_baseline_recall_at_3": 0.2727272727272727,
+  "rows": {
+    "all": [
+      {
+        "best_score": 0.5062106549739838,
+        "category": "original",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "orig-01",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.45041229426860807,
+        "category": "original",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "orig-02",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.41797048449516294,
+        "category": "original",
+        "expected_runbook_id": "RB-PAYMENT-DB-TIMEOUT",
+        "query_id": "orig-03",
+        "ranking": [
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.4620950758457184,
+        "category": "original",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "orig-04",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.3175739526748657,
+        "category": "original",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "orig-05",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION"
+        ]
+      },
+      {
+        "best_score": 0.4675277978181839,
+        "category": "original",
+        "expected_runbook_id": "RB-INVENTORY-DISK-FULL",
+        "query_id": "orig-06",
+        "ranking": [
+          "RB-INVENTORY-DISK-FULL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-API-GATEWAY-CONFIG-DRIFT"
+        ]
+      },
+      {
+        "best_score": 0.4729031503200531,
+        "category": "original",
+        "expected_runbook_id": "RB-NOTIFICATION-CRASH-LOOP",
+        "query_id": "orig-07",
+        "ranking": [
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-PAYMENT-DB-TIMEOUT"
+        ]
+      },
+      {
+        "best_score": 0.47789984345436093,
+        "category": "original",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "query_id": "orig-08",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.45049340426921847,
+        "category": "original",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "query_id": "orig-09",
+        "ranking": [
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE"
+        ]
+      },
+      {
+        "best_score": 0.2502725630998611,
+        "category": "original",
+        "expected_runbook_id": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+        "query_id": "orig-10",
+        "ranking": [
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.31859446073853825,
+        "category": "original",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "query_id": "orig-11",
+        "ranking": [
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.470283180475235,
+        "category": "original",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "query_id": "orig-12",
+        "ranking": [
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.3558218946982067,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "para-01",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.4591637670993805,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "para-02",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.37130436301231384,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-PAYMENT-DB-TIMEOUT",
+        "query_id": "para-03",
+        "ranking": [
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.3204299877422653,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "para-04",
+        "ranking": [
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.3306479126214981,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "para-05",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK"
+        ]
+      },
+      {
+        "best_score": 0.39033671617507937,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-INVENTORY-DISK-FULL",
+        "query_id": "para-06",
+        "ranking": [
+          "RB-INVENTORY-DISK-FULL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.2836108297109604,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-NOTIFICATION-CRASH-LOOP",
+        "query_id": "para-07",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.2933720678091049,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "query_id": "para-08",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.4477460324764252,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "query_id": "para-09",
+        "ranking": [
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.2994055859970324,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+        "query_id": "para-10",
+        "ranking": [
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.38212841749191284,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "query_id": "para-11",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.3830656764276889,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "query_id": "para-12",
+        "ranking": [
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-OOMKILL"
+        ]
+      },
+      {
+        "best_score": 0.4082727074623108,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+        "query_id": "para-13",
+        "ranking": [
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.4074343204498291,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "query_id": "hard-01",
+        "ranking": [
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE"
+        ]
+      },
+      {
+        "best_score": 0.3281994253396988,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "query_id": "hard-02",
+        "ranking": [
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.38999749395927463,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "query_id": "hard-03",
+        "ranking": [
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL"
+        ]
+      },
+      {
+        "best_score": 0.4489142209291458,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "query_id": "hard-04",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.34827287793159484,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+        "query_id": "hard-05",
+        "ranking": [
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-PAYMENT-DB-TIMEOUT"
+        ]
+      }
+    ],
+    "bm25": [
+      {
+        "best_score": 0.5062106549739838,
+        "category": "original",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "orig-01",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.45041229426860807,
+        "category": "original",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "orig-02",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.41797048449516294,
+        "category": "original",
+        "expected_runbook_id": "RB-PAYMENT-DB-TIMEOUT",
+        "query_id": "orig-03",
+        "ranking": [
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.4620950758457184,
+        "category": "original",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "orig-04",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.3175739526748657,
+        "category": "original",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "orig-05",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.4675277978181839,
+        "category": "original",
+        "expected_runbook_id": "RB-INVENTORY-DISK-FULL",
+        "query_id": "orig-06",
+        "ranking": [
+          "RB-INVENTORY-DISK-FULL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.4729031503200531,
+        "category": "original",
+        "expected_runbook_id": "RB-NOTIFICATION-CRASH-LOOP",
+        "query_id": "orig-07",
+        "ranking": [
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.47789984345436093,
+        "category": "original",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "query_id": "orig-08",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.45049340426921847,
+        "category": "original",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "query_id": "orig-09",
+        "ranking": [
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.2502725630998611,
+        "category": "original",
+        "expected_runbook_id": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+        "query_id": "orig-10",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.31859446073853825,
+        "category": "original",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "query_id": "orig-11",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.470283180475235,
+        "category": "original",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "query_id": "orig-12",
+        "ranking": [
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE"
+        ]
+      },
+      {
+        "best_score": 0.3558218946982067,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "para-01",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.4591637670993805,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "para-02",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.37130436301231384,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-PAYMENT-DB-TIMEOUT",
+        "query_id": "para-03",
+        "ranking": [
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.3204299877422653,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "para-04",
+        "ranking": [
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.3306479126214981,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "para-05",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.39033671617507937,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-INVENTORY-DISK-FULL",
+        "query_id": "para-06",
+        "ranking": [
+          "RB-INVENTORY-DISK-FULL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.2836108297109604,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-NOTIFICATION-CRASH-LOOP",
+        "query_id": "para-07",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.2933720678091049,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "query_id": "para-08",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.4477460324764252,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "query_id": "para-09",
+        "ranking": [
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.2994055859970324,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+        "query_id": "para-10",
+        "ranking": [
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.38212841749191284,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "query_id": "para-11",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.3830656764276889,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "query_id": "para-12",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.4082727074623108,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+        "query_id": "para-13",
+        "ranking": [
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.4074343204498291,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "query_id": "hard-01",
+        "ranking": [
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.3281994253396988,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "query_id": "hard-02",
+        "ranking": [
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.38999749395927463,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "query_id": "hard-03",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.4489142209291458,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "query_id": "hard-04",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.34827287793159484,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+        "query_id": "hard-05",
+        "ranking": [
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT"
+        ]
+      }
+    ],
+    "semantic": [
+      {
+        "best_score": 0.5062106549739838,
+        "category": "original",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "orig-01",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.45041229426860807,
+        "category": "original",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "orig-02",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.41797048449516294,
+        "category": "original",
+        "expected_runbook_id": "RB-PAYMENT-DB-TIMEOUT",
+        "query_id": "orig-03",
+        "ranking": [
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.4620950758457184,
+        "category": "original",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "orig-04",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.3175739526748657,
+        "category": "original",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "orig-05",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-BILLING-DEPLOY-REGRESSION"
+        ]
+      },
+      {
+        "best_score": 0.4675277978181839,
+        "category": "original",
+        "expected_runbook_id": "RB-INVENTORY-DISK-FULL",
+        "query_id": "orig-06",
+        "ranking": [
+          "RB-INVENTORY-DISK-FULL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-API-GATEWAY-CONFIG-DRIFT"
+        ]
+      },
+      {
+        "best_score": 0.4729031503200531,
+        "category": "original",
+        "expected_runbook_id": "RB-NOTIFICATION-CRASH-LOOP",
+        "query_id": "orig-07",
+        "ranking": [
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-PAYMENT-DB-TIMEOUT"
+        ]
+      },
+      {
+        "best_score": 0.47789984345436093,
+        "category": "original",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "query_id": "orig-08",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.45049340426921847,
+        "category": "original",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "query_id": "orig-09",
+        "ranking": [
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE"
+        ]
+      },
+      {
+        "best_score": 0.2502725630998611,
+        "category": "original",
+        "expected_runbook_id": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+        "query_id": "orig-10",
+        "ranking": [
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.31859446073853825,
+        "category": "original",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "query_id": "orig-11",
+        "ranking": [
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE"
+        ]
+      },
+      {
+        "best_score": 0.470283180475235,
+        "category": "original",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "query_id": "orig-12",
+        "ranking": [
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-OOMKILL"
+        ]
+      },
+      {
+        "best_score": 0.3558218946982067,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "para-01",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.4591637670993805,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+        "query_id": "para-02",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION"
+        ]
+      },
+      {
+        "best_score": 0.37130436301231384,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-PAYMENT-DB-TIMEOUT",
+        "query_id": "para-03",
+        "ranking": [
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.3204299877422653,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "para-04",
+        "ranking": [
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.3306479126214981,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-API-GATEWAY-CONFIG-DRIFT",
+        "query_id": "para-05",
+        "ranking": [
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK"
+        ]
+      },
+      {
+        "best_score": 0.39033671617507937,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-INVENTORY-DISK-FULL",
+        "query_id": "para-06",
+        "ranking": [
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.2836108297109604,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-NOTIFICATION-CRASH-LOOP",
+        "query_id": "para-07",
+        "ranking": [
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE"
+        ]
+      },
+      {
+        "best_score": 0.2933720678091049,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "query_id": "para-08",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.4477460324764252,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "query_id": "para-09",
+        "ranking": [
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-INVENTORY-DISK-FULL"
+        ]
+      },
+      {
+        "best_score": 0.2994055859970324,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+        "query_id": "para-10",
+        "ranking": [
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-BILLING-DEPLOY-REGRESSION"
+        ]
+      },
+      {
+        "best_score": 0.38212841749191284,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "query_id": "para-11",
+        "ranking": [
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.3830656764276889,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "query_id": "para-12",
+        "ranking": [
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-AUTH-SERVICE-OOMKILL"
+        ]
+      },
+      {
+        "best_score": 0.4082727074623108,
+        "category": "paraphrase",
+        "expected_runbook_id": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+        "query_id": "para-13",
+        "ranking": [
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-PAYMENT-DB-TIMEOUT"
+        ]
+      },
+      {
+        "best_score": 0.4074343204498291,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+        "query_id": "hard-01",
+        "ranking": [
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-SHIPPING-NETWORK-PARTITION"
+        ]
+      },
+      {
+        "best_score": 0.3281994253396988,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+        "query_id": "hard-02",
+        "ranking": [
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE"
+        ]
+      },
+      {
+        "best_score": 0.38999749395927463,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+        "query_id": "hard-03",
+        "ranking": [
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.4489142209291458,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-CHECKOUT-REDIS-ELECTION",
+        "query_id": "hard-04",
+        "ranking": [
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-PAYMENT-DB-TIMEOUT",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-NOTIFICATION-CRASH-LOOP"
+        ]
+      },
+      {
+        "best_score": 0.34827287793159484,
+        "category": "hard_negative",
+        "expected_runbook_id": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+        "query_id": "hard-05",
+        "ranking": [
+          "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+          "RB-API-GATEWAY-CONFIG-DRIFT",
+          "RB-NOTIFICATION-CRASH-LOOP",
+          "RB-AUTH-SERVICE-OOMKILL",
+          "RB-CHECKOUT-REDIS-ELECTION",
+          "RB-BILLING-DEPLOY-REGRESSION",
+          "RB-SHIPPING-NETWORK-PARTITION",
+          "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+          "RB-INVENTORY-DISK-FULL",
+          "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+          "RB-PAYMENT-DB-TIMEOUT"
+        ]
+      }
+    ]
+  },
+  "status": "completed",
+  "text_only": {
+    "all": {
+      "evaluated_query_count": 30,
+      "mrr": 0.8833333333333333,
+      "non_evaluable_query_ids": [],
+      "query_count": 30,
+      "recall_at_1": 0.8,
+      "recall_at_3": 1.0
+    },
+    "bm25": {
+      "evaluated_query_count": 30,
+      "mrr": 0.7080026455026455,
+      "non_evaluable_query_ids": [],
+      "query_count": 30,
+      "recall_at_1": 0.6333333333333333,
+      "recall_at_3": 0.7333333333333333
+    },
+    "semantic": {
+      "evaluated_query_count": 30,
+      "mrr": 0.9666666666666667,
+      "non_evaluable_query_ids": [],
+      "query_count": 30,
+      "recall_at_1": 0.9333333333333333,
+      "recall_at_3": 1.0
+    }
+  },
+  "text_only_by_category": {
+    "hard_negative": {
+      "evaluated_query_count": 5,
+      "mrr": 0.9,
+      "non_evaluable_query_ids": [],
+      "query_count": 5,
+      "recall_at_1": 0.8,
+      "recall_at_3": 1.0
+    },
+    "original": {
+      "evaluated_query_count": 12,
+      "mrr": 0.9444444444444445,
+      "non_evaluable_query_ids": [],
+      "query_count": 12,
+      "recall_at_1": 0.9166666666666666,
+      "recall_at_3": 1.0
+    },
+    "paraphrase": {
+      "evaluated_query_count": 13,
+      "mrr": 0.8205128205128206,
+      "non_evaluable_query_ids": [],
+      "query_count": 13,
+      "recall_at_1": 0.6923076923076923,
+      "recall_at_3": 1.0
+    }
+  }
+}

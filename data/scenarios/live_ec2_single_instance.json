@@ -1,0 +1,1880 @@
+[
+  {
+    "timestamp": "2026-10-08T02:00:00Z",
+    "source": "aws-ssm",
+    "event_type": "MAINTENANCE_WINDOW",
+    "metadata": {},
+    "description": "Systems Manager maintenance window mw-weekly-patch started (4 targets)"
+  },
+  {
+    "timestamp": "2026-10-08T02:00:00Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T02:20:57Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T02:26:15Z",
+    "source": "web-09",
+    "event_type": "HOST_UPGRADE",
+    "metadata": {
+      "change_kind": "os_upgrade",
+      "change_ref": "patch-baseline-2026-10-07",
+      "packages_upgraded": 52,
+      "reboot_required": false,
+      "services_restarted": false
+    },
+    "description": "web-09: Patch Manager installed 52 package upgrades with unattended-upgrades; reboot not required, services not restarted"
+  },
+  {
+    "timestamp": "2026-10-08T02:29:59Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T02:41:00Z",
+    "source": "aws-ssm",
+    "event_type": "MAINTENANCE_WINDOW",
+    "metadata": {},
+    "description": "Systems Manager maintenance window mw-weekly-patch finished"
+  },
+  {
+    "timestamp": "2026-10-08T02:59:23Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T03:15:20Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 640
+    },
+    "description": "postgres-primary query latency p95 640 ms during the nightly backup"
+  },
+  {
+    "timestamp": "2026-10-08T03:24:37Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T03:28:44Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T03:58:43Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 7
+    },
+    "description": "postgres-primary query latency p95 7 ms"
+  },
+  {
+    "timestamp": "2026-10-08T04:20:30Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T04:28:24Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T04:58:13Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T05:17:52Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T05:27:47Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T05:57:47Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T06:16:13Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 19 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T06:28:23Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T06:58:22Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T07:13:33Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T07:28:38Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T07:59:09Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T08:16:22Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T08:29:24Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T08:59:50Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T09:15:28Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T09:30:00Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T09:40:10Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T09:41:00Z",
+    "source": "gitlab",
+    "event_type": "GIT_PUSH",
+    "metadata": {
+      "repo": "shop/web",
+      "branch": "main",
+      "commit": "a41f9c2",
+      "files_changed": 14,
+      "lockfile_changed": true
+    },
+    "description": "gitlab: merge request !482 merged into main (a41f9c2): 14 files changed, requirements.lock +2/-2"
+  },
+  {
+    "timestamp": "2026-10-08T09:42:00Z",
+    "source": "gitlab",
+    "event_type": "GIT_PUSH",
+    "metadata": {
+      "repo": "shop/web",
+      "tag": "v2.14.0"
+    },
+    "description": "gitlab: tag v2.14.0 created on a41f9c2"
+  },
+  {
+    "timestamp": "2026-10-08T09:44:00Z",
+    "source": "gitlab-ci",
+    "event_type": "PIPELINE_JOB",
+    "metadata": {
+      "pipeline_id": 48213,
+      "job": "lint",
+      "job_status": "success",
+      "duration_ms": 71000,
+      "avg_duration_ms": 70000,
+      "release": "2.14.0"
+    },
+    "description": "gitlab-ci: pipeline #48213 job lint succeeded in 1m11s (average 1m10s)"
+  },
+  {
+    "timestamp": "2026-10-08T09:49:00Z",
+    "source": "gitlab-ci",
+    "event_type": "PIPELINE_JOB",
+    "metadata": {
+      "pipeline_id": 48213,
+      "job": "unit-tests",
+      "job_status": "success",
+      "duration_ms": 243000,
+      "avg_duration_ms": 240000,
+      "release": "2.14.0"
+    },
+    "description": "gitlab-ci: pipeline #48213 job unit-tests succeeded in 4m03s (average 4m00s)"
+  },
+  {
+    "timestamp": "2026-10-08T09:49:56Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T09:59:00Z",
+    "source": "gitlab-ci",
+    "event_type": "PIPELINE_JOB",
+    "metadata": {
+      "pipeline_id": 48213,
+      "job": "integration-tests",
+      "job_status": "success",
+      "duration_ms": 571000,
+      "avg_duration_ms": 560000,
+      "release": "2.14.0"
+    },
+    "description": "gitlab-ci: pipeline #48213 job integration-tests succeeded in 9m31s (average 9m20s)"
+  },
+  {
+    "timestamp": "2026-10-08T10:00:24Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T10:10:50Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T10:14:00Z",
+    "source": "gitlab-ci",
+    "event_type": "PIPELINE_JOB",
+    "metadata": {
+      "pipeline_id": 48213,
+      "job": "build-image",
+      "job_status": "success",
+      "duration_ms": 861000,
+      "avg_duration_ms": 302000,
+      "release": "2.14.0"
+    },
+    "description": "gitlab-ci: pipeline #48213 job build-image succeeded in 14m21s (average 5m02s)"
+  },
+  {
+    "timestamp": "2026-10-08T10:16:00Z",
+    "source": "gitlab-ci",
+    "event_type": "PIPELINE_JOB",
+    "metadata": {
+      "pipeline_id": 48213,
+      "job": "push-image",
+      "job_status": "success",
+      "duration_ms": 74000,
+      "avg_duration_ms": 70000,
+      "release": "2.14.0"
+    },
+    "description": "gitlab-ci: pipeline #48213 job push-image succeeded in 1m14s (average 1m10s)"
+  },
+  {
+    "timestamp": "2026-10-08T10:19:00Z",
+    "source": "gitlab-ci",
+    "event_type": "PIPELINE_JOB",
+    "metadata": {
+      "pipeline_id": 48213,
+      "job": "smoke-tests-staging",
+      "job_status": "success",
+      "duration_ms": 52000,
+      "avg_duration_ms": 50000,
+      "release": "2.14.0"
+    },
+    "description": "gitlab-ci: pipeline #48213 job smoke-tests-staging succeeded in 0m52s (average 0m50s)"
+  },
+  {
+    "timestamp": "2026-10-08T10:21:31Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T10:25:14Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 18 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:29:20Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:30:37Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T10:33:22Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:37:02Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:40:23Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 5
+    },
+    "description": "postgres-primary query latency p95 5 ms"
+  },
+  {
+    "timestamp": "2026-10-08T10:40:45Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 8 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:44:09Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:47:46Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:50:25Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T10:51:40Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:52:00Z",
+    "source": "gitlab-ci",
+    "event_type": "PIPELINE_JOB",
+    "metadata": {
+      "pipeline_id": 48213,
+      "job": "deploy-prod",
+      "job_status": "success",
+      "duration_ms": 700000,
+      "avg_duration_ms": 670000,
+      "release": "2.14.0"
+    },
+    "description": "gitlab-ci: pipeline #48213 job deploy-prod succeeded in 11m40s (average 11m10s)"
+  },
+  {
+    "timestamp": "2026-10-08T10:53:04Z",
+    "source": "web-09",
+    "event_type": "DEPLOY_START",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "2.14.0",
+      "release": "2.14.0"
+    },
+    "description": "web-09: deploy 2.14.0 started (drain, stop, start)"
+  },
+  {
+    "timestamp": "2026-10-08T10:53:26Z",
+    "source": "web-09",
+    "event_type": "PROCESS_START",
+    "metadata": {},
+    "description": "web-09: application service restarted"
+  },
+  {
+    "timestamp": "2026-10-08T10:54:04Z",
+    "source": "web-09",
+    "event_type": "DEPLOY_SUCCESS",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "2.14.0",
+      "release": "2.14.0"
+    },
+    "description": "web-09: deploy 2.14.0 finished, target registered"
+  },
+  {
+    "timestamp": "2026-10-08T10:54:27Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 19 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:54:47Z",
+    "source": "web-09",
+    "event_type": "HTTP_ERROR",
+    "metadata": {
+      "dependency": "postgres-primary"
+    },
+    "description": "web-09: request failed with 500: symbol lookup error in a native extension while opening a database connection"
+  },
+  {
+    "timestamp": "2026-10-08T10:54:50Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500
+    },
+    "description": "web-09 POST /checkout answered 500"
+  },
+  {
+    "timestamp": "2026-10-08T10:54:53Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500
+    },
+    "description": "web-09 POST /api/cart answered 500"
+  },
+  {
+    "timestamp": "2026-10-08T10:54:56Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500
+    },
+    "description": "web-09 POST /orders answered 500"
+  },
+  {
+    "timestamp": "2026-10-08T10:55:53Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T10:57:47Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 3 minutes (181/1299)"
+  },
+  {
+    "timestamp": "2026-10-08T11:00:31Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 11 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:00:53Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T11:01:06Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 3 minutes (187/1336)"
+  },
+  {
+    "timestamp": "2026-10-08T11:04:04Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 19 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:04:24Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (226/1331)"
+  },
+  {
+    "timestamp": "2026-10-08T11:07:24Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:07:33Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 3 minutes (220/1375)"
+  },
+  {
+    "timestamp": "2026-10-08T11:09:55Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T11:10:46Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 3 minutes (187/1339)"
+  },
+  {
+    "timestamp": "2026-10-08T11:11:47Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:13:45Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (216/1271)"
+  },
+  {
+    "timestamp": "2026-10-08T11:15:15Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:16:36Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 3 minutes (160/1149)"
+  },
+  {
+    "timestamp": "2026-10-08T11:19:30Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (211/1244)"
+  },
+  {
+    "timestamp": "2026-10-08T11:19:35Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:20:48Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T11:22:49Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 18
+    },
+    "description": "web-09: 18% of requests answered 500 in the last 3 minutes (219/1222)"
+  },
+  {
+    "timestamp": "2026-10-08T11:22:57Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:26:00Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (219/1292)"
+  },
+  {
+    "timestamp": "2026-10-08T11:26:27Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:29:16Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 3 minutes (168/1204)"
+  },
+  {
+    "timestamp": "2026-10-08T11:30:09Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T11:30:40Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:32:43Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 3 minutes (192/1200)"
+  },
+  {
+    "timestamp": "2026-10-08T11:35:16Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 19 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:36:04Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (205/1211)"
+  },
+  {
+    "timestamp": "2026-10-08T11:38:00Z",
+    "source": "gitlab-ci",
+    "event_type": "PIPELINE_JOB",
+    "metadata": {
+      "pipeline_id": 48230,
+      "job": "rollback-prod",
+      "job_status": "running",
+      "release": "2.13.9"
+    },
+    "description": "gitlab-ci: pipeline #48230 job rollback-prod started for 2.13.9"
+  },
+  {
+    "timestamp": "2026-10-08T11:38:57Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:39:14Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 3 minutes (205/1284)"
+  },
+  {
+    "timestamp": "2026-10-08T11:40:39Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 7
+    },
+    "description": "postgres-primary query latency p95 7 ms"
+  },
+  {
+    "timestamp": "2026-10-08T11:41:16Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:42:33Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 19
+    },
+    "description": "web-09: 19% of requests answered 500 in the last 3 minutes (234/1236)"
+  },
+  {
+    "timestamp": "2026-10-08T11:45:33Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 15
+    },
+    "description": "web-09: 15% of requests answered 500 in the last 3 minutes (177/1186)"
+  },
+  {
+    "timestamp": "2026-10-08T11:49:05Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 18
+    },
+    "description": "web-09: 18% of requests answered 500 in the last 3 minutes (235/1309)"
+  },
+  {
+    "timestamp": "2026-10-08T11:50:09Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 7
+    },
+    "description": "postgres-primary query latency p95 7 ms"
+  },
+  {
+    "timestamp": "2026-10-08T11:52:14Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 6 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T11:52:37Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 3 minutes (194/1215)"
+  },
+  {
+    "timestamp": "2026-10-08T11:55:52Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 3 minutes (209/1310)"
+  },
+  {
+    "timestamp": "2026-10-08T11:59:07Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 3 minutes (161/1157)"
+  },
+  {
+    "timestamp": "2026-10-08T12:01:06Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T12:02:10Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 19
+    },
+    "description": "web-09: 19% of requests answered 500 in the last 3 minutes (213/1124)"
+  },
+  {
+    "timestamp": "2026-10-08T12:02:20Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T12:05:45Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 18
+    },
+    "description": "web-09: 18% of requests answered 500 in the last 3 minutes (203/1132)"
+  },
+  {
+    "timestamp": "2026-10-08T12:08:58Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 3 minutes (181/1296)"
+  },
+  {
+    "timestamp": "2026-10-08T12:10:39Z",
+    "source": "web-09",
+    "event_type": "DEPLOY_START",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "2.13.9",
+      "release": "2.13.9"
+    },
+    "description": "web-09: rollback 2.13.9 started (drain, stop, start)"
+  },
+  {
+    "timestamp": "2026-10-08T12:10:43Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T12:11:00Z",
+    "source": "web-09",
+    "event_type": "PROCESS_START",
+    "metadata": {},
+    "description": "web-09: application service restarted"
+  },
+  {
+    "timestamp": "2026-10-08T12:11:34Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 19 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T12:11:37Z",
+    "source": "web-09",
+    "event_type": "DEPLOY_SUCCESS",
+    "metadata": {
+      "change_kind": "deploy",
+      "change_ref": "2.13.9",
+      "release": "2.13.9"
+    },
+    "description": "web-09: rollback 2.13.9 finished, target registered"
+  },
+  {
+    "timestamp": "2026-10-08T12:11:54Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 16 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T12:12:00Z",
+    "source": "gitlab-ci",
+    "event_type": "PIPELINE_JOB",
+    "metadata": {
+      "pipeline_id": 48230,
+      "job": "rollback-prod",
+      "job_status": "success",
+      "duration_ms": 782000,
+      "avg_duration_ms": 670000,
+      "release": "2.13.9"
+    },
+    "description": "gitlab-ci: pipeline #48230 job rollback-prod succeeded in 13m02s (average 11m10s)"
+  },
+  {
+    "timestamp": "2026-10-08T12:12:12Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (219/1293)"
+  },
+  {
+    "timestamp": "2026-10-08T12:15:15Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 15
+    },
+    "description": "web-09: 15% of requests answered 500 in the last 3 minutes (166/1110)"
+  },
+  {
+    "timestamp": "2026-10-08T12:18:46Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 15
+    },
+    "description": "web-09: 15% of requests answered 500 in the last 3 minutes (179/1194)"
+  },
+  {
+    "timestamp": "2026-10-08T12:21:15Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T12:21:22Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 13 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T12:21:57Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 18
+    },
+    "description": "web-09: 18% of requests answered 500 in the last 3 minutes (238/1324)"
+  },
+  {
+    "timestamp": "2026-10-08T12:24:55Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 3 minutes (187/1172)"
+  },
+  {
+    "timestamp": "2026-10-08T12:27:56Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 18
+    },
+    "description": "web-09: 18% of requests answered 500 in the last 3 minutes (227/1264)"
+  },
+  {
+    "timestamp": "2026-10-08T12:31:12Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T12:31:24Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 19
+    },
+    "description": "web-09: 19% of requests answered 500 in the last 3 minutes (249/1314)"
+  },
+  {
+    "timestamp": "2026-10-08T12:31:31Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T12:34:32Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 15
+    },
+    "description": "web-09: 15% of requests answered 500 in the last 3 minutes (197/1318)"
+  },
+  {
+    "timestamp": "2026-10-08T12:37:43Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 3 minutes (220/1376)"
+  },
+  {
+    "timestamp": "2026-10-08T12:40:29Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 18
+    },
+    "description": "web-09: 18% of requests answered 500 in the last 3 minutes (233/1296)"
+  },
+  {
+    "timestamp": "2026-10-08T12:41:21Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T12:41:52Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T12:43:19Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (210/1239)"
+  },
+  {
+    "timestamp": "2026-10-08T12:46:24Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (230/1355)"
+  },
+  {
+    "timestamp": "2026-10-08T12:49:12Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 19
+    },
+    "description": "web-09: 19% of requests answered 500 in the last 3 minutes (216/1140)"
+  },
+  {
+    "timestamp": "2026-10-08T12:51:09Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T12:52:19Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T12:52:43Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (223/1313)"
+  },
+  {
+    "timestamp": "2026-10-08T12:55:58Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 3 minutes (209/1312)"
+  },
+  {
+    "timestamp": "2026-10-08T12:59:21Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 15
+    },
+    "description": "web-09: 15% of requests answered 500 in the last 3 minutes (181/1208)"
+  },
+  {
+    "timestamp": "2026-10-08T13:01:39Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T13:02:05Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 12 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T13:02:45Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 3 minutes (218/1283)"
+  },
+  {
+    "timestamp": "2026-10-08T13:05:37Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 15
+    },
+    "description": "web-09: 15% of requests answered 500 in the last 3 minutes (201/1340)"
+  },
+  {
+    "timestamp": "2026-10-08T13:08:37Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 18
+    },
+    "description": "web-09: 18% of requests answered 500 in the last 3 minutes (229/1274)"
+  },
+  {
+    "timestamp": "2026-10-08T13:11:25Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T13:11:26Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 14 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T13:12:04Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 15
+    },
+    "description": "web-09: 15% of requests answered 500 in the last 3 minutes (201/1343)"
+  },
+  {
+    "timestamp": "2026-10-08T13:15:10Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 15
+    },
+    "description": "web-09: 15% of requests answered 500 in the last 3 minutes (185/1236)"
+  },
+  {
+    "timestamp": "2026-10-08T13:18:08Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 3 minutes (177/1265)"
+  },
+  {
+    "timestamp": "2026-10-08T13:21:12Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 19
+    },
+    "description": "web-09: 19% of requests answered 500 in the last 3 minutes (244/1285)"
+  },
+  {
+    "timestamp": "2026-10-08T13:21:32Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T13:21:33Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 19 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T13:24:10Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 3 minutes (216/1355)"
+  },
+  {
+    "timestamp": "2026-10-08T13:26:55Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 18
+    },
+    "description": "web-09: 18% of requests answered 500 in the last 3 minutes (204/1136)"
+  },
+  {
+    "timestamp": "2026-10-08T13:30:29Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 15
+    },
+    "description": "web-09: 15% of requests answered 500 in the last 20 minutes (119/797)"
+  },
+  {
+    "timestamp": "2026-10-08T13:32:02Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T13:41:05Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T13:50:02Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 19
+    },
+    "description": "web-09: 19% of requests answered 500 in the last 20 minutes (168/889)"
+  },
+  {
+    "timestamp": "2026-10-08T13:50:36Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T13:53:36Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 15 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T14:00:31Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 5
+    },
+    "description": "postgres-primary query latency p95 5 ms"
+  },
+  {
+    "timestamp": "2026-10-08T14:09:55Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T14:10:51Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 20 minutes (117/735)"
+  },
+  {
+    "timestamp": "2026-10-08T14:19:32Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T14:29:56Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 20 minutes (142/836)"
+  },
+  {
+    "timestamp": "2026-10-08T14:29:58Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T14:40:35Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T14:50:35Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T14:50:53Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 20 minutes (129/810)"
+  },
+  {
+    "timestamp": "2026-10-08T14:55:00Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T14:59:41Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T15:09:31Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T15:10:03Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 20 minutes (149/877)"
+  },
+  {
+    "timestamp": "2026-10-08T15:19:58Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 3
+    },
+    "description": "postgres-primary query latency p95 3 ms"
+  },
+  {
+    "timestamp": "2026-10-08T15:29:35Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 16
+    },
+    "description": "web-09: 16% of requests answered 500 in the last 20 minutes (117/737)"
+  },
+  {
+    "timestamp": "2026-10-08T15:30:45Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T15:40:49Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T15:49:13Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 20 minutes (134/793)"
+  },
+  {
+    "timestamp": "2026-10-08T15:49:59Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T15:59:32Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T16:00:37Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T16:09:22Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 20 minutes (99/710)"
+  },
+  {
+    "timestamp": "2026-10-08T16:10:27Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T16:19:52Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T16:28:34Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 19
+    },
+    "description": "web-09: 19% of requests answered 500 in the last 20 minutes (142/752)"
+  },
+  {
+    "timestamp": "2026-10-08T16:29:23Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T16:38:50Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T16:47:06Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 17
+    },
+    "description": "web-09: 17% of requests answered 500 in the last 20 minutes (124/730)"
+  },
+  {
+    "timestamp": "2026-10-08T16:49:37Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T16:59:28Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 5
+    },
+    "description": "postgres-primary query latency p95 5 ms"
+  },
+  {
+    "timestamp": "2026-10-08T17:00:50Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 17 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T17:05:40Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 19
+    },
+    "description": "web-09: 19% of requests answered 500 in the last 20 minutes (163/859)"
+  },
+  {
+    "timestamp": "2026-10-08T17:08:47Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T17:19:35Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T17:25:45Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 19
+    },
+    "description": "web-09: 19% of requests answered 500 in the last 20 minutes (159/839)"
+  },
+  {
+    "timestamp": "2026-10-08T17:30:07Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 5
+    },
+    "description": "postgres-primary query latency p95 5 ms"
+  },
+  {
+    "timestamp": "2026-10-08T17:39:13Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  },
+  {
+    "timestamp": "2026-10-08T17:46:02Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 20 minutes (101/728)"
+  },
+  {
+    "timestamp": "2026-10-08T17:49:30Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 5
+    },
+    "description": "postgres-primary query latency p95 5 ms"
+  },
+  {
+    "timestamp": "2026-10-08T17:59:24Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 6
+    },
+    "description": "postgres-primary query latency p95 6 ms"
+  },
+  {
+    "timestamp": "2026-10-08T18:03:25Z",
+    "source": "web-09",
+    "event_type": "HEALTHCHECK_PASS",
+    "metadata": {},
+    "description": "web-09 target healthy (load balancer health check /healthz answered 200 in 10 ms)"
+  },
+  {
+    "timestamp": "2026-10-08T18:07:11Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 18
+    },
+    "description": "web-09: 18% of requests answered 500 in the last 20 minutes (138/771)"
+  },
+  {
+    "timestamp": "2026-10-08T18:09:23Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T18:18:40Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 4
+    },
+    "description": "postgres-primary query latency p95 4 ms"
+  },
+  {
+    "timestamp": "2026-10-08T18:26:52Z",
+    "source": "web-09",
+    "event_type": "HTTP_RESPONSE",
+    "metadata": {
+      "status_code": 500,
+      "error_rate_pct": 14
+    },
+    "description": "web-09: 14% of requests answered 500 in the last 20 minutes (124/888)"
+  },
+  {
+    "timestamp": "2026-10-08T18:28:58Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 9
+    },
+    "description": "postgres-primary query latency p95 9 ms"
+  },
+  {
+    "timestamp": "2026-10-08T18:38:01Z",
+    "source": "postgres-primary",
+    "event_type": "LATENCY",
+    "metadata": {
+      "latency_ms": 8
+    },
+    "description": "postgres-primary query latency p95 8 ms"
+  }
+]

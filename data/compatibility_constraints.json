@@ -1,0 +1,19 @@
+{
+  "fastapi": {
+    "0.115.2": {
+      "requires": {
+        "pydantic": ">=2.0.0"
+      },
+      "conflicts": {
+        "redis": "<6.0.0"
+      }
+    }
+  },
+  "python": {
+    "3.13": {
+      "conflicts": {
+        "pydantic": "<2.0.0"
+      }
+    }
+  }
+}

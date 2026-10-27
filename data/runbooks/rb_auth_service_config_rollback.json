@@ -1,0 +1,25 @@
+{
+    "runbook_id": "RB-AUTH-SERVICE-CONFIG-ROLLBACK",
+    "incident_id": "INC-2026-08-27-007",
+    "summary": "auth-service began failing health checks after a config change altered the token-signing key rotation interval, but the process never crashed and recovered on its own once the config was reverted.",
+    "affected_components": [
+        "auth-service"
+    ],
+    "causal_chain": [
+        "CONFIG_CHANGE",
+        "HEALTH_CHECK_FAIL"
+    ],
+    "root_cause": "A config change set the token-signing key rotation interval too aggressively, causing intermittent signature validation failures on health check requests, without ever crashing the process.",
+    "fix": "Reverted the rotation interval config; no restart was required since the process remained healthy throughout.",
+    "fix_commands": [
+        "kubectl apply -f configs/auth-service-key-rotation.yaml -n prod"
+    ],
+    "occurred_at": "2025-01-14T08:30:00Z",
+    "tags": [
+        "auth-service",
+        "config-change",
+        "degraded",
+        "no-crash",
+        "key-rotation"
+    ]
+}

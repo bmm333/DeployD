@@ -1,0 +1,27 @@
+{
+    "runbook_id": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+    "incident_id": "INC-20250203-0027",
+    "summary": "search-service response times degraded severely and then began timing out after the elasticsearch-cluster ran out of heap memory under an unexpected traffic spike.",
+    "affected_components": [
+        "search-service",
+        "elasticsearch-cluster"
+    ],
+    "causal_chain": [
+        "RESOURCE_EXHAUSTION",
+        "DEPENDENCY_FAILURE",
+        "DEPENDENCY_FAILURE"
+    ],
+    "root_cause": "elasticsearch-cluster nodes hit JVM heap limits during a traffic spike, causing garbage collection pauses long enough that search-service's client timeouts triggered cascading retries, worsening the load.",
+    "fix": "Increased elasticsearch heap allocation, added circuit breaking on search-service's client to stop retry storms, and added heap-usage alerting.",
+    "fix_commands": [
+        "kubectl scale statefulset/elasticsearch-cluster --replicas=5 -n prod"
+    ],
+    "occurred_at": "2025-02-03T13:17:00Z",
+    "tags": [
+        "elasticsearch",
+        "heap-exhaustion",
+        "cascading-failure",
+        "search-service",
+        "retry-storm"
+    ]
+}

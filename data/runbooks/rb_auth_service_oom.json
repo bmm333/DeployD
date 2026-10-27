@@ -1,0 +1,25 @@
+{
+    "runbook_id": "RB-AUTH-SERVICE-OOMKILL",
+    "incident_id": "INC-2026-08-27-001",
+    "summary": "auth-service pods OOMKILLed repeatedly after v2.3.1 deploy due to a memory leak in the session cache",
+    "affected_components": [
+        "auth-service"
+    ],
+    "causal_chain": [
+        "DEPLOY_STARTED",
+        "RESOURCE_EXHAUSTION",
+        "PROCESS_CRASH"
+    ],
+    "root_cause": "Memory leak in auth-service v2.3.1 session cache — entries were never evicted, causing gradual memory growth until OOMKill.",
+    "fix": "Rolled back auth-service to v2.2.9 and applied a bounded LRU cache patch in v2.3.2.",
+    "fix_commands": [
+        "kubectl rollout undo deployment/auth-service -n prod"
+    ],
+    "occurred_at": "2026-08-27T14:02:00Z",
+    "tags": [
+        "memory-leak",
+        "oomkill",
+        "auth-service",
+        "deploy-regression"
+    ]
+}

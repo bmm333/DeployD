@@ -1,0 +1,464 @@
+{
+  "notes": [
+    "Trigger as in the API on develop: an investigation starts when the incident is CRITICAL (2+ hop causal chain).",
+    "'without_topology' replays the same events with a topology where every component calls every other, i.e. the correlation rules before the DID-22 fix.",
+    "The agent is a stub citing the best candidate: FULL means the gate let the LLM in."
+  ],
+  "scenarios": [
+    {
+      "before_cosine_fix": {
+        "best_score": 0.6181600213050842,
+        "gate_open": true
+      },
+      "best_score": 0.671580010652542,
+      "causal_edges": 2,
+      "decision": "FULL",
+      "expected": "FULL",
+      "expected_rank": 1,
+      "expected_runbook": "RB-AUTH-SERVICE-OOMKILL",
+      "scenario": "live_oom_auth_service",
+      "severity": "Critical",
+      "top_candidate": "RB-AUTH-SERVICE-OOMKILL",
+      "without_topology": {
+        "causal_edges": 3,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.5986228704452514,
+        "gate_open": true
+      },
+      "best_score": 0.6743114352226257,
+      "causal_edges": 2,
+      "decision": "FULL",
+      "expected": "FULL",
+      "expected_rank": 1,
+      "expected_runbook": "RB-PAYMENT-DB-TIMEOUT",
+      "scenario": "live_payment_db_timeout",
+      "severity": "Critical",
+      "top_candidate": "RB-PAYMENT-DB-TIMEOUT",
+      "without_topology": {
+        "causal_edges": 2,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.6336149573326111,
+        "gate_open": true
+      },
+      "best_score": 0.7418074786663055,
+      "causal_edges": 2,
+      "decision": "FULL",
+      "expected": "FULL",
+      "expected_rank": 1,
+      "expected_runbook": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+      "scenario": "live_search_es_cascade",
+      "severity": "Critical",
+      "top_candidate": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+      "without_topology": {
+        "causal_edges": 2,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.3,
+        "gate_open": false
+      },
+      "best_score": 0.3063114285469055,
+      "causal_edges": 2,
+      "decision": "CHAIN_ONLY",
+      "expected": "CHAIN_ONLY",
+      "expected_rank": null,
+      "expected_runbook": null,
+      "scenario": "live_novel_analytics_db",
+      "severity": "Critical",
+      "top_candidate": "RB-SEARCH-SERVICE-DEPENDENCY-CASCADE",
+      "without_topology": {
+        "causal_edges": 2,
+        "decision": "CHAIN_ONLY",
+        "severity": "Critical"
+      }
+    },
+    {
+      "causal_edges": 1,
+      "decision": "NO_TRIGGER",
+      "expected": "NO_TRIGGER",
+      "scenario": "live_degrading_no_trigger",
+      "severity": "Degrading",
+      "without_topology": {
+        "causal_edges": 1,
+        "decision": "NO_TRIGGER",
+        "severity": "Degrading"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.5169930458068848,
+        "gate_open": true
+      },
+      "best_score": 0.6834965229034424,
+      "causal_edges": 12,
+      "decision": "FULL",
+      "expected": "FULL",
+      "expected_rank": 1,
+      "expected_runbook": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+      "scenario": "live_ec2_os_upgrade",
+      "severity": "Critical",
+      "top_candidate": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+      "without_topology": {
+        "causal_edges": 12,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.374424598671009,
+        "gate_open": false
+      },
+      "best_score": 0.5403140764008063,
+      "causal_edges": 4,
+      "decision": "FULL",
+      "expected": "FULL",
+      "expected_rank": 1,
+      "expected_runbook": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+      "scenario": "live_ec2_single_instance",
+      "severity": "Critical",
+      "top_candidate": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+      "without_topology": {
+        "causal_edges": 4,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    },
+    {
+      "before_cosine_fix": {
+        "best_score": 0.15,
+        "gate_open": false
+      },
+      "best_score": 0.22675431966781617,
+      "causal_edges": 0,
+      "decision": "CHAIN_ONLY",
+      "expected": "FULL",
+      "expected_rank": 3,
+      "expected_runbook": "RB-INVENTORY-DISK-FULL",
+      "scenario": "live_disk_full_single_instance",
+      "severity": "Degrading",
+      "top_candidate": "RB-AUTH-SERVICE-OOMKILL",
+      "without_topology": {
+        "causal_edges": 0,
+        "decision": "CHAIN_ONLY",
+        "severity": "Degrading"
+      }
+    },
+    {
+      "causal_edges": 5,
+      "decision": "NO_TRIGGER",
+      "expected": "CHAIN_ONLY",
+      "scenario": "live_dns_failure",
+      "severity": "Degrading",
+      "without_topology": {
+        "causal_edges": 5,
+        "decision": "NO_TRIGGER",
+        "severity": "Degrading"
+      }
+    },
+    {
+      "causal_edges": 1,
+      "decision": "NO_TRIGGER",
+      "expected": "NO_TRIGGER",
+      "scenario": "synthetic_false_causality",
+      "severity": "Degrading",
+      "without_topology": {
+        "causal_edges": 2,
+        "decision": "FULL",
+        "severity": "Critical"
+      }
+    }
+  ],
+  "status": "completed",
+  "threshold": 0.5,
+  "threshold_sweep": [
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "FULL",
+        "live_ec2_single_instance": "FULL",
+        "live_novel_analytics_db": "FULL",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 7,
+      "llm_allowed": {
+        "f1": 0.8333333333333334,
+        "fn": 1,
+        "fp": 1,
+        "precision": 0.8333333333333334,
+        "recall": 0.8333333333333334,
+        "tn": 3,
+        "tp": 5
+      },
+      "threshold": 0.3
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "FULL",
+        "live_ec2_single_instance": "FULL",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 8,
+      "llm_allowed": {
+        "f1": 0.9090909090909091,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.8333333333333334,
+        "tn": 4,
+        "tp": 5
+      },
+      "threshold": 0.35
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "FULL",
+        "live_ec2_single_instance": "FULL",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 8,
+      "llm_allowed": {
+        "f1": 0.9090909090909091,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.8333333333333334,
+        "tn": 4,
+        "tp": 5
+      },
+      "threshold": 0.4
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "FULL",
+        "live_ec2_single_instance": "FULL",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 8,
+      "llm_allowed": {
+        "f1": 0.9090909090909091,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.8333333333333334,
+        "tn": 4,
+        "tp": 5
+      },
+      "threshold": 0.45
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "FULL",
+        "live_ec2_single_instance": "FULL",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 8,
+      "llm_allowed": {
+        "f1": 0.9090909090909091,
+        "fn": 1,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.8333333333333334,
+        "tn": 4,
+        "tp": 5
+      },
+      "threshold": 0.5
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "FULL",
+        "live_ec2_single_instance": "CHAIN_ONLY",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 7,
+      "llm_allowed": {
+        "f1": 0.8,
+        "fn": 2,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "tn": 4,
+        "tp": 4
+      },
+      "threshold": 0.55
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "FULL",
+        "live_ec2_single_instance": "CHAIN_ONLY",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 7,
+      "llm_allowed": {
+        "f1": 0.8,
+        "fn": 2,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "tn": 4,
+        "tp": 4
+      },
+      "threshold": 0.6
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "FULL",
+        "live_ec2_single_instance": "CHAIN_ONLY",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "FULL",
+        "live_payment_db_timeout": "FULL",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 7,
+      "llm_allowed": {
+        "f1": 0.8,
+        "fn": 2,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "tn": 4,
+        "tp": 4
+      },
+      "threshold": 0.65
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "CHAIN_ONLY",
+        "live_ec2_single_instance": "CHAIN_ONLY",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "CHAIN_ONLY",
+        "live_payment_db_timeout": "CHAIN_ONLY",
+        "live_search_es_cascade": "FULL",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 4,
+      "llm_allowed": {
+        "f1": 0.2857142857142857,
+        "fn": 5,
+        "fp": 0,
+        "precision": 1.0,
+        "recall": 0.16666666666666666,
+        "tn": 4,
+        "tp": 1
+      },
+      "threshold": 0.7
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "CHAIN_ONLY",
+        "live_ec2_single_instance": "CHAIN_ONLY",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "CHAIN_ONLY",
+        "live_payment_db_timeout": "CHAIN_ONLY",
+        "live_search_es_cascade": "CHAIN_ONLY",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 3,
+      "llm_allowed": {
+        "f1": 0.0,
+        "fn": 6,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tn": 4,
+        "tp": 0
+      },
+      "threshold": 0.75
+    },
+    {
+      "decisions": {
+        "live_degrading_no_trigger": "NO_TRIGGER",
+        "live_disk_full_single_instance": "CHAIN_ONLY",
+        "live_dns_failure": "NO_TRIGGER",
+        "live_ec2_os_upgrade": "CHAIN_ONLY",
+        "live_ec2_single_instance": "CHAIN_ONLY",
+        "live_novel_analytics_db": "CHAIN_ONLY",
+        "live_oom_auth_service": "CHAIN_ONLY",
+        "live_payment_db_timeout": "CHAIN_ONLY",
+        "live_search_es_cascade": "CHAIN_ONLY",
+        "synthetic_false_causality": "NO_TRIGGER"
+      },
+      "exact_decisions": 3,
+      "llm_allowed": {
+        "f1": 0.0,
+        "fn": 6,
+        "fp": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tn": 4,
+        "tp": 0
+      },
+      "threshold": 0.8
+    }
+  ]
+}

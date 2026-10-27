@@ -1,0 +1,183 @@
+"""Use case: Live Investigation."""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
+from dataclasses import asdict, is_dataclass
+from datetime import timedelta
+
+from deployd.application.dtos.diagnosis import DiagnosisTier
+from deployd.application.dtos.investigation_request import InvestigationRequest
+from deployd.application.dtos.live_investigation_result import LiveInvestigationResult
+from deployd.application.orchestrators.investigation_orchestrator import (
+    UNVERIFIABLE_ANSWER,
+    InvestigationOrchestrator,
+)
+from deployd.application.ports.retrieval_port import RetrievalPort
+from deployd.domain.causal.causal_engine import CausalEngine
+from deployd.domain.entities.core_event import CoreEventType
+from deployd.domain.graph.graph import IncidentGraph
+from deployd.domain.graph.node import GraphNode
+from deployd.domain.health.process_health import ProcessHealthFSM
+from deployd.domain.health.process_state import ProcessHealthStatus
+
+log = logging.getLogger(__name__)
+
+_AGENT_FAILED_SUMMARY = (
+    "The gate allowed a grounded diagnosis, but the agent could not produce a "
+    "validated answer. Showing the deterministic evidence instead."
+)
+
+
+class LiveInvestigation:
+    """Use case: run the three-tier gate on a snapshot of the live incident graph.
+
+    Builds the request (longest causal chain, FSM state, hybrid retrieval) and
+    runs the orchestrator.  ``agent_errors`` are the exceptions the composition
+    root expects from the concrete agent (the application layer cannot import
+    them): they become ``llm_error`` and the result falls back to the
+    deterministic evidence (fail-closed).  Anything else is a bug and propagates.
+    """
+
+    def __init__(
+        self,
+        retriever: RetrievalPort,
+        orchestrator: InvestigationOrchestrator,
+        agent_errors: tuple[type[Exception], ...] = (RuntimeError, TypeError, ValueError),
+        fsm_recovery_window_s: int = 300,
+        fsm_max_restarts: int = 3,
+        fsm_restart_window_s: int = 120,
+    ) -> None:
+        self._retriever = retriever
+        self._orchestrator = orchestrator
+        self._agent_errors = agent_errors
+        self._fsm_recovery_window_s = fsm_recovery_window_s
+        self._fsm_max_restarts = fsm_max_restarts
+        self._fsm_restart_window_s = fsm_restart_window_s
+
+    def execute(
+        self,
+        graph: IncidentGraph,
+        on_start: Callable[[str, int], None] | None = None,
+        focus: str | None = None,
+    ) -> LiveInvestigationResult | None:
+        """Run the investigation, or return ``None`` when the graph has no causal chain.
+
+        ``on_start(component, hops)`` is called once the chain is known, before
+        retrieval and the (possibly slow) agent run. ``focus`` is the component that
+        triggered the investigation (a crash): its chains win over a longer chain
+        elsewhere in the incident.
+        """
+        chain = self._longest_chain(graph, focus)
+        if not chain:
+            return None
+
+        component = chain[0].event.related_component or "unknown-component"
+        if on_start is not None:
+            on_start(component, len(chain) - 1)
+
+        chain_types = tuple(n.event.event_type.value for n in chain)
+        components = frozenset(
+            n.event.related_component for n in chain if n.event.related_component
+        )
+        query = f"{component}: " + "; ".join(
+            n.event.description or n.event.event_type.value for n in chain
+        )
+
+        retrieval, breakdown = self._retriever.retrieve_scored(
+            query, causal_chain=chain_types, components=components
+        )
+        request = InvestigationRequest(
+            component=component,
+            graph=graph,
+            fsm_state=self._fsm_state(graph, component),
+            retrieval_result=retrieval,
+        )
+
+        agent_available = self._orchestrator.agent_available
+        result = None
+        llm_error = None
+        try:
+            result = self._orchestrator.run(request)
+            tier = result.tier
+        except self._agent_errors as exc:
+            # Only Tier 3 can raise: the gate passed but the agent failed.
+            log.exception("Tier-3 agent run failed")
+            tier = DiagnosisTier.FULL
+            llm_error = str(exc) if agent_available else None
+
+        return LiveInvestigationResult(
+            component=component,
+            query=query,
+            tier=tier,
+            chain=chain_types,
+            chain_components=self._investigated_components(chain),
+            rules_fired=tuple(self._chain_rules(graph, chain)),
+            candidates=retrieval.candidates,
+            threshold=retrieval.confidence_threshold,
+            breakdown={
+                rid: asdict(scores) if is_dataclass(scores) else scores
+                for rid, scores in breakdown.items()
+            },
+            diagnosis=result.structured_diagnosis if result else None,
+            llm_usage=(self._orchestrator.last_token_usage if tier is DiagnosisTier.FULL else None),
+            llm_error=llm_error,
+            # The gate passed, the agent answered, the orchestrator withheld it (fail-closed).
+            answer_discarded=(
+                UNVERIFIABLE_ANSWER
+                if result
+                and tier is DiagnosisTier.FULL
+                and agent_available
+                and result.structured_diagnosis is None
+                else None
+            ),
+            agent_available=agent_available,
+            summary=result.remediation.summary if result else _AGENT_FAILED_SUMMARY,
+        )
+
+    @staticmethod
+    def _investigated_components(chain: list[GraphNode]) -> tuple[str, ...]:
+        """The chain's components in order, then the members a peer-divergence finding names:
+        investigating the finding covers every instance it is about."""
+        names = [n.event.related_component or "?" for n in chain]
+        for node in chain:
+            if node.event.event_type is CoreEventType.PEER_DIVERGENCE_DETECTED:
+                affected = node.event.metadata.get("affected")
+                if isinstance(affected, list):
+                    names += [m for m in map(str, affected) if m not in names]
+        return tuple(names)
+
+    def _longest_chain(self, graph: IncidentGraph, focus: str | None) -> list[GraphNode]:
+        engine = CausalEngine(graph)
+        chains = [c for root in graph.get_root_nodes() for c in engine.causal_chain(root.node_id)]
+        if focus is not None:
+            chains = [
+                c for c in chains if any(n.event.related_component == focus for n in c)
+            ] or chains
+        # Equal chains: the most recent, not the first one the graph happens to list.
+        return max(chains, key=lambda c: (len(c), c[-1].event.timestamp), default=[])
+
+    def _chain_rules(self, graph: IncidentGraph, chain: list[GraphNode]) -> list[str]:
+        rules: list[str] = []
+        for src, dst in zip(chain, chain[1:], strict=False):
+            edge = next(
+                (e for e in graph.outgoing_edges(src.node_id) if e.target == dst.node_id), None
+            )
+            if edge is not None:
+                rules.append(edge.rule_id or edge.edge_type.value)
+        return rules
+
+    def _fsm_state(self, graph: IncidentGraph, component: str) -> ProcessHealthStatus:
+        fsm = ProcessHealthFSM(
+            recovery_window=timedelta(seconds=self._fsm_recovery_window_s),
+            max_restart_count=self._fsm_max_restarts,
+            restart_time_window=timedelta(seconds=self._fsm_restart_window_s),
+        )
+        events = sorted(
+            (n.event for n in graph.nodes if n.event.related_component == component),
+            key=lambda e: e.timestamp,
+        )
+        for event in events:
+            fsm.process_event(event)
+        return fsm.state

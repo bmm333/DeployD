@@ -1,0 +1,101 @@
+"""
+DID-2
+CoreEvent is the domain rappresentation of an observed event. Every external adapter must
+translate their specific formats into core event before entering domain.
+Domain never depends on any external or any infra awarnes. CoreEvent can speak only in domain semantics.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone  # noqa: TCH003
+from enum import Enum
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+class CoreEventType(str, Enum):
+    """
+    Domain level event semantic
+    Rappresents what happend, not how it was observed
+    `segmentation fault(core dumped)` is a log msg
+    PROCESS_CRASH is our domain concept
+    """
+
+    # Deployment lifecycle
+    DEPLOY_STARTED = "DEPLOY_STARTED"
+    DEPLOY_COMPLETED = "DEPLOY_COMPLETED"
+    DEPLOY_FAILED = "DEPLOY_FAILED"
+    # Process failures
+    PROCESS_CRASH = "PROCESS_CRASH"
+    DEPENDENCY_FAILURE = "DEPENDENCY_FAILURE"
+    RESOURCE_EXHAUSTION = "RESOURCE_EXHAUSTION"
+    # Infra state
+    CONFIG_CHANGE = "CONFIG_CHANGE"
+    CONNECTIVITY_LOSS = "CONNECTIVITY_LOSS"
+    STATE_CHANGE = "STATE_CHANGE"
+    HEALTH_CHECK_FAIL = "HEALTH_CHECK_FAIL"
+    HEALTH_CHECK_PASS = "HEALTH_CHECK_PASS"
+    # Human triggered
+    HUMAN_OBSERVATION = "HUMAN_OBSERVATION"
+    # Detection-derived (DID-9): inferred by a DetectionRule from evidence + reference
+    # data, not observed directly by an adapter.
+    CONFIG_DRIFT_DETECTED = "CONFIG_DRIFT_DETECTED"
+    # Peer divergence (DID-42): some members of a peer group fail and the others do not,
+    # and the only change that separates the two groups is named in the description.
+    PEER_DIVERGENCE_DETECTED = "PEER_DIVERGENCE_DETECTED"
+    # Change contrast (DID-48): an entity without peers is compared with itself over time.
+    CHANGE_CONTRAST_DETECTED = "CHANGE_CONTRAST_DETECTED"
+    # Not an observation of the world: a record of the changes in force at a failure, kept
+    # for hours so that the entity can be compared with itself (DID-48).
+    SYMPTOM_OBSERVED = "SYMPTOM_OBSERVED"
+
+
+# Events that record something being changed. A change can precede its effect by hours, so
+# the event window keeps these longer than symptoms (DID-42).
+CHANGE_EVENT_TYPES: frozenset[CoreEventType] = frozenset(
+    {
+        CoreEventType.DEPLOY_STARTED,
+        CoreEventType.DEPLOY_COMPLETED,
+        CoreEventType.DEPLOY_FAILED,
+        CoreEventType.CONFIG_CHANGE,
+    }
+)
+
+# What the window keeps for hours: the changes, and the record of the changes in force at
+# each failure (DID-48).
+LONG_LIVED_EVENT_TYPES: frozenset[CoreEventType] = CHANGE_EVENT_TYPES | {
+    CoreEventType.SYMPTOM_OBSERVED
+}
+
+
+class Severity(str, Enum):
+    """Domain understandment of serverity"""
+
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+
+class CoreEvent(BaseModel):  # type: ignore[misc]
+    """Immutable rappresentation of an event (domain rappresentation)
+    Events are facts not mutable states
+    """
+
+    model_config = ConfigDict(frozen=True)
+    event_id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    event_type: CoreEventType
+    timestamp: datetime
+    severity: Severity
+    related_component: str | None = None
+    description: str
+    metadata: dict[str, object] = Field(default_factory=dict)
+
+    @field_validator("timestamp")
+    @classmethod
+    def must_be_utc(cls, v: datetime) -> datetime:
+        """all time stamps must be timezone aware UTC."""
+        if v.tzinfo is None:
+            raise ValueError("Timestamp must be timezone-aware (UTC)")
+        return v.astimezone(timezone.utc)

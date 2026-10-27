@@ -1,0 +1,27 @@
+{
+    "runbook_id": "RB-BILLING-DEPLOY-REGRESSION",
+    "incident_id": "INC-20250309-0009",
+    "summary": "billing-service crashed and restarted repeatedly after a deploy introduced an unhandled exception in the invoice calculation path for a rare discount code combination.",
+    "affected_components": [
+        "billing-service"
+    ],
+    "causal_chain": [
+        "DEPLOY_STARTED",
+        "PROCESS_CRASH",
+        "STATE_CHANGE",
+        "PROCESS_CRASH",
+        "STATE_CHANGE"
+    ],
+    "root_cause": "A deploy shipped invoice calculation logic that threw an unhandled exception when two specific discount codes were combined, which happened rarely but consistently crashed the worker process handling that order.",
+    "fix": "Rolled back the deploy, added exception handling around discount combination logic, and added a regression test for that discount pair.",
+    "fix_commands": [
+        "kubectl rollout undo deployment/billing-service -n prod"
+    ],
+    "occurred_at": "2025-03-09T19:45:00Z",
+    "tags": [
+        "crash-loop",
+        "unhandled-exception",
+        "billing-service",
+        "deploy-regression"
+    ]
+}

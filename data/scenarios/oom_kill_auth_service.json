@@ -1,0 +1,40 @@
+{
+  "scenario_id": "oom-kill-auth-service",
+  "description": "OOMKill on auth-service after deploy — expected Tier 3 FULL",
+  "component": "auth-service",
+  "expected_tier": "FULL",
+  "retrieval_query": "auth-service OOMKill memory exhaustion process crash after deploy",
+  "events": [
+    {
+      "event_type": "DEPLOY_STARTED",
+      "severity": "INFO",
+      "timestamp_offset_seconds": 0,
+      "description": "Deploy v2.1.0 started on auth-service",
+      "metadata": {"version": "v2.1.0"}
+    },
+    {
+      "event_type": "DEPLOY_COMPLETED",
+      "severity": "INFO",
+      "timestamp_offset_seconds": 30,
+      "description": "Deploy v2.1.0 completed on auth-service",
+      "metadata": {"version": "v2.1.0"},
+      "causal_parent_index": 0
+    },
+    {
+      "event_type": "RESOURCE_EXHAUSTION",
+      "severity": "ERROR",
+      "timestamp_offset_seconds": 45,
+      "description": "Memory limit exceeded — OOMKill triggered on auth-service (512MB limit)",
+      "metadata": {"memory_mb": 512, "limit_mb": 512},
+      "causal_parent_index": 1
+    },
+    {
+      "event_type": "PROCESS_CRASH",
+      "severity": "CRITICAL",
+      "timestamp_offset_seconds": 47,
+      "description": "auth-service process killed by kernel OOM killer after memory exhaustion",
+      "metadata": {"exit_code": 137},
+      "causal_parent_index": 2
+    }
+  ]
+}

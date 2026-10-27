@@ -1,0 +1,25 @@
+{
+    "runbook_id": "RB-SHIPPING-NETWORK-PARTITION",
+    "incident_id": "INC-20250412-0015",
+    "summary": "shipping-service lost connectivity to shipping-db during a brief network partition between availability zones, causing order fulfillment requests to fail until connectivity was restored.",
+    "affected_components": [
+        "shipping-service",
+        "shipping-db"
+    ],
+    "causal_chain": [
+        "CONNECTIVITY_LOSS",
+        "DEPENDENCY_FAILURE"
+    ],
+    "root_cause": "A transient network partition between availability zones interrupted the link between shipping-service and shipping-db for roughly six minutes; the service had no retry/backoff logic and simply failed every request during that window.",
+    "fix": "Added exponential backoff retry logic for database connections and cross-AZ network monitoring alerts.",
+    "fix_commands": [
+        "kubectl rollout restart deployment/shipping-service -n prod"
+    ],
+    "occurred_at": "2025-04-12T22:03:00Z",
+    "tags": [
+        "network-partition",
+        "connectivity-loss",
+        "shipping-service",
+        "no-retry-logic"
+    ]
+}

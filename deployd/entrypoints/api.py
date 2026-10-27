@@ -1,0 +1,807 @@
+"""FastAPI HTTP entrypoint for the event ingestion pipeline.
+
+Investigations go through ``InvestigationOrchestrator`` — the three-tier gate.
+The LLM is reachable only when the incident graph holds a causal chain AND the
+hybrid retriever finds a historical runbook above threshold (Tier 3, FULL).
+Follow-up chat reuses that grounded agent session; for Tier 1/2 investigations
+the chat answers deterministically and never calls the LLM.
+"""
+
+from __future__ import annotations
+
+import copy
+import json
+import logging
+import os
+import threading
+import uuid
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any, Literal
+
+import groq
+from agno.exceptions import AgnoError
+from deployd.adapters.incoming.http_event_adapter import HttpEventAdapter, RawTelemetryEvent
+from deployd.adapters.outgoing.ai.agno_agent import MAX_FOLLOW_UP_TURNS, AgnoGroqAgent
+from deployd.adapters.outgoing.ai.tool_models import (
+    QUERY_MAX_CHARS,
+    QUERY_MIN_CHARS,
+    ComponentInput,
+    DependencyCheckResult,
+)
+from deployd.adapters.outgoing.registry.json_component_repository import (
+    JSONComponentRepository,
+)
+from deployd.adapters.outgoing.registry.json_topology import load_topology
+from deployd.adapters.outgoing.vector_store.bm25_index import BM25RunbookIndex
+from deployd.adapters.outgoing.vector_store.chroma_client import ChromaRunbookClient
+from deployd.adapters.outgoing.vector_store.graph_index import GraphIndex
+from deployd.adapters.outgoing.vector_store.graph_store import GraphStore, RunbookStructure
+from deployd.adapters.outgoing.vector_store.hybrid_retriever import HybridRetriever
+from deployd.adapters.outgoing.vector_store.runbook_repository import JSONRunbookRepository
+from deployd.application.dtos.diagnosis import DiagnosisTier
+from deployd.application.orchestrators.investigation_orchestrator import (
+    InvestigationOrchestrator,
+)
+from deployd.application.ports.retrieval_port import RetrievalPort
+from deployd.application.use_cases.correlate_events import (
+    CorrelateEventsUseCase,
+    compute_incident_severity,
+)
+from deployd.application.use_cases.incident_lifecycle import (
+    GetIncidentUseCase,
+    IncidentLifecycleUseCase,
+    ListIncidentsUseCase,
+)
+from deployd.application.use_cases.live_investigation import LiveInvestigation
+from deployd.domain.causal.config import CorrelationConfig
+from deployd.domain.entities.human_decision import DecisionValue, HumanDecision
+from deployd.domain.graph.graph import IncidentGraph
+from deployd.domain.health.tracker import ComponentHealthTracker
+from deployd.entrypoints.decision_trace import build_decision_trace
+from deployd.entrypoints.read_models import RunbookMatch, RunbookMatches
+from deployd.infrastructure.persistence.sqlite_incident_repository import (
+    SQLiteIncidentRepository,
+)
+from deployd.infrastructure.streaming.sliding_window import SlidingWindow
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, ValidationError
+
+log = logging.getLogger(__name__)
+
+# Errors an LLM run can raise: model/provider failures, missing agent, invalid
+# structured output.  The investigation fails closed on any of them.
+_AGENT_ERRORS = (AgnoError, groq.GroqError, RuntimeError, TypeError, ValueError)
+
+# FSM parameters — same defaults as ComponentHealthTracker.
+_FSM_RECOVERY_WINDOW = timedelta(seconds=300)
+_FSM_MAX_RESTARTS = 3
+_FSM_RESTART_WINDOW = timedelta(seconds=120)
+
+
+def _repo_root() -> Path:
+    """Walk up from this file to find the repo root (contains pyproject.toml)."""
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / "pyproject.toml").exists():
+            return parent
+    raise RuntimeError("Could not locate repo root (no pyproject.toml in ancestors)")
+
+
+_DATA_DIR = _repo_root() / "data"
+
+# Persistence
+_incident_repo = SQLiteIncidentRepository()
+_lifecycle = IncidentLifecycleUseCase(_incident_repo)
+_list_incidents = ListIncidentsUseCase(_incident_repo)
+_get_incident = GetIncidentUseCase(_incident_repo)
+
+# In-memory pipeline
+_state_lock = threading.Lock()
+_chat_lock = threading.Lock()
+_graph = IncidentGraph()
+with (_DATA_DIR / "correlation_config.json").open(encoding="utf-8") as f:
+    _config = CorrelationConfig(**json.load(f))
+
+_window = SlidingWindow(
+    window_seconds=300, change_retention_seconds=_config.change_lookback_seconds
+)
+
+_topology = load_topology(_DATA_DIR / "components.json")
+_registry = JSONComponentRepository(
+    components_file=_DATA_DIR / "components.json",
+    constraints_file=_DATA_DIR / "compatibility_constraints.json",
+)
+_correlate = CorrelateEventsUseCase(
+    graph=_graph, event_window=_window, config=_config, topology=_topology
+)
+_adapter = HttpEventAdapter()
+
+
+def _new_health_tracker() -> ComponentHealthTracker:
+    return ComponentHealthTracker(
+        fsm_recovery_window_s=int(_FSM_RECOVERY_WINDOW.total_seconds()),
+        fsm_max_restarts=_FSM_MAX_RESTARTS,
+        fsm_restart_window_s=int(_FSM_RESTART_WINDOW.total_seconds()),
+    )
+
+
+_health_tracker = _new_health_tracker()
+
+# Investigation state
+# Chat messages are flat str→str dicts so they persist as Incident.chat_history.
+# Keys: role (user|agent|system), kind (user|event|diagnosis|followup|
+# deterministic|gate|error), content, plus kind-specific extras.
+_chat_history: list[dict[str, str]] = []
+_decision_trace: dict[str, Any] | None = None
+_session: dict[str, Any] | None = None  # grounded agent session (Tier 3 only)
+# The agent answer under human review (DID-38): version, what it proposed, and
+# status pending | approved | revising | closed.
+_review: dict[str, Any] | None = None
+_investigating = False
+_auto_diagnosed_incident_id: str | None = None
+
+
+# Retrieval + agent (built lazily: embedding model and LLM client are heavy)
+
+
+@dataclass
+class _RetrievalStack:
+    retriever: RetrievalPort
+    chroma: ChromaRunbookClient
+    repo: JSONRunbookRepository
+
+
+_retrieval: _RetrievalStack | None = None
+_agent: AgnoGroqAgent | None = None
+# Re-entrant: _get_agent() builds the retrieval stack while holding it.
+_init_lock = threading.RLock()
+
+
+def _get_retrieval() -> _RetrievalStack:
+    global _retrieval  # noqa: PLW0603
+    with _init_lock:
+        if _retrieval is None:
+            repo = JSONRunbookRepository(_DATA_DIR / "runbooks")
+            runbooks = repo.list_all()
+            chroma = ChromaRunbookClient(persist_directory=str(_DATA_DIR / "chroma"))
+            for rb in runbooks:  # upsert: idempotent, keeps the index in sync with the JSON
+                chroma.index_runbook(rb.runbook_id, rb.summary, {"tags": ",".join(rb.tags)})
+            bm25 = BM25RunbookIndex()
+            bm25.build([(rb.runbook_id, rb.summary) for rb in runbooks])
+            store = GraphStore()
+            for rb in runbooks:
+                store.add(
+                    RunbookStructure(
+                        runbook_id=rb.runbook_id,
+                        causal_chain=tuple(rb.causal_chain),
+                        affected_components=frozenset(rb.affected_components),
+                    )
+                )
+            retriever = HybridRetriever(chroma=chroma, bm25=bm25, graph_index=GraphIndex(store))
+            _retrieval = _RetrievalStack(retriever=retriever, chroma=chroma, repo=repo)
+    return _retrieval
+
+
+def _get_agent() -> AgnoGroqAgent | None:
+    """The Tier-3 agent, or None when GROQ_API_KEY is not configured."""
+    global _agent  # noqa: PLW0603
+    if not os.getenv("GROQ_API_KEY", "").strip():
+        return None
+    with _init_lock:
+        if _agent is None:
+            stack = _get_retrieval()
+            _agent = AgnoGroqAgent(
+                chroma_client=stack.chroma,
+                runbook_repo=stack.repo,
+                component_registry=_registry,
+                model_id=os.getenv("DEPLOYD_GROQ_MODEL", "").strip() or AgnoGroqAgent.MODEL_ID,
+            )
+    return _agent
+
+
+# Graph helpers
+
+
+def _graph_snapshot() -> dict[str, Any]:
+    return {
+        "nodes": [
+            {
+                "id": str(node.node_id),
+                "label": node.event.description,
+                "type": node.event.event_type.value,
+                "severity": node.event.severity.value,
+                "source": node.event.related_component,
+                "timestamp": node.event.timestamp.isoformat(),
+            }
+            for node in _graph.nodes
+        ],
+        "edges": [
+            {
+                "source": str(edge.source),
+                "target": str(edge.target),
+                "relationship": edge.edge_type.value,
+                "confidence": edge.confidence,
+                "rule_id": edge.rule_id,
+            }
+            for edge in _graph.edges
+        ],
+    }
+
+
+def _provider_hint(detail: str) -> str:
+    if "rate_limit" in detail or "Request too large" in detail:
+        return "The LLM provider rate limit was hit — wait a minute and try again."
+    return "The LLM provider returned an error."
+
+
+# Chat helpers
+
+
+def _post(role: str, kind: str, content: str, **extra: str) -> None:
+    _chat_history.append({"role": role, "kind": kind, "content": content, **extra})
+
+
+def _persist_chat() -> None:
+    current = _incident_repo.get_current()
+    if current is None:
+        return
+    current.chat_history = list(_chat_history)
+    if _decision_trace is not None:
+        current.decision_trace = copy.deepcopy(_decision_trace)
+    if current.root_cause_summary is None:
+        summary = next(
+            (m["content"] for m in _chat_history if m["kind"] in ("diagnosis", "deterministic")),
+            None,
+        )
+        if summary:
+            current.root_cause_summary = summary[:300]
+    _incident_repo.save(current)
+
+
+# App
+
+app = FastAPI(title="DeployD API", version="1.0.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# Event ingestion
+
+
+@app.post("/api/v1/events", status_code=200)  # type: ignore[misc]
+def receive_event(raw: RawTelemetryEvent, background_tasks: BackgroundTasks) -> dict[str, Any]:
+    global _auto_diagnosed_incident_id  # noqa: PLW0603
+    try:
+        core_event = _adapter.translate(raw)
+        with _state_lock:
+            _correlate.ingest(core_event)
+            incident = _lifecycle.ensure_open(core_event)
+            _lifecycle.update_severity(core_event.severity)
+
+            # Two triggers (ADR-010): a 2+ hop causal chain, or a component of this
+            # incident that the health FSM sees crashing (DID-20). Crashes are not
+            # graph nodes, so a crash elsewhere must not start an investigation of
+            # an unrelated chain. One investigation per incident.
+            crashing, fsm_state, _ = _health_tracker.process_event(core_event)
+            in_incident = any(
+                n.event.related_component == core_event.related_component for n in _graph.nodes
+            )
+            focus = None
+            if compute_incident_severity(_graph) == "Critical":
+                reason = "the incident reached CRITICAL"
+            elif crashing and in_incident:
+                reason = f"{core_event.related_component} is {fsm_state.value}"
+                focus = core_event.related_component  # investigate the crashing component
+            else:
+                reason = None
+            if reason and _auto_diagnosed_incident_id != str(incident.id):
+                _auto_diagnosed_incident_id = str(incident.id)
+                background_tasks.add_task(_run_investigation, str(incident.id), reason, focus)
+
+            return {
+                "status": "ok",
+                "event_id": str(core_event.event_id),
+                "provisional_severity": core_event.severity.value,
+                "incident_id": str(incident.id),
+            }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+# Live state
+
+
+@app.get("/api/v1/state")  # type: ignore[misc]
+def get_state() -> dict[str, Any]:
+    with _state_lock:
+        current = _incident_repo.get_current()
+        return {
+            "tracker_status": compute_incident_severity(_graph),
+            "incident_id": str(current.id) if current else None,
+            "graphs": _graph_snapshot(),
+            "chat_history": list(_chat_history),
+            "decision_trace": _decision_trace,
+            "session": _session,
+            "review": dict(_review) if _review else None,
+            "investigating": _investigating,
+        }
+
+
+# Investigation (three-tier gate)
+
+
+def _run_investigation(target_incident_id: str, reason: str, focus: str | None = None) -> None:
+    """Run the three-tier gate on the live graph; the LLM is reached only in Tier 3."""
+    global _decision_trace, _session, _investigating, _review  # noqa: PLW0603
+
+    with _state_lock:
+        _investigating = True
+        graph_snapshot = copy.deepcopy(_graph)
+
+    try:
+        with _state_lock:
+            current = _incident_repo.get_current()
+            if not current or str(current.id) != target_incident_id:
+                return
+
+        stack = _get_retrieval()
+        agent = _get_agent()
+        use_case = LiveInvestigation(
+            retriever=stack.retriever,
+            orchestrator=InvestigationOrchestrator(agent=agent),
+            agent_errors=_AGENT_ERRORS,
+            fsm_recovery_window_s=int(_FSM_RECOVERY_WINDOW.total_seconds()),
+            fsm_max_restarts=_FSM_MAX_RESTARTS,
+            fsm_restart_window_s=int(_FSM_RESTART_WINDOW.total_seconds()),
+        )
+
+        def announce(component: str, hops: int) -> None:
+            with _state_lock:
+                current = _incident_repo.get_current()
+                if current and str(current.id) == target_incident_id:
+                    _post(
+                        "system",
+                        "event",
+                        f"Investigation triggered on **{component}**: {reason}, "
+                        f"{f'{hops}-hop causal chain' if hops else 'no causal chain yet'}. "
+                        "Running the three-tier gate…",
+                    )
+
+        result = use_case.execute(graph_snapshot, on_start=announce, focus=focus)
+        if not result:
+            return
+
+        with _state_lock:
+            # The incident may have been reset while the gate ran unlocked.
+            current = _incident_repo.get_current()
+            if not current or str(current.id) != target_incident_id:
+                return
+
+            llm_called = result.tier is DiagnosisTier.FULL and agent is not None
+            _decision_trace = build_decision_trace(
+                tier=result.tier,
+                component=result.component,
+                query=result.query,
+                chain=result.chain,
+                rules_fired=result.rules_fired,
+                candidates=result.candidates,
+                breakdown=result.breakdown,
+                threshold=result.threshold,
+                agent_available=result.agent_available,
+                llm_called=llm_called,
+                tokens_used=result.llm_usage,
+                llm_error=result.llm_error,
+                prompt_version=agent.prompt_version if agent else None,
+                model=agent.model_id if agent else None,
+                citations_removed=agent.last_removed_citations if agent else (),
+                chain_components=result.chain_components,
+                answer_discarded=result.answer_discarded,
+            )
+
+            if result.diagnosis is not None and agent is not None and agent.last_session_id:
+                _session = {
+                    "id": agent.last_session_id,
+                    "component": result.component,
+                    "turn": 0,
+                    "max_turns": MAX_FOLLOW_UP_TURNS,
+                }
+                _post(
+                    "agent",
+                    "diagnosis",
+                    result.diagnosis.root_cause,
+                    confidence=result.diagnosis.confidence,
+                    reasoning=result.diagnosis.reasoning,
+                    recommendation=result.diagnosis.recommendation,
+                    evidence=",".join(result.diagnosis.evidence_references),
+                    tokens=str(_decision_trace["tokens_used"] or ""),
+                    version="1",
+                )
+                _review = {
+                    "version": 1,
+                    "root_cause": result.diagnosis.root_cause,
+                    "recommendation": result.diagnosis.recommendation,
+                    "evidence": list(result.diagnosis.evidence_references),
+                    "status": "pending",
+                }
+            else:
+                reason = (
+                    _provider_hint(result.llm_error)
+                    if result.llm_error
+                    else result.answer_discarded or _decision_trace["reason_llm_skipped"] or ""
+                )
+                _post(
+                    "agent",
+                    "deterministic",
+                    result.summary,
+                    tier=result.tier.value,
+                    chain=" → ".join(
+                        f"{event_type} ({component})"
+                        for event_type, component in zip(
+                            result.chain, result.chain_components, strict=True
+                        )
+                    ),
+                    reason=reason,
+                )
+            _persist_chat()
+    finally:
+        with _state_lock:
+            _investigating = False
+
+
+# Chat (multi-turn, grounded session only)
+
+
+class _ChatRequest(BaseModel):
+    prompt: str
+
+
+@app.post("/api/v1/chat")  # type: ignore[misc]
+def chat(request: _ChatRequest) -> dict[str, str]:
+    """Follow-up question.  Sync on purpose: FastAPI runs it in a worker thread,
+    so a slow LLM call does not block ``/state`` polling."""
+    prompt = request.prompt.strip()
+    if not prompt:
+        raise HTTPException(status_code=422, detail="Empty prompt")
+
+    with _chat_lock:
+        with _state_lock:
+            _post("user", "user", prompt)
+
+            if _investigating:
+                _post("system", "gate", "An investigation is running — ask again in a moment.")
+                _persist_chat()
+                return {"status": "ok"}
+            elif _decision_trace is None:
+                _post(
+                    "system",
+                    "gate",
+                    "No investigation yet. DeployD opens one automatically when the incident "
+                    "reaches CRITICAL. Until then there is no evidence to ground an answer, "
+                    "so the LLM is not called.",
+                )
+                _persist_chat()
+                return {"status": "ok"}
+            elif _session is None and _decision_trace["llm_error"]:
+                _post(
+                    "system",
+                    "error",
+                    "The gate allowed the agent for this investigation, but the grounded diagnosis "
+                    f"failed, so there is no agent session to continue. "
+                    f"{_provider_hint(_decision_trace['llm_error'])}",
+                )
+                _persist_chat()
+                return {"status": "ok"}
+            elif _session is None and _decision_trace.get("answer_discarded"):
+                _post(
+                    "system",
+                    "gate",
+                    "The agent's answer for this investigation was discarded "
+                    f"({_decision_trace['answer_discarded']}), so there is no agent session to "
+                    "continue. The causal chain above is the verified result.",
+                )
+                _persist_chat()
+                return {"status": "ok"}
+            elif _session is None:
+                _post(
+                    "system",
+                    "gate",
+                    f"This investigation is **{_decision_trace['tier']}** "
+                    f"({_decision_trace['reason_llm_skipped']}). "
+                    "Follow-up with the agent is only available for grounded (FULL) "
+                    "investigations, so the LLM is not called.",
+                )
+                _persist_chat()
+                return {"status": "ok"}
+
+            session_snapshot = _session.copy()
+            current_incident = _incident_repo.get_current()
+            incident_id = str(current_incident.id) if current_incident else None
+
+        _answer_follow_up(prompt, session_snapshot, incident_id)
+
+    return {"status": "ok"}
+
+
+def _answer_follow_up(
+    prompt: str,
+    session: dict[str, Any],
+    target_incident_id: str | None,
+    revising: int | None = None,
+) -> None:
+    """Ask the agent on the open session; ``revising`` is the version an engineer rejected."""
+    global _review  # noqa: PLW0603
+    agent = _get_agent()
+    if agent is None:
+        with _state_lock:
+            _post("system", "gate", "The agent is no longer configured (GROQ_API_KEY missing).")
+            _persist_chat()
+        return
+    try:
+        answer = agent.follow_up(session["id"], prompt)
+    except _AGENT_ERRORS as exc:
+        log.exception("Follow-up failed")
+        with _state_lock:
+            _post("system", "error", f"{_provider_hint(str(exc))}\n\n`{str(exc)[:240]}`")
+            if revising and _review:
+                _review["status"] = "closed"
+            _persist_chat()
+        return
+
+    with _state_lock:
+        current_incident = _incident_repo.get_current()
+        if not current_incident or str(current_incident.id) != target_incident_id:
+            return
+
+        if _session and _session["id"] == session["id"]:
+            _session["turn"] = min(_session["turn"] + 1, _session["max_turns"])
+            extra = {"version": str(revising + 1)} if revising else {}
+            _post(
+                "agent",
+                "revision" if revising else "followup",
+                answer.root_cause,
+                confidence=answer.confidence,
+                evidence=",".join(answer.evidence_references),
+                turn=str(_session["turn"]),
+                tokens=str(agent.last_token_usage or ""),
+                **extra,
+            )
+            if revising:
+                _review = {
+                    "version": revising + 1,
+                    "root_cause": answer.root_cause,
+                    "recommendation": answer.root_cause,  # a revision answers in prose
+                    "evidence": list(answer.evidence_references),
+                    "status": "pending",
+                }
+            _persist_chat()
+
+
+# ── Human decision (DID-38) ───────────────────────────────────────────────────
+
+
+class _DecisionRequest(BaseModel):
+    decision: Literal["ACCEPT", "REJECT", "AMEND"]
+    engineer: str
+    comment: str | None = None
+    amended_recommendation: str | None = None
+
+
+def _decision_text(decision: HumanDecision) -> str:
+    if decision.decision is DecisionValue.REJECT:
+        return f"Rejected by **{decision.engineer_id}**: {decision.comment}"
+    if decision.decision is DecisionValue.AMEND:
+        return (
+            f"Approved by **{decision.engineer_id}** with an amended recommendation: "
+            f"{decision.amended_recommendation}"
+        )
+    return f"Approved by **{decision.engineer_id}**."
+
+
+@app.post("/api/v1/incidents/{incident_id}/decision")  # type: ignore[misc]
+def record_decision(incident_id: uuid.UUID, request: _DecisionRequest) -> dict[str, Any]:
+    """The engineer's verdict on the agent's latest answer.  Approving only records the
+    decision: DeployD never executes a recommendation.  A rejection goes back to the
+    agent as engineer context, and its revision is reviewed again."""
+    with _chat_lock:
+        with _state_lock:
+            current = _incident_repo.get_current()
+            if current is None or current.id != incident_id:
+                raise HTTPException(status_code=409, detail="Not the open incident")
+            if _review is None or _review["status"] != "pending" or _decision_trace is None:
+                raise HTTPException(status_code=409, detail="No agent answer awaits a decision")
+            try:
+                decision = HumanDecision(
+                    incident_id=incident_id,
+                    decision=DecisionValue(request.decision),
+                    engineer_id=request.engineer,
+                    timestamp=datetime.now(timezone.utc),
+                    root_cause=_review["root_cause"],
+                    recommendation=_review["recommendation"],
+                    comment=request.comment,
+                    amended_recommendation=request.amended_recommendation,
+                    diagnosis_version=_review["version"],
+                    evidence_references=_review["evidence"],
+                    model=_decision_trace.get("model"),
+                    prompt_version=_decision_trace.get("prompt_version"),
+                )
+            except ValidationError as exc:
+                raise HTTPException(status_code=422, detail=exc.errors()[0]["msg"]) from exc
+            _lifecycle.record_decision(decision)
+            _post(
+                "user",
+                "decision",
+                _decision_text(decision),
+                decision=decision.decision.value,
+                engineer=decision.engineer_id,
+                version=str(decision.diagnosis_version),
+            )
+            _decision_trace["human_decision"] = {
+                "decision": decision.decision.value,
+                "engineer": decision.engineer_id,
+                "version": decision.diagnosis_version,
+                "at": decision.timestamp.isoformat(),
+            }
+            rejected = decision.decision is DecisionValue.REJECT
+            session_snapshot = _session.copy() if _session else None
+            can_revise = bool(
+                session_snapshot and session_snapshot["turn"] < session_snapshot["max_turns"]
+            )
+            if rejected and not can_revise:
+                _post(
+                    "system",
+                    "gate",
+                    "The rejection is recorded, but the agent session has no turns left: "
+                    "start a new investigation for a revised diagnosis.",
+                )
+            _review["status"] = (
+                "revising" if rejected and can_revise else ("closed" if rejected else "approved")
+            )
+            _persist_chat()
+
+        if rejected and can_revise and session_snapshot:
+            _answer_follow_up(
+                f"I reject your answer (version {decision.diagnosis_version}): "
+                f"{decision.comment}\nRe-examine the evidence and propose a revised root cause "
+                "and remediation, or say that the evidence is insufficient.",
+                session_snapshot,
+                str(incident_id),
+                revising=decision.diagnosis_version,
+            )
+    return {"status": "ok", "decision": decision.decision.value}
+
+
+# ── Reset ─────────────────────────────────────────────────────────────────────
+
+
+@app.post("/api/v1/reset")  # type: ignore[misc]
+def reset_state() -> dict[str, Any]:
+    global _graph, _window, _correlate, _chat_history, _health_tracker  # noqa: PLW0603
+    global _decision_trace, _session, _auto_diagnosed_incident_id, _review  # noqa: PLW0603
+
+    with _state_lock:
+        closed = _lifecycle.close_current(
+            graph_snapshot=_graph_snapshot(),
+            chat_history=list(_chat_history),
+            root_cause_summary=next(
+                (m["content"][:300] for m in _chat_history if m["role"] == "agent"), None
+            ),
+        )
+
+        _graph = IncidentGraph()
+        _window = SlidingWindow(
+            window_seconds=300, change_retention_seconds=_config.change_lookback_seconds
+        )
+        _correlate = CorrelateEventsUseCase(
+            graph=_graph, event_window=_window, config=_config, topology=_topology
+        )
+        _health_tracker = _new_health_tracker()
+        _chat_history = []
+        _decision_trace = None
+        _session = None
+        _review = None
+        _auto_diagnosed_incident_id = None
+
+    return {
+        "status": "reset",
+        "closed_incident_id": str(closed.id) if closed else None,
+    }
+
+
+# ── Read-only lookups (consumed by the MCP server, DID-40) ───────────────────
+
+
+@app.get("/api/v1/runbooks/search")  # type: ignore[misc]
+def search_runbooks(
+    query: str = Query(min_length=QUERY_MIN_CHARS, max_length=QUERY_MAX_CHARS),
+) -> RunbookMatches:
+    """Historical runbooks that match a free-text description (hybrid retrieval, no LLM)."""
+    stack = _get_retrieval()
+    result = stack.retriever.retrieve(query.strip(), top_k=3)
+    matches = []
+    for candidate in result.candidates:
+        detail = stack.repo.get_by_id(candidate.runbook_id)
+        if detail is None:
+            continue
+        matches.append(
+            RunbookMatch(
+                runbook_id=detail.runbook_id,
+                score=round(candidate.score, 3),
+                summary=detail.summary[:200],
+                root_cause=detail.root_cause[:150],
+                causal_chain=list(detail.causal_chain),
+                fix=detail.fix[:150],
+                affected_components=list(detail.affected_components),
+            )
+        )
+    return RunbookMatches(threshold=result.confidence_threshold, runbooks=matches)
+
+
+@app.get("/api/v1/components/{component}/compatibility")  # type: ignore[misc]
+def component_compatibility(component: str) -> DependencyCheckResult:
+    """Deterministic compatibility check of a declared component against known constraints."""
+    try:
+        name = ComponentInput(component=component).component
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail="invalid component name") from exc
+    if _registry.get_component_state(name) is None:
+        raise HTTPException(status_code=404, detail=f"component '{name}' is not in the registry")
+    report = _registry.check_compatibility(name)
+    return DependencyCheckResult.model_validate(
+        {
+            "evidence_id": report.evidence_id,
+            "component": report.component_name,
+            "status": report.status.value.upper(),
+            "installed_versions": report.installed_versions,
+            "violations": report.violations,
+        }
+    )
+
+
+# ── Incident history ──────────────────────────────────────────────────────────
+
+
+@app.get("/api/v1/incidents")  # type: ignore[misc]
+async def list_incidents() -> list[dict[str, Any]]:
+    incidents = _list_incidents.execute()
+    return [
+        {
+            "id": str(inc.id),
+            "opened_at": inc.opened_at.isoformat(),
+            "resolved_at": inc.resolved_at.isoformat() if inc.resolved_at else None,
+            "status": inc.status,
+            "peak_severity": inc.peak_severity.value,
+            "node_count": len(inc.graph_snapshot.get("nodes", [])),  # type: ignore[arg-type]
+            "duration_seconds": inc.duration_seconds,
+            "root_cause_summary": inc.root_cause_summary,
+            "last_decision": inc.decisions[-1].decision.value if inc.decisions else None,
+            "tier": (inc.decision_trace or {}).get("tier"),
+        }
+        for inc in incidents
+    ]
+
+
+@app.get("/api/v1/incidents/{incident_id}")  # type: ignore[misc]
+async def get_incident(incident_id: uuid.UUID) -> dict[str, Any]:
+    incident = _get_incident.execute(incident_id)
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return {
+        "id": str(incident.id),
+        "opened_at": incident.opened_at.isoformat(),
+        "resolved_at": incident.resolved_at.isoformat() if incident.resolved_at else None,
+        "status": incident.status,
+        "peak_severity": incident.peak_severity.value,
+        "graph_snapshot": incident.graph_snapshot,
+        "chat_history": incident.chat_history,
+        "root_cause_summary": incident.root_cause_summary,
+        "duration_seconds": incident.duration_seconds,
+        "decisions": [d.model_dump(mode="json") for d in incident.decisions],
+        "decision_trace": incident.decision_trace,
+    }

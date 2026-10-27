@@ -1,0 +1,28 @@
+{
+    "runbook_id": "RB-FLEET-OS-UPGRADE-DIVERGENCE",
+    "incident_id": "INC-2026-05-19-002",
+    "summary": "Three of eight orders-api instances answered HTTP 500 after a routine release while the other five were healthy. The release was identical on all eight; the three failing instances had received unattended OS package upgrades during a patch window days earlier, and their application processes had kept running on the old libraries until the release restarted them. The shallow load balancer health check kept passing, so traffic kept reaching the broken instances. The team lost most of a working day suspecting and rolling back the release, which changed nothing.",
+    "affected_components": [
+        "orders-api",
+        "orders-lb"
+    ],
+    "causal_chain": [
+        "PEER_DIVERGENCE_DETECTED",
+        "DEPENDENCY_FAILURE",
+        "STATE_CHANGE"
+    ],
+    "root_cause": "An OS-level package upgrade applied by the patch manager to a subset of instances replaced shared libraries under native extensions of the application. Running processes were unaffected until the next deploy restarted them, which loaded the new libraries and broke the extensions (symbol lookup errors) on exactly the upgraded instances. Release, code and configuration were identical across the fleet; the OS state was not.",
+    "fix": "Replace the failing instances with ones built from the same image as the healthy instances (instance refresh) instead of debugging or rolling back the release. Remove them from the load balancer while they are replaced. Afterwards stop in-place OS upgrades on application hosts: patch by rebuilding the image, and make the load balancer health check exercise a database connection so a broken instance leaves rotation by itself.",
+    "fix_commands": [
+        "aws elbv2 deregister-targets --target-group-arn <target-group-arn> --targets Id=<failing-instance-id>",
+        "aws autoscaling start-instance-refresh --auto-scaling-group-name orders-api-prod --preferences MinHealthyPercentage=80"
+    ],
+    "occurred_at": "2026-05-19T09:30:00Z",
+    "tags": [
+        "peer-divergence",
+        "os-upgrade",
+        "unattended-upgrades",
+        "partial-failure",
+        "rollback-did-not-help"
+    ]
+}

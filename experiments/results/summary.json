@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-12",
+  "sections": {
+    "gate": [
+      "completed",
+      "8/10 decisions correct at threshold 0.5"
+    ],
+    "llm": [
+      "see model_selection.md",
+      "ADR-011: citations, scope refusal, injection, latency, cost per model"
+    ],
+    "ops": [
+      "completed",
+      "LLM: from experiments/results/model_selection.json (DID-34)"
+    ],
+    "retrieval": [
+      "completed",
+      "text-only hybrid recall@3 1.00 on 30 queries (labels as structure: 1.00)"
+    ]
+  },
+  "seed": 20261009,
+  "status": "completed"
+}
