@@ -441,10 +441,14 @@ def _run_investigation(target_incident_id: str, reason: str, focus: str | None =
                     "deterministic",
                     result.summary,
                     tier=result.tier.value,
+                    # The chain's own components come first; a peer-divergence finding
+                    # appends the members it names, which have no event in the chain.
                     chain=" → ".join(
                         f"{event_type} ({component})"
                         for event_type, component in zip(
-                            result.chain, result.chain_components, strict=True
+                            result.chain,
+                            result.chain_components[: len(result.chain)],
+                            strict=True,
                         )
                     ),
                     reason=reason,
